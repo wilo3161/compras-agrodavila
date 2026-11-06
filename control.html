@@ -39,12 +39,12 @@ select,input[type=search]{border:1px solid var(--bd);background:var(--card);colo
 input[type=range]{width:80px}
 .hide{display:none}
 </style>
-</head>
+<link rel="stylesheet" href="marco.css"></head>
 <body>
 <header>
   <div><h1>Control de Compras y Logística · AgroDávila</h1><div class="sub" id="fuente">—</div></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <a class="btn" href="index.html">← Inicio</a><button class="btn p" id="refrescar" type="button">Actualizar</button><label class="btn">Cargar Excel<input type="file" id="arch" accept=".xlsx,.xls" class="hide"></label>
+    <a class="btn ir-inicio" href="index.html">← Inicio</a><button class="btn p" id="refrescar" type="button">Actualizar</button><label class="btn">Cargar Excel<input type="file" id="arch" accept=".xlsx,.xls" class="hide"></label>
     <button class="btn" id="csv">Descargar pendientes (CSV)</button>
     <button class="btn hide" id="cerrar">Cerrar panel ✕</button>
   </div>

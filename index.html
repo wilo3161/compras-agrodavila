@@ -15,7 +15,11 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121815;--card:#1B231F;--tx:#E6ECE8;--t2:#9AA9A0;--bd:#2C3832;--pri:#5FB386;--pri2:#21342A;--crbg:#43201D}}
 :root[data-theme="dark"]{--bg:#121815;--card:#1B231F;--tx:#E6ECE8;--t2:#9AA9A0;--bd:#2C3832;--pri:#5FB386;--pri2:#21342A;--crbg:#43201D}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 "Segoe UI",system-ui,sans-serif;min-height:100vh}
-main{max-width:460px;margin:0 auto;padding:28px 16px calc(28px + env(safe-area-inset-bottom))}
+main{max-width:920px;margin:0 auto;padding:28px 16px calc(28px + env(safe-area-inset-bottom))}
+#pLogin,#pClave,h1,.sub{max-width:460px;margin-left:auto;margin-right:auto}
+.menu{display:grid;gap:12px}.menu a{margin-bottom:0}
+.menu h2{font-size:15px;color:var(--t2);font-weight:600;margin:0}
+@media (min-width:760px){.menu{grid-template-columns:1fr 1fr}.menu h2,.menu .card,.menu .nota{grid-column:1/-1}h1,.sub{max-width:none;text-align:center}.menu a{min-height:120px;padding:24px}.menu a b{font-size:19px}}
 h1{font-size:22px;margin:0 0 2px;color:var(--pri)}.sub{color:var(--t2);font-size:13px;margin-bottom:20px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:14px}
 label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
@@ -31,7 +35,7 @@ input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(-
 .chk{display:flex;gap:8px;align-items:center;font-size:14px;margin-top:12px}.chk input{width:20px;height:20px}
 .hide{display:none}
 </style>
-</head>
+<link rel="stylesheet" href="marco.css"></head>
 <body>
 <main>
   <h1>Compras AgroDávila</h1>
@@ -61,6 +65,7 @@ input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(-
   </section>
 
   <section class="hide menu" id="pMenu">
+    <h2>¿Qué quiere revisar hoy?</h2>
     <a href="control.html"><div class="ico" aria-hidden="true">📊</div><div><b>Control de compras</b><span>AgroControl en vivo: pendientes, cuellos de botella, KPIs, Kraljic, proveedores y pagos.</span></div></a>
     <a href="whatsapp.html"><div class="ico" aria-hidden="true">💬</div><div><b>Compras por WhatsApp</b><span>Mensajes listos para proveedores, a quién pedir, precios, facturas y pagos.</span></div></a>
     <div class="card"><div class="nota" id="usuario" style="margin:0"></div>
@@ -94,6 +99,8 @@ $("#bSalir").onclick=async()=>{ await ComprasApp.salir(); ver("pLogin"); };
 let aviso=null; window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); aviso=e;
   $("#instalar").innerHTML='<button class="btn" type="button" id="bInst">Instalar la app en este teléfono</button>';
   $("#bInst").onclick=async()=>{ aviso.prompt(); aviso=null; $("#instalar").textContent=""; }; });
+const esIOS=/iphone|ipad|ipod/i.test(navigator.userAgent), instalada=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+if(esIOS&&!instalada) $("#instalar").textContent="Para instalarla en el iPhone: botón Compartir de Safari → «Agregar a inicio».";
 iniciar();
 </script>
 </body>

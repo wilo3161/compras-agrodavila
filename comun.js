@@ -111,6 +111,30 @@
   }
   const tieneClave = () => { try { return !!(localStorage.getItem(LS_CLAVE) || sessionStorage.getItem(LS_CLAVE)); } catch (e) { return false; } };
 
+  /* ---- Marco común: barra de secciones y tablas legibles en el teléfono ---- */
+  function ponerMarco() {
+    if (document.querySelector(".marco")) return;
+    const pag = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+    const items = [["index.html", "🏠", "Inicio"], ["control.html", "📊", "Control"], ["whatsapp.html", "💬", "WhatsApp"]];
+    const n = document.createElement("div"); n.className = "marco"; n.setAttribute("role", "navigation"); n.setAttribute("aria-label", "Secciones de la app");
+    n.innerHTML = '<span class="marca">🌱 Compras AgroDávila</span>' + items.map(([h, i, t]) =>
+      `<a href="${h}"${pag === h || (pag === "" && h === "index.html") ? ' aria-current="page"' : ""}><span class="ic" aria-hidden="true">${i}</span><span>${t}</span></a>`).join("");
+    document.body.insertBefore(n, document.body.firstChild);
+  }
+  function etiquetarTablas(raiz) {
+    (raiz || document).querySelectorAll(".tw table").forEach(t => {
+      const cab = [...t.querySelectorAll("thead th")].map(th => th.textContent.replace(/[▲▼]/g, "").trim());
+      if (!cab.length) return;
+      t.querySelectorAll("tbody tr").forEach(tr => [...tr.children].forEach((td, i) => { if (!td.hasAttribute("data-l") && cab[i]) td.setAttribute("data-l", cab[i]); }));
+    });
+  }
+  document.addEventListener("DOMContentLoaded", () => {
+    ponerMarco(); etiquetarTablas();
+    let pend = false;
+    new MutationObserver(() => { if (pend) return; pend = true; requestAnimationFrame(() => { pend = false; etiquetarTablas(); }); })
+      .observe(document.body, { childList: true, subtree: true });
+  });
+
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
   window.ComprasApp = { sb, sesion, entrar, salir, exigirSesion, snapAgro, abrirDatos, datosWA, tieneClave };
 })();
