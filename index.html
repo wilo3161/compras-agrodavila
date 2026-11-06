@@ -67,7 +67,7 @@ input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(-
   <section class="hide menu" id="pMenu">
     <h2>¿Qué quiere revisar hoy?</h2>
     <a href="control.html"><div class="ico" aria-hidden="true">📊</div><div><b>Control de compras</b><span>AgroControl en vivo: pendientes, cuellos de botella, KPIs, Kraljic, proveedores y pagos.</span></div></a>
-    <a href="whatsapp.html"><div class="ico" aria-hidden="true">💬</div><div><b>Compras por WhatsApp</b><span>Mensajes listos para proveedores, a quién pedir, precios, facturas y pagos.</span></div></a>
+    <a href="whatsapp.html"><div class="ico" aria-hidden="true">💬</div><div><b>Compras por WhatsApp</b><span>Mensajes listos para proveedores, a quién pedir, precios, facturas y pagos.<br><small id="corteWA"></small></span></div></a>
     <div class="card"><div class="nota" id="usuario" style="margin:0"></div>
       <button class="btn sec" type="button" id="bClave2">Cambiar clave de datos</button>
       <button class="btn sec" type="button" id="bSalir">Cerrar sesión</button></div>
@@ -83,17 +83,18 @@ async function iniciar(){
   if(!s){ ver("pLogin"); $("#correo").focus(); return; }
   $("#usuario").textContent="Sesión: "+(s.user&&s.user.email||"");
   if(!ComprasApp.tieneClave() && !sessionStorage.getItem("agd_sin_wa")){ ver("pClave"); return; }
-  ver("pMenu");
+  ver("pMenu"); mostrarCorte();
 }
+async function mostrarCorte(){ const c=await ComprasApp.corteWA(); if(c) $("#corteWA").textContent="Datos de WhatsApp al "+new Date(c).toLocaleString("es-EC",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}); }
 $("#fLogin").addEventListener("submit",async e=>{ e.preventDefault(); err($("#eLogin"),""); $("#bEntrar").disabled=true; $("#bEntrar").textContent="Entrando…";
   try{ await ComprasApp.entrar($("#correo").value,$("#clave").value); $("#clave").value=""; await iniciar(); }
   catch(x){ err($("#eLogin"),x.message||"No se pudo entrar."); }
   $("#bEntrar").disabled=false; $("#bEntrar").textContent="Entrar"; });
 $("#fClave").addEventListener("submit",async e=>{ e.preventDefault(); err($("#eClave"),""); $("#bClave").disabled=true; $("#bClave").textContent="Abriendo…";
-  try{ await ComprasApp.abrirDatos($("#frase").value,$("#recordar").checked); $("#frase").value=""; ver("pMenu"); }
+  try{ await ComprasApp.abrirDatos($("#frase").value,$("#recordar").checked); $("#frase").value=""; ver("pMenu"); mostrarCorte(); }
   catch(x){ err($("#eClave"),x.message||"No se pudo abrir."); }
   $("#bClave").disabled=false; $("#bClave").textContent="Abrir datos"; });
-$("#bSaltar").onclick=()=>{ sessionStorage.setItem("agd_sin_wa","1"); ver("pMenu"); };
+$("#bSaltar").onclick=()=>{ sessionStorage.setItem("agd_sin_wa","1"); ver("pMenu"); mostrarCorte(); };
 $("#bClave2").onclick=()=>{ try{localStorage.removeItem("agd_clave_datos_v1");sessionStorage.removeItem("agd_clave_datos_v1");}catch(e){} ver("pClave"); };
 $("#bSalir").onclick=async()=>{ await ComprasApp.salir(); ver("pLogin"); };
 let aviso=null; window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); aviso=e;

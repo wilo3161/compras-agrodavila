@@ -44,7 +44,7 @@ input[type=range]{width:80px}
 <header>
   <div><h1>Control de Compras y Logística · AgroDávila</h1><div class="sub" id="fuente">—</div></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <a class="btn ir-inicio" href="index.html">← Inicio</a><button class="btn p" id="refrescar" type="button">Actualizar</button><label class="btn">Cargar Excel<input type="file" id="arch" accept=".xlsx,.xls" class="hide"></label>
+    <a class="btn ir-inicio" href="index.html">← Inicio</a><button class="btn p" id="refrescar" type="button">↻ Actualizar</button><button class="btn" id="xlsMatriz" type="button">Excel para la matriz</button><input type="file" id="arch" class="hide" aria-hidden="true" tabindex="-1">
     <button class="btn" id="csv">Descargar pendientes (CSV)</button>
     <button class="btn hide" id="cerrar">Cerrar panel ✕</button>
   </div>
@@ -274,14 +274,23 @@ document.getElementById("csv").addEventListener("click",()=>{
   const txt="﻿"+[cab.join(";")].concat(al.map(r=>[ALERTAS[r.alerta][1],ALERTAS[r.alerta][0],r["Línea"],r["Producto"],r["Finca"],r.etapa,r.resp,d1(r.diasEtapa),r.total.toFixed(2),r["Proveedor"]||"",ALERTAS[r.alerta][3]].map(q).join(";"))).join("\n");
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([txt],{type:"text/csv"})); a.download="pendientes_compras.csv"; a.click();
 });
-async function cargarVivo(){
-  document.getElementById("fuente").textContent="Leyendo AgroControl…";
-  try{ await ComprasApp.exigirSesion(); const s=await ComprasApp.snapAgro(); SNAP=s; AHORA=new Date(s.generado);
-       cargar(s.filas, `EN VIVO · AgroControl · ${s.usuario} · ${new Date(s.generado).toLocaleString("es-EC")}`); }
-  catch(e){ if(e.message!=="sin sesión") document.getElementById("vista").innerHTML=`<div class="card">No se pudo leer AgroControl: ${esc(e.message)}. Revise su conexión y presione «Actualizar».</div>`; }
+let ULTIMA=0, CARGANDO=false;
+async function cargarVivo(silencioso){
+  if(CARGANDO) return; CARGANDO=true;
+  const f=document.getElementById("fuente"); if(!silencioso) f.textContent="Leyendo AgroControl…";
+  try{ await ComprasApp.exigirSesion(); const s=await ComprasApp.snapAgro(); SNAP=s; AHORA=new Date(); ULTIMA=Date.now();
+       const pos=window.scrollY; cargar(s.filas, `EN VIVO · ${s.usuario} · actualizado ${AHORA.toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})} · se actualiza solo cada 5 min`); if(silencioso) window.scrollTo(0,pos); }
+  catch(e){ if(e.message!=="sin sesión"){ if(silencioso) f.textContent="Sin conexión: mostrando la última lectura ("+new Date(ULTIMA).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})+")";
+            else document.getElementById("vista").innerHTML=`<div class="card">No se pudo leer AgroControl: ${esc(e.message)}. Revise su conexión; se reintentará solo.</div>`; } }
+  CARGANDO=false;
 }
-document.getElementById("refrescar").onclick=cargarVivo;
-cargarVivo();
+document.getElementById("refrescar").onclick=()=>cargarVivo(false);
+document.getElementById("xlsMatriz").onclick=()=>{ try{ if(!SNAP.filas.length) throw new Error("Todavía no hay datos."); ComprasApp.excelMatriz(SNAP.filas); toast_("Excel descargado: péguelo en Datos_AgroControl!A4 del Modelo de Gestión"); }catch(e){ alert(e.message); } };
+function toast_(t){ const f=document.getElementById("fuente"), a=f.textContent; f.textContent=t; setTimeout(()=>{ if(f.textContent===t) f.textContent=a; },5000); }
+setInterval(()=>{ if(document.visibilityState==="visible") cargarVivo(true); }, 5*60*1000);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && Date.now()-ULTIMA>2*60*1000) cargarVivo(true); });
+window.addEventListener("online",()=>cargarVivo(true));
+cargarVivo(false);
 </script>
 </body>
 </html>

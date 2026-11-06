@@ -75,10 +75,26 @@
         put("F. check final", loc(o.fecha_check_final)); put("F. pago realizado", loc(o.fecha_pago_realizado));
       }
       put("F. entrega", loc(o ? o.fecha_entrega : p.fecha_entrega)); put("Motivo rechazo", p.motivo_rechazo); put("Motivo anulación", p.motivo_anulacion);
+      put("Revisó campo", nm(p.aprobador_campo_id));
+      if (pus.length) put("Precio unit. promedio", +(pus.reduce((a, b) => a + b, 0) / pus.length).toFixed(4));
+      if (o) { put("OK Lola (día)", dia(o.pago_lola_fecha)); put("OK Daniela (día)", dia(o.pago_daniela_fecha)); put("OK Gerencia (día)", dia(o.pago_gerencia_fecha)); put("Estado OC", o.estado); put("Corrección", o.correccion_estado); }
+      put("F. anulación", loc(p.fecha_anulacion)); put("Comentario compras", p.comentario_compras); put("Comentario contabilidad", p.comentario_contabilidad); put("Última edición", loc(p.actualizado_en));
       return r;
     });
     const s = await sesion();
     return { generado: loc(new Date()), vivo: true, usuario: s && s.user ? s.user.email : "", filas };
+  }
+
+  /* Excel de 51 columnas para pegar en Datos_AgroControl del Modelo de Gestión (reemplaza al favorito Exportador). */
+  const COLS = ["Pedido","Línea","OC (código)","Finca","Región","Hectáreas","Semana","Producto","Categoría","Ingrediente activo","Cantidad","Unidad","Urgencia","Estado (código)","Solicitó","Revisó campo","F. pedido","F. revisión campo","F. 1ª cotización","F. última cotización","F. selección proveedor","F. autorización","N° cotizaciones","Precio unit. elegido","Precio unit. mínimo","Precio unit. máximo","Precio unit. promedio","Proveedor","Días entrega ofrecidos","Tipo de pago","Días crédito","F. OC creada","F. pago programada","Pago programado el","OK Lola (día)","OK Daniela (día)","OK Gerencia (día)","F. pago aprobado (3 OK)","N° OC","F. registro N° OC","F. check final","F. pago realizado","F. entrega","Estado OC","Corrección","Motivo rechazo","Motivo anulación","F. anulación","Comentario compras","Comentario contabilidad","Última edición"];
+  function aFechaExcel(v) { if (!v) return ""; const s = String(v); if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); } const d = new Date(s.length === 16 ? s + ":00" : s); return isNaN(d) ? s : d; }
+  function excelMatriz(filas) {
+    if (!window.XLSX) throw new Error("No cargó la librería de Excel. Revise la conexión.");
+    const esF = c => c.startsWith("F. ") || c === "Pago programado el" || c === "Última edición" || c.includes("(día)");
+    const datos = filas.map(r => { const o = {}; COLS.forEach(c => { const v = r[c]; o[c] = v == null ? "" : (esF(c) ? aFechaExcel(v) : v); }); return o; });
+    const ws = XLSX.utils.json_to_sheet(datos, { header: COLS, cellDates: true, dateNF: "dd/mm/yyyy hh:mm" });
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Datos");
+    const h = new Date(); XLSX.writeFile(wb, `matriz_agrocontrol_${h.getFullYear()}-${p2(h.getMonth() + 1)}-${p2(h.getDate())}.xlsx`, { cellDates: true });
   }
 
   /* ---- Datos de WhatsApp cifrados (AES-GCM, clave derivada con PBKDF2) ---- */
@@ -136,5 +152,6 @@
   });
 
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
-  window.ComprasApp = { sb, sesion, entrar, salir, exigirSesion, snapAgro, abrirDatos, datosWA, tieneClave };
+  async function corteWA() { try { const pq = await leerPaquete(); return pq.corte || ""; } catch (e) { return ""; } }
+  window.ComprasApp = { sb, sesion, entrar, salir, exigirSesion, snapAgro, abrirDatos, datosWA, tieneClave, excelMatriz, corteWA };
 })();
