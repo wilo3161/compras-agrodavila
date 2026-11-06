@@ -1,5 +1,5 @@
 /* Service worker: guarda la app para abrir rápido; los datos siempre se piden en línea. */
-const CACHE="compras-agd-ve9b0a1432d";
+const CACHE="compras-agd-vd6aecfab36";
 const BASE=["./","index.html","control.html","whatsapp.html","comun.js","marco.css","manifest.webmanifest","iconos/icono-192.png","iconos/icono-512.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(BASE)));self.skipWaiting();});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE).map(x=>caches.delete(x)))));self.clients.claim();});
