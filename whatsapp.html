@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Compras WhatsApp · AgroDávila</title><meta name="theme-color" content="#1F5E3B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="comun.js"></script>
+<style>
+:root{--bg:#F4F6F3;--card:#FFFFFF;--tx:#1D2A22;--t2:#5E6B63;--bd:#DDE3DE;--ok:#2E7D4F;--okbg:#E5F3EA;--md:#B7791F;--mdbg:#FDF3DC;--al:#C2591B;--albg:#FCE9DC;--cr:#B42318;--crbg:#FBE4E2;--pri:#1F5E3B;--pri2:#E3EFE7;--az:#0F4C81;--azbg:#E4EEF8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121815;--card:#1B231F;--tx:#E6ECE8;--t2:#9AA9A0;--bd:#2C3832;--ok:#6CC08E;--okbg:#1E3A2A;--md:#E2B25A;--mdbg:#3A2F17;--al:#EE9A63;--albg:#3D2618;--cr:#F0857A;--crbg:#43201D;--pri:#5FB386;--pri2:#21342A;--az:#7FB2E5;--azbg:#1A2A3A}}
+:root[data-theme="dark"]{--bg:#121815;--card:#1B231F;--tx:#E6ECE8;--t2:#9AA9A0;--bd:#2C3832;--ok:#6CC08E;--okbg:#1E3A2A;--md:#E2B25A;--mdbg:#3A2F17;--al:#EE9A63;--albg:#3D2618;--cr:#F0857A;--crbg:#43201D;--pri:#5FB386;--pri2:#21342A;--az:#7FB2E5;--azbg:#1A2A3A}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--pri);color:#fff;padding:14px 16px 0}
+:root[data-theme="dark"] header{color:#0d1511}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) header{color:#0d1511}}
+header h1{margin:0;font-size:19px}
+header .sub{opacity:.85;font-size:13px;margin:2px 0 10px}
+.top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.top .acc{display:flex;gap:6px;flex-wrap:wrap}
+nav{display:flex;gap:2px;overflow-x:auto;margin:0 -16px;padding:0 12px}
+nav button{background:transparent;border:0;color:inherit;opacity:.8;padding:10px 12px;font:inherit;font-size:14px;white-space:nowrap;cursor:pointer;border-bottom:3px solid transparent}
+nav button[aria-selected="true"]{opacity:1;border-bottom-color:currentColor;font-weight:600}
+main{max-width:1200px;margin:0 auto;padding:16px}
+.banner{background:var(--mdbg);color:var(--md);padding:8px 16px;font-size:14px}
+.btn{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:7px 12px;font:inherit;font-size:14px;cursor:pointer;min-height:36px}
+.btn:hover{border-color:var(--pri)}
+.btn.pri{background:var(--pri);color:#fff;border-color:var(--pri)}
+:root[data-theme="dark"] .btn.pri{color:#0d1511}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.pri{color:#0d1511}}
+.btn.sm{padding:4px 9px;min-height:30px;font-size:13px}
+header .btn{background:rgba(255,255,255,.14);color:inherit;border-color:rgba(255,255,255,.35)}
+:focus-visible{outline:3px solid var(--az);outline-offset:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}
+.kpi .v{font-size:26px;font-weight:700;line-height:1.1}
+.kpi .l{color:var(--t2);font-size:13px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:16px}
+.card h2{font-size:16px;margin:0 0 10px}
+.card h3{font-size:15px;margin:14px 0 6px}
+.muted{color:var(--t2)}
+.small{font-size:13px}
+.filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center}
+input,select,textarea{font:inherit;font-size:14px;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:6px 9px;min-height:36px;max-width:100%}
+textarea{width:100%;min-height:150px}
+.tw{overflow-x:auto;border:1px solid var(--bd);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}
+th{background:var(--pri2);font-weight:600;white-space:nowrap;position:sticky;top:0;cursor:pointer;user-select:none}
+th.nosort{cursor:default}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+.kpi .l .chip{white-space:normal}
+.kpi{min-width:0}
+.c-ok{background:var(--okbg);color:var(--ok)}.c-md{background:var(--mdbg);color:var(--md)}.c-al{background:var(--albg);color:var(--al)}.c-cr{background:var(--crbg);color:var(--cr)}.c-az{background:var(--azbg);color:var(--az)}.c-gr{background:var(--pri2);color:var(--t2)}
+.clase{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;font-weight:700;font-size:13px}
+.lnk{background:none;border:0;color:var(--az);font:inherit;cursor:pointer;padding:0;text-align:left;text-decoration:underline;text-underline-offset:2px}
+.tarea{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:10px 0;border-bottom:1px solid var(--bd)}
+.tarea:last-child{border-bottom:0}
+.tarea .q{font-weight:600}
+.barra{height:12px;border-radius:6px;background:var(--pri)}
+.rk{display:grid;grid-template-columns:minmax(120px,220px) 1fr 70px;gap:8px;align-items:center;margin:6px 0;font-size:14px}
+.kq{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kq>div{border:1px solid var(--bd);border-radius:10px;padding:10px;min-height:120px}
+.kq h4{margin:0 0 4px;font-size:14px}
+.kq p{margin:0 0 6px;font-size:13px;color:var(--t2)}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);max-width:760px;width:calc(100% - 24px);padding:0}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg-h{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--card)}
+.dlg-h h2{margin:0;font-size:17px}
+.dlg-b{padding:14px 16px;max-height:75vh;overflow:auto}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 16px}
+.campo label{display:block;font-size:13px;color:var(--t2);margin-bottom:2px}
+.campo input,.campo select{width:100%}
+.ev{font-style:italic;color:var(--t2);font-size:13px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+.hidden{display:none!important}
+@media (max-width:600px){main{padding:12px}.kq{grid-template-columns:1fr}.rk{grid-template-columns:110px 1fr 56px}.tarea{grid-template-columns:1fr}.kpi .v{font-size:22px}}
+@media print{header nav,.top .acc,.filtros,.btn{display:none!important}body{background:#fff}}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div><h1>Compras por WhatsApp · AgroDávila</h1><div class="sub" id="sub">Cargando…</div></div>
+    <div class="acc"><a class="btn sm" href="index.html">← Inicio</a>
+      <button class="btn sm" id="bImp" type="button">Importar datos</button>
+      <button class="btn sm" id="bExp" type="button">Exportar todo (JSON)</button>
+      <button class="btn sm" id="bTema" type="button" aria-label="Cambiar tema claro u oscuro">Tema</button>
+      <input type="file" id="fImp" accept=".json,.js" class="hidden">
+    </div>
+  </div>
+  <nav role="tablist" id="nav"></nav>
+</header>
+<div class="banner hidden" id="bannerEj">Estás viendo <b>datos de ejemplo</b>. Coloca <code>datos_compras.js</code> en esta carpeta o usa «Importar datos».</div>
+<main id="main"></main>
+<dialog id="dlg"><div class="dlg-h"><h2 id="dlgT"></h2><button class="btn sm" type="button" id="dlgX" aria-label="Cerrar">✕</button></div><div class="dlg-b" id="dlgB"></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+
+<script>
+"use strict";
+/* ====== Utilidades ====== */
+const LS="compras_wa_v1", LSA="compras_wa_ajustes_v1";
+const $=s=>document.querySelector(s);
+const esc=v=>v==null?"":String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const raya="—";
+const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const usd=n=>n==null||isNaN(n)?raya:Number(n).toLocaleString("es-EC",{style:"currency",currency:"USD"});
+const pct=n=>n==null||isNaN(n)?raya:Math.round(n*100)+" %";
+function dur(min){if(min==null||isNaN(min))return raya;if(min<60)return Math.round(min)+" min";if(min<1440)return (min/60).toFixed(min<600?1:0).replace(".",",")+" h";return (min/1440).toFixed(1).replace(".",",")+" d";}
+function fecha(s){if(!s)return raya;const d=new Date(String(s).length<=10?s+"T12:00:00":s);return isNaN(d)?esc(s):d.toLocaleDateString("es-EC",{day:"2-digit",month:"short",year:"numeric"});}
+function dias(desde,hasta){if(!desde)return null;const a=new Date(String(desde).slice(0,10)+"T12:00:00"),b=new Date(String(hasta).slice(0,10)+"T12:00:00");if(isNaN(a)||isNaN(b))return null;return Math.round((b-a)/864e5);}
+function lsGet(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove("on"),1800);}
+function copiar(t){const ok=()=>toast("Copiado. Pégalo en WhatsApp.");if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(ok,()=>copiarViejo(t,ok));}else copiarViejo(t,ok);}
+function copiarViejo(t,ok){const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");ok();}catch(e){toast("No se pudo copiar");}a.remove();}
+function descargar(nombre,contenido,tipo){const b=new Blob([contenido],{type:tipo});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=nombre;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+function csv(nombre,cab,filas){const q=v=>{v=v==null?"":String(v);return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};descargar(nombre,"﻿"+[cab,...filas].map(f=>f.map(q).join(";")).join("\r\n"),"text/csv;charset=utf-8");}
+
+/* ====== Estado y datos ====== */
+const ESTADOS={por_cotizar:["Por cotizar","c-cr"],cotizacion_pedida:["Cotización pedida","c-az"],cotizado:["Cotizado","c-az"],aprobado:["Aprobado","c-md"],orden:["Orden enviada","c-md"],en_transito:["En tránsito","c-al"],recibido:["Recibido","c-ok"],facturado:["Facturado","c-ok"],pagado:["Pagado","c-gr"],sin_stock:["Sin stock","c-cr"],cancelado:["Cancelado","c-gr"]};
+ESTADOS.cerrado=["Cerrado (entregado y facturado)","c-gr"];
+const CERRADOS=new Set(["cerrado","cancelado"]);
+const AJ_DEF={pesos:{rapidez:30,respuesta:20,precio:25,disponibilidad:10,cumplimiento:15},diasCot:2,diasPed:7,tema:"",fechaHoy:false};
+let BASE=null, CAPA=Object.assign({prov:{},ped:{},bor:{}},lsGet(LS,{})), AJ=Object.assign({},AJ_DEF,lsGet(LSA,{}));
+AJ.pesos=Object.assign({},AJ_DEF.pesos,AJ.pesos||{});
+let D=null, TAB="hoy";
+
+function fusion(){
+  const b=BASE||{};
+  const prov=(b.proveedores||[]).map(p=>Object.assign({},p,CAPA.prov[p.id]||{}));
+  Object.values(CAPA.prov).forEach(p=>{if(p&&p._nuevo&&!prov.some(x=>x.id===p.id))prov.push(Object.assign({},p));});
+  const ped=(b.pedidos||[]).map(p=>Object.assign({},p,CAPA.ped[p.id]||{}));
+  Object.values(CAPA.ped).forEach(p=>{if(p&&p._nuevo&&!ped.some(x=>x.id===p.id))ped.push(Object.assign({},p));});
+  ped.forEach(p=>{p.pendiente=!CERRADOS.has(p.estado);});
+  D={corte:AJ.fechaHoy?new Date().toISOString().slice(0,10):(b.corte||new Date().toISOString()).slice(0,10),
+     fuente:b.fuente||"",categorias:b.categorias||[],proveedores:prov,pedidos:ped,precios:b.precios||[],solicitudes:b.solicitudes||[],notas_analista:b.notas_analista||[],
+     fincas:b.fincas||[],personas:b.personas||[],tramites:(b.tramites||[]).map((t,i)=>Object.assign({id:"t"+i},t,(CAPA.tra||{})["t"+i]||{})),
+     borradores:(b.borradores||[]).map(x=>Object.assign({},x,CAPA.bor[x.id]||{}))};
+  D.byId={};prov.forEach(p=>D.byId[p.id]=p);
+  D.finca={};D.fincas.forEach(f=>D.finca[f.id]=f);
+  calcularPuntajes();
+}
+const nomProv=id=>D.byId[id]?D.byId[id].nombre:(id?id:"Sin proveedor aún");
+const nomFinca=id=>id&&D.finca[id]?D.finca[id].nombre:(id||"—");
+const ivaPct=x=>x.iva_pct!=null?x.iva_pct:15;
+
+/* ====== Puntaje del proveedor ====== */
+function calcularPuntajes(){
+  const porItem={};
+  D.precios.forEach(x=>{if(x.precio==null)return;const k=norm(x.item);(porItem[k]=porItem[k]||[]).push(x);});
+  const P=AJ.pesos, tot=Object.values(P).reduce((a,b)=>a+Number(b||0),0)||1;
+  D.proveedores.forEach(p=>{
+    const m=p.metricas||{};
+    const med=m.mediana_respuesta_min;
+    const rap=med==null?50:med<=15?100:med<=60?80:med<=240?60:med<=1440?40:20;
+    const res=m.solicitudes?Math.min(1,(m.respondidas||0)/m.solicitudes)*100:50;
+    const comps=[];
+    Object.values(porItem).forEach(lst=>{const provs=new Set(lst.map(x=>x.proveedor_id));if(provs.size<2)return;
+      const min=Math.min(...lst.map(x=>x.precio));const mio=lst.filter(x=>x.proveedor_id===p.id);if(!mio.length)return;
+      const mp=Math.min(...mio.map(x=>x.precio));comps.push(mp>0?min/mp*100:100);});
+    const pre=comps.length?comps.reduce((a,b)=>a+b,0)/comps.length:50;
+    const dis=m.solicitudes?Math.max(0,1-(m.sin_stock||0)/m.solicitudes)*100:50;
+    const cum=m.entregas_total?((m.entregas_a_tiempo||0)/m.entregas_total)*100:50;
+    p._comp={rapidez:rap,respuesta:res,precio:pre,disponibilidad:dis,cumplimiento:cum,comparables:comps.length};
+    p._score=Math.round((rap*P.rapidez+res*P.respuesta+pre*P.precio+dis*P.disponibilidad+cum*P.cumplimiento)/tot);
+    p._clase=p._score>=75?"A":p._score>=55?"B":"C";
+  });
+}
+const claseHtml=p=>`<span class="clase ${p._clase==="A"?"c-ok":p._clase==="B"?"c-md":"c-cr"}" title="${esc(desglose(p))}">${p._clase}</span>`;
+function desglose(p){const c=p._comp||{};return `Puntaje ${p._score}/100 · Rapidez ${Math.round(c.rapidez)} · Respuesta ${Math.round(c.respuesta)} · Precio ${Math.round(c.precio)}${c.comparables?" ("+c.comparables+" ítems comparados)":" (sin comparables)"} · Disponibilidad ${Math.round(c.disponibilidad)} · Cumplimiento ${Math.round(c.cumplimiento)}`;}
+const chipEstado=e=>{const x=ESTADOS[e]||[e||raya,"c-gr"];return `<span class="chip ${x[1]}">${esc(x[0])}</span>`;};
+const itemsTxt=p=>(p.items||[]).map(i=>[i.cantidad!=null?i.cantidad:"",i.unidad||"",i.descripcion||""].join(" ").trim()).join("; ")||raya;
+
+/* ====== Mensajes ====== */
+function saludo(p){const c=p&&p.contacto?p.contacto:"";return c?`Estimado/a ${c}, buenos días.`:"Buenos días, estimado/a.";}
+function msgCotizacion(prov,items,lugar,finca){const f=finca&&D.finca[finca];const ent=f?f.entrega+" ("+f.ubicacion+")":(lugar||"finca AgroDávila (por confirmar)");
+  return `${saludo(prov)} Le saluda ${AJ.firma||"el Ing. Wilson Pérez, encargado de compras de AgroDávila"}.\n\nPor favor, ¿nos ayuda con una cotización formal${f?" para la finca "+f.nombre:""} de:\n${items.map(i=>"• "+i).join("\n")}\n\nPor favor incluya:\n1. Precio unitario y total, sin IVA y con IVA\n2. Stock disponible hoy; si no hay, en cuántos días lo tendrían\n3. Tiempo de entrega en días desde la orden de compra, en ${ent}\n4. ¿El precio incluye la entrega en la finca? Si el transporte se cobra aparte, ¿cuánto cuesta?\n5. Forma de pago: contado o crédito. ¿A cuántos días? ¿Qué necesitan para abrirnos crédito?\n6. Descuento por volumen o pronto pago\n7. Validez de la cotización\n8. Marca y especificaciones; garantía, o registro de Agrocalidad y vencimiento si es agroquímico\n${f?"\nFacturar a: "+f.facturar_a.replace(" (confirmar con Contabilidad)","")+". Correo: compras@agrodavila.com.\n":""}\nMuchas gracias.`;}
+function msgSeguimiento(p){const prov=D.byId[p.proveedor_id];const it=itemsTxt(p);
+  if(p.estado==="cotizacion_pedida")return `${saludo(prov)} Le escribo para dar seguimiento a la cotización que le pedimos el ${fecha(p.fecha)}: ${it}.\n¿Nos ayuda con el precio y el tiempo de entrega, por favor? Gracias.`;
+  if(p.estado==="facturado"||/factura/i.test(p.proxima_accion||""))return `${saludo(prov)} Por favor, ¿nos ayuda con la factura de ${it}${p.odc?" (ODC "+p.odc+")":""}? Contabilidad la necesita para procesar el pago. Gracias.`;
+  return `${saludo(prov)} Le escribo para dar seguimiento a nuestro pedido${p.odc?" con ODC "+p.odc:""} del ${fecha(p.fecha)}: ${it}.${p.fecha_compromiso?"\nLa fecha comprometida era el "+fecha(p.fecha_compromiso)+".":""}\n¿Nos confirma la fecha de despacho y llegada a la finca${p.finca?" "+p.finca:""}, por favor? Gracias.`;}
+
+/* ====== Persistencia de cambios ====== */
+function guardarPed(id,cambio){CAPA.ped[id]=Object.assign({},CAPA.ped[id]||{},cambio);lsSet(LS,CAPA);fusion();pintar();}
+function guardarBor(id,cambio){CAPA.bor[id]=Object.assign({},CAPA.bor[id]||{},cambio);lsSet(LS,CAPA);fusion();pintar();}
+function guardarTra(id,cambio){CAPA.tra=CAPA.tra||{};CAPA.tra[id]=Object.assign({},CAPA.tra[id]||{},cambio);lsSet(LS,CAPA);fusion();pintar();}
+function guardarProv(id,cambio){CAPA.prov[id]=Object.assign({},CAPA.prov[id]||{},cambio);lsSet(LS,CAPA);fusion();pintar();}
+
+/* ====== Pestañas ====== */
+const TABS=[["asis","Asistente"],["hoy","Hoy"],["listos","Mensajes listos"],["pedidos","Pedidos y cotizaciones"],["tramites","Facturas y pagos"],["prov","Proveedores"],["aquien","¿A quién le pido?"],["precios","Precios"],["rapidez","Rapidez"],["kraljic","Segmentación"],["msgs","Plantillas"],["proc","Cómo trabajar"],["ajustes","Ajustes"]];
+function pintarNav(){$("#nav").innerHTML=TABS.map(([k,t])=>`<button role="tab" type="button" aria-selected="${k===TAB}" data-tab="${k}">${t}</button>`).join("");}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-tab]");if(t){TAB=t.dataset.tab;pintar();window.scrollTo(0,0);}});
+
+function pintar(){pintarNav();
+  $("#sub").textContent=`Corte: ${fecha(D.corte)} · ${D.proveedores.length} proveedores · ${D.pedidos.filter(p=>p.pendiente).length} pendientes${D.fuente?" · "+D.fuente:""}`;
+  ({asis:vAsistente,hoy:vHoy,listos:vListos,pedidos:vPedidos,tramites:vTramites,prov:vProv,aquien:vAquien,precios:vPrecios,rapidez:vRapidez,kraljic:vKraljic,msgs:vMsgs,proc:vProc,ajustes:vAjustes})[TAB]();}
+
+/* --- Hoy --- */
+function tareas(){
+  const T=[];
+  D.pedidos.filter(p=>p.pendiente).forEach(p=>{
+    const abiertos=dias(p.fecha,D.corte), prov=D.byId[p.proveedor_id];
+    const venc=p.fecha_compromiso?dias(p.fecha_compromiso,D.corte):null;
+    let nivel=null,motivo="";
+    if(venc!=null&&venc>0){nivel=0;motivo=`Fecha comprometida vencida hace ${venc} d`;}
+    else if(p.estado==="cotizacion_pedida"&&abiertos!=null&&abiertos>AJ.diasCot){nivel=1;motivo=`Cotización sin respuesta hace ${abiertos} d`;}
+    else if(abiertos!=null&&abiertos>AJ.diasPed){nivel=2;motivo=`Abierto hace ${abiertos} d`;}
+    else if(p.estado==="cotizacion_pedida"||p.estado==="cotizado"){nivel=3;motivo=p.estado==="cotizado"?"Cotización recibida: decidir y aprobar":"Cotización pedida, esperando";}
+    else {nivel=3;motivo="En curso";}
+    if(prov&&prov.ultimo_contacto){const u=dias(prov.ultimo_contacto,D.corte);if(u!=null&&u>30){motivo+=` · sin contacto hace ${u} d`;nivel=Math.min(nivel,2);}}
+    T.push({p,nivel,motivo,abiertos});});
+  return T.sort((a,b)=>a.nivel-b.nivel||(b.abiertos||0)-(a.abiertos||0));
+}
+const NIV=[["Crítico","c-cr"],["Alto","c-al"],["Medio","c-md"],["Seguir","c-az"]];
+/* Grupos de trabajo del comprador */
+const GRUPOS={cotizar:["Por cotizar","c-cr","Pedir mínimo 3 cotizaciones (ver «Mensajes listos»)"],decidir:["Por decidir / autorizar","c-al","Comparar y pedir OK de Contabilidad, Administración y Gerencia"],
+  oc:["Aprobado: generar OC","c-md","Crear la OC en AgroControl y enviarla al proveedor"],curso:["En curso: OC, entregas, facturas","c-az","Seguir despacho, entrega en finca y factura"],cerrado:["Cerrado","c-gr",""]};
+function grupo(p){const e=p.estado;if(e==="por_cotizar"||e==="cotizacion_pedida")return"cotizar";if(e==="cotizado"||e==="sin_stock")return"decidir";
+  if(e==="aprobado"&&!p.odc&&String(p.fuente||"").startsWith("AgroControl"))return"oc";if(CERRADOS.has(e))return"cerrado";return"curso";}
+const delChat=p=>/WhatsApp/.test(p.fuente||"");
+function vHoy(){
+  const pend=D.pedidos.filter(p=>p.pendiente), cot=pend.filter(p=>p.estado==="cotizacion_pedida");
+  const G={};D.pedidos.forEach(p=>{const g=grupo(p);(G[g]=G[g]||[]).push(p);});
+  const borP=D.borradores.filter(b=>b.estado==="propuesto"), traP=D.tramites.filter(t=>t.estado!=="hecho");
+  const valor=pend.reduce((a,p)=>a+(Number(p.total)||0),0);
+  const meds=D.proveedores.map(p=>(p.metricas||{}).mediana_respuesta_min).filter(v=>v!=null).sort((a,b)=>a-b);
+  const med=meds.length?meds[Math.floor(meds.length/2)]:null;
+  const cls={A:0,B:0,C:0};D.proveedores.forEach(p=>cls[p._clase]++);
+  const T=tareas();
+  const lineas=g=>(G[g]||[]).reduce((a,p)=>a+(p.items||[]).length,0);
+  $("#main").innerHTML=`
+  <div class="kpis">
+    ${["cotizar","decidir","oc","curso"].map(g=>`<button type="button" class="kpi" style="text-align:left;cursor:pointer;font:inherit;color:inherit" data-irgrupo="${g}"><div class="v">${lineas(g)}</div><div class="l"><span class="chip ${GRUPOS[g][1]}">${GRUPOS[g][0]}</span><br>${(G[g]||[]).length} pedidos · ${GRUPOS[g][2]}</div></button>`).join("")}
+    <button type="button" class="kpi" style="text-align:left;cursor:pointer;font:inherit;color:inherit" data-tab="listos"><div class="v">${borP.length}</div><div class="l">Mensajes listos para revisar y enviar</div></button>
+    <button type="button" class="kpi" style="text-align:left;cursor:pointer;font:inherit;color:inherit" data-irchat="1"><div class="v">${D.pedidos.filter(p=>p.pendiente&&delChat(p)).length}</div><div class="l">Pendientes que salen de los chats</div></button>
+    <button type="button" class="kpi" style="text-align:left;cursor:pointer;font:inherit;color:inherit" data-tab="tramites"><div class="v">${traP.length}</div><div class="l">Facturas, pagos y devoluciones por cerrar</div></button>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="v">${pend.length}</div><div class="l">Pedidos y cotizaciones abiertos</div></div>
+    <div class="kpi"><div class="v">${cot.length}</div><div class="l">Cotizaciones esperando respuesta</div></div>
+    <div class="kpi"><div class="v">${usd(valor)}</div><div class="l">Valor pendiente conocido</div></div>
+    <div class="kpi"><div class="v">${dur(med)}</div><div class="l">Mediana de respuesta de proveedores</div></div>
+    <div class="kpi"><div class="v"><span class="chip c-ok">A ${cls.A}</span> <span class="chip c-md">B ${cls.B}</span> <span class="chip c-cr">C ${cls.C}</span></div><div class="l">Proveedores por clase</div></div>
+  </div>
+  ${D.notas_analista.length?`<div class="card"><h2>Lectura del analista</h2><ul>${D.notas_analista.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div>`:""}
+  <div class="card"><h2>Qué hacer hoy (${T.filter(t=>t.nivel<3).length} urgentes)</h2>
+  ${T.length?T.map(t=>`<div class="tarea"><span class="chip ${NIV[t.nivel][1]}">${NIV[t.nivel][0]}</span>
+    <div><div class="q"><button class="lnk" data-prov="${esc(t.p.proveedor_id)}">${esc(nomProv(t.p.proveedor_id))}</button> · ${esc(itemsTxt(t.p))}</div>
+    <div class="small muted">${esc(t.motivo)} · ${chipEstado(t.p.estado)}${t.p.odc?" · ODC "+esc(t.p.odc):""}${t.p.finca?" · "+esc(nomFinca(t.p.finca)):""}</div>
+    ${t.p.proxima_accion?`<div class="small"><b>Próxima acción:</b> ${esc(t.p.proxima_accion)}</div>`:""}</div>
+    <div>${t.p.proveedor_id&&D.byId[t.p.proveedor_id]&&D.byId[t.p.proveedor_id].chat?`<button class="btn sm" data-copiar="${esc(t.p.id)}">Revisar y enviar</button>`:""}</div></div>`).join(""):`<p class="muted">No hay pendientes. 🎉</p>`}
+  </div>`;
+}
+document.addEventListener("click",e=>{const g=e.target.closest("[data-irgrupo]");if(g){FP.grupo=g.dataset.irgrupo;FP.solo=false;FP.chat=false;TAB="pedidos";pintar();window.scrollTo(0,0);return;}
+  const c=e.target.closest("[data-irchat]");if(c){FP.grupo="";FP.chat=true;FP.solo=true;TAB="pedidos";pintar();window.scrollTo(0,0);}});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-copiar]");if(b){const p=D.pedidos.find(x=>x.id===b.dataset.copiar);if(p)enviarAProveedor(p.proveedor_id,msgSeguimiento(p),"ped-"+p.id,p.finca);}
+  const v=e.target.closest("[data-prov]");if(v)fichaProv(v.dataset.prov);
+  const pd=e.target.closest("[data-ped]");if(pd)fichaPed(pd.dataset.ped);});
+
+/* --- Tablas ordenables --- */
+const ORD={};
+function tabla(id,cols,filas){const o=ORD[id]||{};
+  if(o.k!=null){const c=cols[o.k];filas=filas.slice().sort((a,b)=>{let x=c.v(a),y=c.v(b);if(x==null)return 1;if(y==null)return -1;return (typeof x==="number"&&typeof y==="number"?x-y:String(x).localeCompare(String(y),"es"))*(o.d?-1:1);});}
+  return `<div class="tw"><table id="${id}"><thead><tr>${cols.map((c,i)=>`<th class="${c.num?"num":""}${c.v?"":" nosort"}" ${c.v?`data-ord="${id}:${i}" tabindex="0" aria-sort="${o.k===i?(o.d?"descending":"ascending"):"none"}"`:""}>${c.t}${o.k===i?(o.d?" ▼":" ▲"):""}</th>`).join("")}</tr></thead>
+  <tbody>${filas.length?filas.map(f=>`<tr>${cols.map(c=>`<td class="${c.num?"num":""}">${c.h(f)}</td>`).join("")}</tr>`).join(""):`<tr><td colspan="${cols.length}" class="muted">Sin resultados</td></tr>`}</tbody></table></div>`;}
+function ordenar(el){const [id,i]=el.dataset.ord.split(":");const o=ORD[id]||{};ORD[id]={k:+i,d:o.k===+i?!o.d:false};pintar();}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-ord]");if(t)ordenar(t);});
+document.addEventListener("keydown",e=>{const t=e.target.closest&&e.target.closest("[data-ord]");if(t&&(e.key==="Enter"||e.key===" ")){e.preventDefault();ordenar(t);}});
+
+/* --- Pedidos --- */
+const FP={estado:"",prov:"",finca:"",solo:true,q:"",grupo:"",chat:false};
+function vPedidos(){
+  const fincas=[...new Set(D.pedidos.map(p=>p.finca).filter(Boolean))].sort();
+  let L=D.pedidos.filter(p=>(!FP.solo||p.pendiente)&&(!FP.grupo||grupo(p)===FP.grupo)&&(!FP.chat||delChat(p))&&(!FP.estado||p.estado===FP.estado)&&(!FP.prov||p.proveedor_id===FP.prov)&&(!FP.finca||p.finca===FP.finca)&&(!FP.q||norm(itemsTxt(p)+" "+nomProv(p.proveedor_id)+" "+(p.odc||"")+" "+(p.evidencia||"")).includes(norm(FP.q))));
+  const cols=[
+    {t:"Fecha",v:p=>p.fecha,h:p=>fecha(p.fecha)},
+    {t:"Proveedor",v:p=>nomProv(p.proveedor_id),h:p=>`<button class="lnk" data-prov="${esc(p.proveedor_id)}">${esc(nomProv(p.proveedor_id))}</button>`},
+    {t:"Qué",v:p=>itemsTxt(p),h:p=>`<button class="lnk" data-ped="${esc(p.id)}">${esc(itemsTxt(p))}</button>${p.odc?`<div class="small muted">ODC ${esc(p.odc)}</div>`:""}`},
+    {t:"Finca",v:p=>nomFinca(p.finca),h:p=>esc(nomFinca(p.finca))+(p.lineas_agrocontrol&&p.lineas_agrocontrol.length?`<div class="small muted">${esc(p.lineas_agrocontrol.slice(0,3).join(", "))}${p.lineas_agrocontrol.length>3?"…":""}</div>`:"")},
+    {t:"Grupo",v:p=>grupo(p),h:p=>{const g=GRUPOS[grupo(p)];return `<span class="chip ${g[1]}">${g[0]}</span>${delChat(p)?' <span class="chip c-ok" title="Aparece en los chats de WhatsApp">chat</span>':""}`;}},
+    {t:"Total",num:1,v:p=>p.total,h:p=>usd(p.total)},
+    {t:"Días",num:1,v:p=>dias(p.fecha,D.corte),h:p=>{const d=dias(p.fecha,D.corte);return d==null?raya:`<span class="${p.pendiente&&d>AJ.diasPed?"chip c-al":""}">${d}</span>`;}},
+    {t:"Estado",v:p=>p.estado,h:p=>`<select aria-label="Estado" data-est="${esc(p.id)}">${Object.entries(ESTADOS).map(([k,v])=>`<option value="${k}" ${k===p.estado?"selected":""}>${v[0]}</option>`).join("")}</select>`},
+    {t:"Próxima acción",v:p=>p.proxima_accion,h:p=>esc(p.proxima_accion||raya)},
+    {t:"",h:p=>p.pendiente&&p.proveedor_id&&D.byId[p.proveedor_id]&&D.byId[p.proveedor_id].chat?`<button class="btn sm" data-copiar="${esc(p.id)}">Revisar y enviar</button>`:""}];
+  $("#main").innerHTML=`<div class="card"><h2>Pedidos y cotizaciones</h2>
+  <div class="filtros">
+    <input type="search" id="fq" placeholder="Buscar producto, proveedor, ODC…" value="${esc(FP.q)}" aria-label="Buscar">
+    <select id="fe" aria-label="Estado"><option value="">Todos los estados</option>${Object.entries(ESTADOS).map(([k,v])=>`<option value="${k}" ${k===FP.estado?"selected":""}>${v[0]}</option>`).join("")}</select>
+    <select id="fpv" aria-label="Proveedor"><option value="">Todos los proveedores</option>${D.proveedores.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(p=>`<option value="${esc(p.id)}" ${p.id===FP.prov?"selected":""}>${esc(p.nombre)}</option>`).join("")}</select>
+    ${fincas.length?`<select id="ff" aria-label="Finca"><option value="">Todas las fincas</option>${fincas.map(f=>`<option value="${esc(f)}" ${f===FP.finca?"selected":""}>${esc(nomFinca(f))}</option>`).join("")}</select>`:""}
+    <select id="fg" aria-label="Grupo"><option value="">Todos los grupos</option>${Object.entries(GRUPOS).map(([k,v])=>`<option value="${k}" ${k===FP.grupo?"selected":""}>${v[0]}</option>`).join("")}</select>
+    <label class="small"><input type="checkbox" id="fch" ${FP.chat?"checked":""}> Solo de los chats</label>
+    <label class="small"><input type="checkbox" id="fs" ${FP.solo?"checked":""}> Solo pendientes</label>
+    <button class="btn sm" id="bNP" type="button">+ Nuevo pedido</button>
+    <button class="btn sm" id="bCP" type="button">Descargar CSV</button>
+  </div><p class="small muted">${L.length} registros. Cambia el estado desde la tabla: se guarda en este computador.</p>
+  ${tabla("tP",cols,L)}</div>`;
+  const re=()=>{FP.q=$("#fq").value;FP.estado=$("#fe").value;FP.prov=$("#fpv").value;FP.finca=$("#ff")?$("#ff").value:"";FP.solo=$("#fs").checked;FP.grupo=$("#fg").value;FP.chat=$("#fch").checked;const pos=$("#fq").selectionStart;const foco=document.activeElement&&document.activeElement.id;vPedidos();if(foco==="fq"){$("#fq").focus();$("#fq").setSelectionRange(pos,pos);}};
+  ["#fe","#fpv","#ff","#fs","#fg","#fch"].forEach(s=>{const e=$(s);if(e)e.onchange=re;});$("#fq").oninput=re;
+  $("#bNP").onclick=()=>nuevoPedido();
+  $("#bCP").onclick=()=>csv("pedidos_compras.csv",["Fecha","Proveedor","Qué","ODC","Finca","Total","Días","Estado","Próxima acción","Evidencia"],L.map(p=>[p.fecha,nomProv(p.proveedor_id),itemsTxt(p),p.odc,p.finca,p.total,dias(p.fecha,D.corte),(ESTADOS[p.estado]||[p.estado])[0],p.proxima_accion,p.evidencia]));
+  document.querySelectorAll("[data-est]").forEach(s=>s.onchange=()=>{guardarPed(s.dataset.est,{estado:s.value});toast("Estado guardado");});
+}
+
+/* --- Proveedores --- */
+const FV={q:"",cat:"",clase:""};
+function vProv(){
+  const cats=[...new Set(D.proveedores.flatMap(p=>p.categorias||[]))].sort();
+  const L=D.proveedores.filter(p=>p.estado!=="interno"&&(!FV.cat||(p.categorias||[]).includes(FV.cat))&&(!FV.clase||p._clase===FV.clase)&&(!FV.q||norm([p.nombre,p.contacto,p.chat,(p.productos||[]).join(" "),(p.categorias||[]).join(" "),p.ciudad].join(" ")).includes(norm(FV.q))));
+  const cols=[
+    {t:"",v:p=>p._score,h:claseHtml},
+    {t:"Proveedor",v:p=>p.nombre,h:p=>`<button class="lnk" data-prov="${esc(p.id)}">${esc(p.nombre)}</button><div class="small muted">${esc(p.contacto||"")}${p.ciudad?" · "+esc(p.ciudad):""}</div>`},
+    {t:"Puntaje",num:1,v:p=>p._score,h:p=>`<span title="${esc(desglose(p))}">${p._score}</span>`},
+    {t:"Vende",v:p=>(p.categorias||[]).join(", "),h:p=>esc((p.categorias||[]).join(", ")||raya)+((p.productos||[]).length?`<div class="small muted">${esc((p.productos||[]).slice(0,4).join(", "))}${p.productos.length>4?"…":""}</div>`:"")},
+    {t:"Responde en",num:1,v:p=>(p.metricas||{}).mediana_respuesta_min,h:p=>dur((p.metricas||{}).mediana_respuesta_min)},
+    {t:"% responde",num:1,v:p=>{const m=p.metricas||{};return m.solicitudes?m.respondidas/m.solicitudes:null;},h:p=>{const m=p.metricas||{};return m.solicitudes?pct(m.respondidas/m.solicitudes)+` <span class="small muted">(${m.respondidas}/${m.solicitudes})</span>`:raya;}},
+    {t:"Pendientes",num:1,v:p=>D.pedidos.filter(x=>x.pendiente&&x.proveedor_id===p.id).length,h:p=>D.pedidos.filter(x=>x.pendiente&&x.proveedor_id===p.id).length||raya},
+    {t:"Condiciones",v:p=>(p.condiciones||{}).pago,h:p=>{const c=p.condiciones||{};return esc([c.pago,c.factura_iva===true?"con factura":c.factura_iva===false?"sin factura":null,c.credito_dias?c.credito_dias+" d crédito":null].filter(Boolean).join(" · ")||raya);}},
+    {t:"Último contacto",v:p=>p.ultimo_contacto,h:p=>fecha(p.ultimo_contacto)}];
+  $("#main").innerHTML=`<div class="card"><h2>Proveedores</h2>
+  <div class="filtros"><input type="search" id="vq" placeholder="Buscar proveedor o producto…" value="${esc(FV.q)}" aria-label="Buscar proveedor">
+  <select id="vc" aria-label="Categoría"><option value="">Todas las categorías</option>${cats.map(c=>`<option ${c===FV.cat?"selected":""}>${esc(c)}</option>`).join("")}</select>
+  <select id="vk" aria-label="Clase"><option value="">Clase A, B y C</option>${["A","B","C"].map(c=>`<option ${c===FV.clase?"selected":""}>${c}</option>`).join("")}</select>
+  <button class="btn sm" id="bNV" type="button">+ Proveedor</button><button class="btn sm" id="bCV" type="button">Descargar CSV</button></div>
+  <p class="small muted">Puntaje 0-100: rapidez, % de respuesta, precio, disponibilidad y cumplimiento (ajusta los pesos en «Ajustes»). Pasa el cursor sobre la letra para ver el detalle.</p>
+  ${tabla("tV",cols,L)}</div>`;
+  const re=()=>{FV.q=$("#vq").value;FV.cat=$("#vc").value;FV.clase=$("#vk").value;const pos=$("#vq").selectionStart,f=document.activeElement&&document.activeElement.id;vProv();if(f==="vq"){$("#vq").focus();$("#vq").setSelectionRange(pos,pos);}};
+  $("#vq").oninput=re;$("#vc").onchange=re;$("#vk").onchange=re;$("#bNV").onclick=()=>nuevoProv();
+  $("#bCV").onclick=()=>csv("proveedores_compras.csv",["Clase","Puntaje","Proveedor","Contacto","Chat","Ciudad","Categorías","Productos","Responde en (min)","Solicitudes","Respondidas","Sin stock","Pago","Factura","Crédito días","Último contacto","Notas"],L.map(p=>{const m=p.metricas||{},c=p.condiciones||{};return [p._clase,p._score,p.nombre,p.contacto,p.chat,p.ciudad,(p.categorias||[]).join(", "),(p.productos||[]).join(", "),m.mediana_respuesta_min,m.solicitudes,m.respondidas,m.sin_stock,c.pago,c.factura_iva,c.credito_dias,p.ultimo_contacto,p.notas];}));
+}
+function abrirDlg(t,html){$("#dlgT").textContent=t;$("#dlgB").innerHTML=html;const d=$("#dlg");if(!d.open)d.showModal();}
+$("#dlgX").onclick=()=>$("#dlg").close();
+function fichaProv(id){const p=D.byId[id];if(!p)return;const m=p.metricas||{},c=p.condiciones||{},cp=p._comp||{};
+  const peds=D.pedidos.filter(x=>x.proveedor_id===id).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+  const prs=D.precios.filter(x=>x.proveedor_id===id), sol=D.solicitudes.filter(x=>x.proveedor_id===id);
+  abrirDlg(p.nombre,`<p>${claseHtml(p)} <b>${p._score}/100</b> · <span class="small muted">${esc(desglose(p))}</span></p>
+  <div class="grid2 small"><div><b>Contacto:</b> ${esc(p.contacto||raya)}</div><div><b>Chat:</b> ${esc(p.chat||raya)}</div><div><b>Ciudad:</b> ${esc(p.ciudad||raya)}</div><div><b>Estado:</b> ${esc(p.estado||raya)}</div>
+  <div><b>Vende:</b> ${esc((p.categorias||[]).join(", ")||raya)}</div><div><b>Último contacto:</b> ${fecha(p.ultimo_contacto)}</div>
+  <div><b>Pago:</b> ${esc(c.pago||raya)}</div><div><b>Factura:</b> ${c.factura_iva===true?"Sí":c.factura_iva===false?"No / aparte":raya}</div><div><b>Crédito:</b> ${c.credito_dias!=null?esc(c.credito_dias)+" días":raya}</div><div><b>Entrega:</b> ${esc(c.entrega||raya)}</div>
+  <div><b>Responde en:</b> ${dur(m.mediana_respuesta_min)}</div><div><b>Responde:</b> ${m.solicitudes?m.respondidas+" de "+m.solicitudes:raya}</div></div>
+  ${(p.productos||[]).length?`<h3>Productos que vende o cotizó</h3><p class="small">${esc(p.productos.join(" · "))}</p>`:""}
+  <h3>Notas</h3><textarea id="nProv" style="min-height:70px" aria-label="Notas del proveedor">${esc(p.notas||"")}</textarea><button class="btn sm" type="button" id="gProv">Guardar nota</button>
+  <h3>Pedidos (${peds.length})</h3>${peds.length?`<ul class="small">${peds.map(x=>`<li>${fecha(x.fecha)} · ${esc(itemsTxt(x))} · ${chipEstado(x.estado)} ${x.total!=null?" · "+usd(x.total):""}${x.evidencia?`<div class="ev">«${esc(x.evidencia)}»</div>`:""}</li>`).join("")}</ul>`:`<p class="muted small">Sin pedidos registrados.</p>`}
+  <h3>Precios (${prs.length})</h3>${prs.length?`<ul class="small">${prs.map(x=>`<li>${esc(x.item)}: <b>${usd(x.precio)}</b>/${esc(x.unidad||"u")} · ${fecha(x.fecha)} · ${x.iva_incluido?"con IVA":"sin IVA"}</li>`).join("")}</ul>`:`<p class="muted small">Sin precios registrados.</p>`}
+  <h3>Solicitudes (${sol.length})</h3>${sol.length?`<ul class="small">${sol.map(x=>`<li>${fecha(x.fecha)} · ${esc(x.item)} · ${x.respondio?"respondió en "+dur(x.minutos):"<span class='chip c-al'>sin respuesta</span>"}${x.resultado?" · "+esc(x.resultado.replace(/_/g," ")):""}</li>`).join("")}</ul>`:`<p class="muted small">Sin solicitudes medidas.</p>`}`);
+  $("#gProv").onclick=()=>{guardarProv(id,{notas:$("#nProv").value});toast("Nota guardada");fichaProv(id);};}
+function fichaPed(id){const p=D.pedidos.find(x=>x.id===id);if(!p)return;
+  abrirDlg("Pedido · "+nomProv(p.proveedor_id),`<p>${chipEstado(p.estado)} ${p.odc?"· ODC "+esc(p.odc):""} ${p.finca?"· Finca "+esc(p.finca):""}</p>
+  <div class="tw"><table><thead><tr><th class="nosort">Ítem</th><th class="num nosort">Cant.</th><th class="nosort">Unidad</th><th class="num nosort">P. unit.</th></tr></thead><tbody>${(p.items||[]).map(i=>`<tr><td>${esc(i.descripcion)}</td><td class="num">${esc(i.cantidad??raya)}</td><td>${esc(i.unidad||raya)}</td><td class="num">${usd(i.precio_unit)}</td></tr>`).join("")}</tbody></table></div>
+  <div class="grid2 small" style="margin-top:10px"><div><b>Fecha:</b> ${fecha(p.fecha)}</div><div><b>Comprometido:</b> ${fecha(p.fecha_compromiso)}</div><div><b>Total:</b> ${usd(p.total)}</div><div><b>Días abierto:</b> ${dias(p.fecha,D.corte)??raya}</div></div>
+  ${p.evidencia?`<p class="ev">Del chat: «${esc(p.evidencia)}»</p>`:""}
+  <div class="campo"><label for="pa">Próxima acción</label><input id="pa" value="${esc(p.proxima_accion||"")}"></div>
+  <div class="campo" style="margin-top:6px"><label for="pn">Nota</label><input id="pn" value="${esc(p.nota||"")}"></div>
+  <p><button class="btn sm pri" type="button" id="gPed">Guardar</button> <button class="btn sm" type="button" id="cPed">Revisar y enviar seguimiento</button></p>`);
+  $("#gPed").onclick=()=>{guardarPed(id,{proxima_accion:$("#pa").value,nota:$("#pn").value});toast("Guardado");$("#dlg").close();};
+  $("#cPed").onclick=()=>enviarAProveedor(p.proveedor_id,msgSeguimiento(p),"ped-"+p.id,p.finca);}
+function nuevoPedido(){
+  abrirDlg("Nuevo pedido o cotización",`<div class="grid2">
+  <div class="campo"><label for="np1">Proveedor</label><select id="np1">${D.proveedores.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(p=>`<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join("")}</select></div>
+  <div class="campo"><label for="np2">Tipo</label><select id="np2"><option value="cotizacion_pedida">Cotización pedida</option><option value="orden">Orden enviada</option></select></div>
+  <div class="campo"><label for="np3">Producto</label><input id="np3"></div>
+  <div class="campo"><label for="np4">Cantidad</label><input id="np4" type="number" min="0" step="any"></div>
+  <div class="campo"><label for="np5">Unidad</label><input id="np5" value="u"></div>
+  <div class="campo"><label for="np6">Precio unitario (USD)</label><input id="np6" type="number" min="0" step="any"></div>
+  <div class="campo"><label for="np7">Finca</label><input id="np7"></div>
+  <div class="campo"><label for="np8">ODC</label><input id="np8"></div>
+  <div class="campo"><label for="np9">Fecha comprometida</label><input id="np9" type="date"></div></div>
+  <p><button class="btn pri" type="button" id="gNP">Guardar</button></p>`);
+  $("#gNP").onclick=()=>{const desc=$("#np3").value.trim();if(!desc){toast("Escribe el producto");return;}
+    const c=parseFloat($("#np4").value),pu=parseFloat($("#np6").value),id="m"+Date.now();
+    CAPA.ped[id]={id,_nuevo:true,proveedor_id:$("#np1").value,fecha:new Date().toISOString().slice(0,10),tipo:$("#np2").value==="orden"?"orden":"cotizacion",estado:$("#np2").value,
+      items:[{descripcion:desc,cantidad:isNaN(c)?null:c,unidad:$("#np5").value||"u",precio_unit:isNaN(pu)?null:pu}],total:!isNaN(c)&&!isNaN(pu)?c*pu:null,
+      finca:$("#np7").value||null,odc:$("#np8").value||null,fecha_compromiso:$("#np9").value||null,proxima_accion:"",evidencia:"Registrado a mano"};
+    lsSet(LS,CAPA);$("#dlg").close();fusion();pintar();toast("Pedido agregado");};}
+function nuevoProv(){
+  abrirDlg("Nuevo proveedor",`<div class="grid2">
+  <div class="campo"><label for="nv1">Nombre</label><input id="nv1"></div><div class="campo"><label for="nv2">Contacto</label><input id="nv2"></div>
+  <div class="campo"><label for="nv3">Ciudad</label><input id="nv3"></div><div class="campo"><label for="nv4">Categorías (separadas por coma)</label><input id="nv4"></div>
+  <div class="campo"><label for="nv5">Productos (separados por coma)</label><input id="nv5"></div></div><p><button class="btn pri" type="button" id="gNV">Guardar</button></p>`);
+  $("#gNV").onclick=()=>{const n=$("#nv1").value.trim();if(!n){toast("Escribe el nombre");return;}const sp=s=>s.split(",").map(x=>x.trim()).filter(Boolean);const id="mv"+Date.now();
+    CAPA.prov[id]={id,_nuevo:true,nombre:n,contacto:$("#nv2").value,ciudad:$("#nv3").value,categorias:sp($("#nv4").value),productos:sp($("#nv5").value),estado:"prospecto",metricas:{},condiciones:{}};
+    lsSet(LS,CAPA);$("#dlg").close();fusion();pintar();toast("Proveedor agregado");};}
+
+/* --- ¿A quién le pido? --- */
+let AQ={q:"",sel:new Set(),lugar:"",finca:""};
+function candidatos(q){const nq=norm(q).trim();if(!nq)return [];const palabras=nq.split(/\s+/).filter(w=>w.length>2);
+  const hit=t=>{const n=norm(t);return n.includes(nq)||(palabras.length&&palabras.every(w=>n.includes(w)));};
+  return D.proveedores.map(p=>{const prs=D.precios.filter(x=>x.proveedor_id===p.id&&hit(x.item+" "+(x.categoria||"")));
+    const porProd=(p.productos||[]).filter(hit), porCat=(p.categorias||[]).filter(hit);
+    if(!prs.length&&!porProd.length&&!porCat.length)return null;
+    const ult=prs.slice().sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)))[0];
+    return {p,ult,motivo:[...porProd,...porCat].slice(0,3).join(", ")||(ult?ult.item:"")};}).filter(Boolean)
+    .filter(c=>{const f=AQ.finca&&D.finca[AQ.finca];return !f||!c.p.zona||c.p.zona===f.zona||c.p.zona==="Nacional";})
+    .sort((a,b)=>{const f=AQ.finca&&D.finca[AQ.finca];const z=c=>f&&c.p.zona===f.zona?1:0;return z(b)-z(a)||b.p._score-a.p._score;});}
+function vAquien(){
+  const C=candidatos(AQ.q);
+  if(!AQ._q||AQ._q!==AQ.q){AQ.sel=new Set(C.slice(0,3).map(c=>c.p.id));AQ._q=AQ.q;}
+  const cats=[...new Set(D.proveedores.flatMap(p=>p.categorias||[]))].sort();
+  $("#main").innerHTML=`<div class="card"><h2>¿A quién le pido?</h2>
+  <div class="filtros"><select id="aqf" aria-label="Finca que pide"><option value="">¿Para qué finca?</option>${D.fincas.map(f=>`<option value="${esc(f.id)}" ${f.id===AQ.finca?"selected":""}>${esc(f.nombre)} · ${esc(f.zona)}</option>`).join("")}</select>
+  <input type="search" id="aq" placeholder="Producto o categoría: alambre, bomba, agua, rulimán…" value="${esc(AQ.q)}" style="flex:1;min-width:220px" aria-label="Producto a buscar"></div>
+  ${AQ.finca&&D.finca[AQ.finca]?`<p class="small muted">Solo proveedores de ${esc(D.finca[AQ.finca].zona)} o nacionales. Entrega: ${esc(D.finca[AQ.finca].entrega)}.</p>`:""}
+  <div class="filtros small">${cats.map(c=>`<button class="btn sm" type="button" data-aqc="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+  ${AQ.q?(C.length?`<p class="small muted">Regla de oro: pide al menos 3 cotizaciones. Ya marqué los 3 mejores según su puntaje; cambia la selección si quieres.</p>
+  ${tabla("tA",[
+    {t:"Pedir",h:c=>`<input type="checkbox" aria-label="Pedir cotización a ${esc(c.p.nombre)}" data-aqs="${esc(c.p.id)}" ${AQ.sel.has(c.p.id)?"checked":""}>`},
+    {t:"",v:c=>c.p._score,h:c=>claseHtml(c.p)},
+    {t:"Proveedor",v:c=>c.p.nombre,h:c=>`<button class="lnk" data-prov="${esc(c.p.id)}">${esc(c.p.nombre)}</button><div class="small muted">${esc(c.motivo)}</div>`},
+    {t:"Puntaje",num:1,v:c=>c.p._score,h:c=>c.p._score},
+    {t:"Último precio",num:1,v:c=>c.ult?c.ult.precio:null,h:c=>c.ult?`${usd(c.ult.precio)}<div class="small muted">${esc(c.ult.item)} · ${fecha(c.ult.fecha)}</div>`:raya},
+    {t:"Responde en",num:1,v:c=>(c.p.metricas||{}).mediana_respuesta_min,h:c=>dur((c.p.metricas||{}).mediana_respuesta_min)},
+    {t:"Ojo",h:c=>{const m=c.p.metricas||{};const o=[];if(m.sin_stock)o.push(m.sin_stock+" veces sin stock");if(m.solicitudes&&m.respondidas<m.solicitudes)o.push((m.solicitudes-m.respondidas)+" sin responder");if(c.p.estado&&c.p.estado!=="activo")o.push(c.p.estado);return esc(o.join(" · ")||raya);}}],C)}
+  <h3>Armar solicitud de cotización</h3>
+  <div class="grid2"><div class="campo"><label for="aqi">Productos y cantidades (uno por línea)</label><textarea id="aqi" style="min-height:80px">${esc(AQ.items||AQ.q)}</textarea></div>
+  <div class="campo"><label for="aql">Lugar de entrega</label><input id="aql" value="${esc(AQ.lugar)}" placeholder="Finca…"></div></div>
+  <div id="aqm"></div>`:`<p class="muted">No encontré proveedores para «${esc(AQ.q)}». Prueba con otra palabra o agrégalo en «Proveedores».</p>`):`<p class="muted">Escribe qué necesitas comprar.</p>`}</div>`;
+  $("#aqf").onchange=()=>{AQ.finca=$("#aqf").value;AQ._q=null;vAquien();};
+  $("#aq").oninput=()=>{const pos=$("#aq").selectionStart;AQ.q=$("#aq").value;AQ.items="";vAquien();$("#aq").focus();$("#aq").setSelectionRange(pos,pos);};
+  document.querySelectorAll("[data-aqc]").forEach(b=>b.onclick=()=>{AQ.q=b.dataset.aqc;AQ.items="";vAquien();});
+  document.querySelectorAll("[data-aqs]").forEach(b=>b.onchange=()=>{b.checked?AQ.sel.add(b.dataset.aqs):AQ.sel.delete(b.dataset.aqs);mensajesAQ();});
+  if($("#aqi")){$("#aqi").oninput=()=>{AQ.items=$("#aqi").value;mensajesAQ();};$("#aql").oninput=()=>{AQ.lugar=$("#aql").value;mensajesAQ();};mensajesAQ();}
+}
+function mensajesAQ(){const box=$("#aqm");if(!box)return;const items=($("#aqi").value||"").split("\n").map(s=>s.trim()).filter(Boolean);
+  const sel=[...AQ.sel].map(id=>D.byId[id]).filter(Boolean);
+  box.innerHTML=sel.length?sel.map((p,i)=>`<div class="card" style="margin:10px 0 0"><div class="filtros" style="justify-content:space-between;margin:0 0 6px"><b>${esc(p.nombre)}</b><button class="btn sm pri" type="button" data-aqcp="${i}">Revisar y enviar</button></div><textarea style="min-height:200px" aria-label="Mensaje para ${esc(p.nombre)}">${esc(msgCotizacion(p,items,AQ.lugar,AQ.finca))}</textarea></div>`).join(""):`<p class="muted small">Marca al menos un proveedor.</p>`;
+  box.querySelectorAll("[data-aqcp]").forEach(b=>b.onclick=()=>{const p=sel[+b.dataset.aqcp];const t=b.closest(".card").querySelector("textarea").value;enviarAProveedor(p.id,t,"aq-"+p.id+"-"+Date.now(),AQ.finca);});}
+
+/* --- Precios --- */
+let FPR="";
+function vPrecios(){
+  const grupos={};D.precios.forEach(x=>{if(FPR&&!norm(x.item+" "+(x.categoria||"")+" "+nomProv(x.proveedor_id)).includes(norm(FPR)))return;const k=norm(x.item);(grupos[k]=grupos[k]||{item:x.item,categoria:x.categoria,l:[]}).l.push(x);});
+  const G=Object.values(grupos).sort((a,b)=>b.l.length-a.l.length||a.item.localeCompare(b.item,"es"));
+  const comp=G.filter(g=>new Set(g.l.map(x=>x.proveedor_id)).size>1).length;
+  $("#main").innerHTML=`<div class="card"><h2>Precios</h2>
+  <div class="filtros"><input type="search" id="prq" placeholder="Buscar ítem o proveedor…" value="${esc(FPR)}" aria-label="Buscar precio"><button class="btn sm" id="bCPr" type="button">Descargar CSV</button></div>
+  <p class="small muted">${D.precios.length} precios en ${G.length} ítems; ${comp} ítems tienen más de un proveedor para comparar. IVA Ecuador 15 % (fertilizantes y agroquímicos de uso agrícola con tarifa 0 %). El más barato, con IVA, va en verde.</p>
+  ${G.map(g=>{const conIva=x=>x.iva_incluido?x.precio:x.precio*(1+ivaPct(x)/100);const min=Math.min(...g.l.filter(x=>x.precio!=null).map(conIva));
+    return `<h3>${esc(g.item)} <span class="small muted">${esc(g.categoria||"")}</span></h3>${tabla("pr_"+norm(g.item).replace(/\W+/g,"_"),[
+      {t:"Proveedor",v:x=>nomProv(x.proveedor_id),h:x=>`<button class="lnk" data-prov="${esc(x.proveedor_id)}">${esc(nomProv(x.proveedor_id))}</button>`},
+      {t:"Precio",num:1,v:x=>x.precio,h:x=>`${usd(x.precio)}/${esc(x.unidad||"u")} <span class="small muted">${x.iva_incluido?"con IVA":ivaPct(x)===0?"IVA 0 %":"+IVA "+ivaPct(x)+" %"}</span>`},
+      {t:"Fuente",v:x=>x.fuente,h:x=>esc(x.fuente||"")},
+      {t:"Con IVA",num:1,v:x=>x.precio==null?null:conIva(x),h:x=>x.precio==null?raya:`<span class="${conIva(x)===min&&g.l.length>1?"chip c-ok":""}">${usd(conIva(x))}</span>`},
+      {t:"vs. mejor",num:1,v:x=>x.precio==null?null:conIva(x)/min-1,h:x=>x.precio==null||g.l.length<2?raya:conIva(x)===min?"mejor":"+"+Math.round((conIva(x)/min-1)*100)+" %"},
+      {t:"Fecha",v:x=>x.fecha,h:x=>fecha(x.fecha)},
+      {t:"Nota",h:x=>esc(x.nota||"")}],g.l)}`;}).join("")||`<p class="muted">Sin precios.</p>`}</div>`;
+  $("#prq").oninput=()=>{const pos=$("#prq").selectionStart;FPR=$("#prq").value;vPrecios();$("#prq").focus();$("#prq").setSelectionRange(pos,pos);};
+  $("#bCPr").onclick=()=>csv("precios_proveedores.csv",["Ítem","Categoría","Proveedor","Precio","Unidad","IVA incluido","Fecha","Nota"],D.precios.map(x=>[x.item,x.categoria,nomProv(x.proveedor_id),x.precio,x.unidad,x.iva_incluido?"sí":"no",x.fecha,x.nota]));
+}
+
+/* --- Rapidez --- */
+function vRapidez(){
+  const L=D.proveedores.filter(p=>(p.metricas||{}).mediana_respuesta_min!=null).sort((a,b)=>a.metricas.mediana_respuesta_min-b.metricas.mediana_respuesta_min);
+  const sin=D.proveedores.filter(p=>(p.metricas||{}).mediana_respuesta_min==null);
+  const mx=Math.log10(Math.max(...L.map(p=>p.metricas.mediana_respuesta_min),60)+1);
+  const color=m=>m<=15?"var(--ok)":m<=60?"var(--pri)":m<=240?"var(--md)":m<=1440?"var(--al)":"var(--cr)";
+  $("#main").innerHTML=`<div class="card"><h2>¿Quién responde más rápido?</h2>
+  <p class="small muted">Mediana del tiempo entre tu mensaje y la primera respuesta del proveedor (escala logarítmica). Verde: menos de 15 min · rojo: más de un día.</p>
+  ${L.map(p=>{const m=p.metricas.mediana_respuesta_min,w=Math.max(3,Math.log10(m+1)/mx*100);const r=p.metricas.solicitudes?Math.round(p.metricas.respondidas/p.metricas.solicitudes*100)+" % resp.":"";
+    return `<div class="rk"><button class="lnk" data-prov="${esc(p.id)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.nombre)}</button><div title="${esc(r)}"><div class="barra" style="width:${w}%;background:${color(m)}"></div></div><div class="num small">${dur(m)}</div></div>`;}).join("")||`<p class="muted">Sin tiempos medidos.</p>`}
+  ${sin.length?`<h3>Sin datos suficientes (${sin.length})</h3><p class="small muted">${sin.map(p=>esc(p.nombre)).join(" · ")}</p>`:""}</div>`;
+}
+
+/* --- Kraljic --- */
+function vKraljic(){
+  const cats={};D.proveedores.forEach(p=>(p.categorias||[]).forEach(c=>{(cats[c]=cats[c]||{c,provs:new Set(),gasto:0,peds:0}).provs.add(p.id);}));
+  D.pedidos.forEach(x=>{const p=D.byId[x.proveedor_id];const c=(x.categoria)||(p&&(p.categorias||[])[0]);if(!c)return;(cats[c]=cats[c]||{c,provs:new Set(),gasto:0,peds:0});cats[c].gasto+=Number(x.total)||0;cats[c].peds++;});
+  const L=Object.values(cats);const gastos=L.map(x=>x.gasto).sort((a,b)=>a-b);const medG=gastos.length?gastos[Math.floor(gastos.length/2)]:0;
+  L.forEach(x=>{const n=x.provs.size;x.riesgo=n<=1?"alto":n===2?"medio":"bajo";const altoG=x.gasto>medG||(medG===0&&x.peds>1);const altoR=n<=2;
+    x.q=altoG&&altoR?"est":altoG?"apa":altoR?"cue":"rut";});
+  const Q={est:["Estratégico","Gasto alto y pocos proveedores: cuida la relación, acuerda precios y plazos por escrito y busca un segundo proveedor."],
+    cue:["Cuello de botella","Poco gasto pero pocos proveedores: asegura stock de seguridad y encuentra alternativas antes de que falte."],
+    apa:["Apalancamiento","Gasto alto y muchos proveedores: negocia por volumen y compara siempre 3 cotizaciones."],
+    rut:["Rutinario","Poco gasto y muchos proveedores: simplifica, compra al más rápido y agrupa pedidos."]};
+  const caja=k=>`<div><h4>${Q[k][0]}</h4><p>${Q[k][1]}</p>${L.filter(x=>x.q===k).map(x=>`<span class="chip ${x.riesgo==="alto"?"c-cr":x.riesgo==="medio"?"c-md":"c-ok"}" style="margin:2px" title="${x.provs.size} proveedor(es) · ${usd(x.gasto)}">${esc(x.c)}</span>`).join(" ")||'<span class="small muted">—</span>'}</div>`;
+  const solo=L.filter(x=>x.provs.size===1);
+  $("#main").innerHTML=`<div class="card"><h2>Segmentación de categorías (Kraljic)</h2>
+  <p class="small muted">Eje de impacto: gasto registrado por categoría (sobre o bajo la mediana). Eje de riesgo: cuántos proveedores tienes en esa categoría (1 alto · 2 medio · 3 o más bajo). Color del chip = riesgo.</p>
+  <div class="kq">${caja("cue")}${caja("est")}${caja("rut")}${caja("apa")}</div></div>
+  <div class="card"><h2>Riesgo de dependencia: categorías con un solo proveedor (${solo.length})</h2>
+  ${solo.length?`<ul>${solo.map(x=>`<li><b>${esc(x.c)}</b>: solo ${esc(nomProv([...x.provs][0]))}. Busca un segundo proveedor.</li>`).join("")}</ul>`:`<p class="muted">Ninguna.</p>`}</div>
+  <div class="card"><h2>Resumen por categoría</h2>${tabla("tK",[
+    {t:"Categoría",v:x=>x.c,h:x=>esc(x.c)},{t:"Proveedores",num:1,v:x=>x.provs.size,h:x=>x.provs.size},{t:"Pedidos",num:1,v:x=>x.peds,h:x=>x.peds},
+    {t:"Gasto registrado",num:1,v:x=>x.gasto,h:x=>usd(x.gasto)},{t:"Cuadrante",v:x=>x.q,h:x=>Q[x.q][0]}],L)}</div>`;
+}
+
+/* --- Mensajes --- */
+function vMsgs(){
+  const ps=D.proveedores.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+  $("#main").innerHTML=`<div class="card"><h2>Plantillas de mensajes</h2>
+  <div class="grid2"><div class="campo"><label for="mp">Proveedor</label><select id="mp">${ps.map(p=>`<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join("")}</select></div>
+  <div class="campo"><label for="mt">Tipo</label><select id="mt"><option value="cot">Solicitud de cotización</option><option value="segc">Seguimiento de cotización</option><option value="desp">Seguimiento de despacho</option><option value="fact">Pedido de factura</option><option value="lead">Pedir fechas para medir lead time</option></select></div>
+  <div class="campo"><label for="mi">Productos / ODC</label><input id="mi" placeholder="30 rollos de alambre galvanizado #8"></div>
+  <div class="campo"><label for="ml">Finca / lugar</label><input id="ml"></div></div>
+  <textarea id="mx" aria-label="Mensaje generado" style="margin-top:10px"></textarea><p><button class="btn pri" type="button" id="mc">Revisar y enviar</button></p></div>`;
+  const gen=()=>{const p=D.byId[$("#mp").value]||{},it=$("#mi").value||"(productos)",l=$("#ml").value;const t=$("#mt").value;let m="";
+    if(t==="cot")m=msgCotizacion(p,it.split(/;|\n/).map(s=>s.trim()).filter(Boolean),l);
+    else if(t==="segc")m=`${saludo(p)} Le escribo para dar seguimiento a la cotización de ${it}. ¿Nos ayuda con el precio y el tiempo de entrega, por favor? Gracias.`;
+    else if(t==="desp")m=`${saludo(p)} Le escribo para dar seguimiento al pedido de ${it}. ¿Nos confirma la fecha de despacho y de llegada${l?" a la finca "+l:""}, por favor? Gracias.`;
+    else if(t==="fact")m=`${saludo(p)} Por favor, ¿nos ayuda con la factura de ${it}? Contabilidad la necesita para procesar el pago. Gracias.`;
+    else m=`${saludo(p)} Estamos midiendo los tiempos de entrega de nuestros proveedores. Para el pedido de ${it}, ¿nos ayuda con la fecha en que recibió la orden y la fecha de despacho? Muchas gracias por su apoyo.`;
+    $("#mx").value=m;};
+  ["#mp","#mt","#mi","#ml"].forEach(s=>$(s).addEventListener("input",gen));gen();$("#mc").onclick=()=>enviarAProveedor($("#mp").value,$("#mx").value,"pl-"+Date.now(),null);
+}
+
+/* --- Mensajes listos (borradores del agente) --- */
+const AGENTE=(window.AGENTE_COMPRAS_URL||(location.protocol.startsWith("http")?location.origin:"http://127.0.0.1:5517")+"/api/compras-agd");
+let AGENTE_OK=null, TEL={}, WA_LISTO=false, FL={tipo:"",finca:"",estado:"propuesto"};
+const PUEDE_ENVIAR=()=>AGENTE_OK&&(WA_LISTO||TEL.conectado);
+function probarAgente(forzar){if(AGENTE_OK!==null&&!forzar)return;if(AGENTE_OK===null)AGENTE_OK=false;
+  fetch(AGENTE+"/estado",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{const antes=JSON.stringify([AGENTE_OK,TEL]);AGENTE_OK=!!(j&&j.ok);TEL=(j&&j.telefono)||{};
+    if(JSON.stringify([AGENTE_OK,TEL])!==antes&&TAB==="listos")pintar();}).catch(()=>{});
+  fetch(AGENTE+"/wa/estado",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{const antes=WA_LISTO;WA_LISTO=!!(j&&j.estado==="listo");
+    if(antes!==WA_LISTO&&TAB==="listos")pintar();}).catch(()=>{});
+  fetch(AGENTE+"/envios",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{if(!j||!j.envios)return;let cambio=false;
+    j.envios.forEach(e=>{if(e.resultado==="enviado"&&e.id&&(CAPA.bor[e.id]||{}).estado!=="enviado"){CAPA.bor[e.id]=Object.assign({},CAPA.bor[e.id]||{},{estado:"enviado",enviado_en:e.fecha});cambio=true;}});
+    if(cambio){lsSet(LS,CAPA);fusion();pintar();}}).catch(()=>{});}
+function postAgente(ruta,cuerpo){return fetch(AGENTE+ruta,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(cuerpo)}).then(r=>r.json()).catch(()=>({ok:false,error:"Sin servicio de envío automático: se usa WhatsApp del teléfono."}));}
+function panelTelefono(){
+  if(!AGENTE_OK)return `<p class="small"><span class="chip c-ok">Envío desde el teléfono</span> «Revisar y enviar» abre WhatsApp con el mensaje listo; tú pulsas Enviar.</p>`;
+  if(WA_LISTO)return `<p class="small"><span class="chip c-ok">Envío por WhatsApp Web listo</span> ${TEL.conectado?"· teléfono también conectado (respaldo)":""}</p>`;
+  if(TEL.conectado&&!TEL.bloqueado)return `<p class="small"><span class="chip c-ok">Teléfono conectado</span> ${esc(TEL.modelo||"")} · ${esc(TEL.serial||"")}</p>`;
+  if(TEL.conectado&&TEL.bloqueado)return `<div class="card" style="border-color:var(--al)"><b>El teléfono está bloqueado.</b> <span class="small">Desbloquéalo para poder enviar.</span> <button class="btn sm" type="button" id="telRe">Volver a revisar</button></div>`;
+  return `<div class="card" style="border-color:var(--al)"><b>El teléfono no está conectado.</b>
+   <p class="small">En el teléfono: Ajustes → Opciones de desarrollador → <b>Depuración inalámbrica</b>. Escribe la «Dirección IP y puerto» que aparece ahí. El teléfono y este computador deben estar en la misma red Wi-Fi.</p>
+   <div class="filtros"><input id="telIp" placeholder="192.168.1.115:39055" value="${esc(TEL.serial||"")}" aria-label="IP y puerto"><button class="btn sm pri" type="button" id="telCon">Conectar</button></div>
+   <details class="small"><summary>¿Primera vez o no conecta? Emparejar con código</summary>
+   <p>En Depuración inalámbrica toca «Vincular dispositivo con código de sincronización» y escribe lo que aparece en esa ventana:</p>
+   <div class="filtros"><input id="parIp" placeholder="IP:puerto de vinculación" aria-label="IP y puerto de vinculación"><input id="parCod" placeholder="Código de 6 dígitos" inputmode="numeric" maxlength="6" aria-label="Código"><button class="btn sm" type="button" id="telPar">Emparejar</button></div></details></div>`;}
+function activarPanelTelefono(){
+  const re=$("#telRe");if(re)re.onclick=()=>probarAgente(true);
+  const c=$("#telCon");if(c)c.onclick=()=>{toast("Conectando…");postAgente("/conectar",{ip_puerto:$("#telIp").value.trim()}).then(j=>{toast(j.ok?"Teléfono conectado":(j.error||"No se pudo conectar"));probarAgente(true);});};
+  const p=$("#telPar");if(p)p.onclick=()=>{toast("Emparejando…");postAgente("/emparejar",{ip_puerto:$("#parIp").value.trim(),codigo:$("#parCod").value.trim()}).then(j=>{toast(j.ok?"Emparejado. Ahora escribe la IP:puerto principal y pulsa Conectar.":(j.error||"No se pudo emparejar"));});};}
+const EST_BOR={propuesto:["Por revisar","c-al"],enviado:["Enviado","c-ok"],descartado:["Descartado","c-gr"],enviando:["Enviando…","c-az"],fallo_envio:["Falló el envío","c-cr"]};
+function vListos(){probarAgente();
+  const L=D.borradores.filter(b=>(!FL.tipo||b.tipo===FL.tipo)&&(!FL.finca||b.finca===FL.finca)&&(!FL.estado||b.estado===FL.estado));
+  const fincas=[...new Set(D.borradores.map(b=>b.finca).filter(Boolean))];
+  const porFinca={};L.forEach(b=>{const k=b.finca||"_seg";(porFinca[k]=porFinca[k]||[]).push(b);});
+  const orden=Object.keys(porFinca).sort((a,b)=>(a==="_seg")-(b==="_seg")||nomFinca(a).localeCompare(nomFinca(b),"es"));
+  $("#main").innerHTML=`<div class="card"><h2>Mensajes listos para enviar</h2>
+  <p class="small">Cada cotización va a 3 proveedores de la zona de la finca y dice para qué finca es, dónde se entrega, a quién se factura y todas las condiciones (entrega, transporte, contado o crédito, validez). <b>Revisa el texto, corrígelo si hace falta y pulsa «Revisar y enviar»</b>: se envía desde el WhatsApp Business del teléfono solo cuando tú confirmas.</p>
+  ${panelTelefono()}
+  <div class="filtros"><select id="lt" aria-label="Tipo"><option value="">Cotizaciones y seguimientos</option><option value="cotizacion" ${FL.tipo==="cotizacion"?"selected":""}>Solo cotizaciones</option><option value="seguimiento" ${FL.tipo==="seguimiento"?"selected":""}>Solo seguimientos</option></select>
+  <select id="lf" aria-label="Finca"><option value="">Todas las fincas</option>${fincas.map(f=>`<option value="${esc(f)}" ${f===FL.finca?"selected":""}>${esc(nomFinca(f))}</option>`).join("")}</select>
+  <select id="le" aria-label="Estado"><option value="">Todos</option>${Object.entries(EST_BOR).map(([k,v])=>`<option value="${k}" ${k===FL.estado?"selected":""}>${v[0]}</option>`).join("")}</select></div>
+  <p class="small muted">${L.length} mensajes · ${D.borradores.filter(b=>b.estado==="enviado").length} enviados de ${D.borradores.length}</p></div>
+  ${orden.map(k=>`<h2 style="font-size:16px;margin:18px 0 8px">${k==="_seg"?"Seguimientos de pedidos, facturas y entregas":"Cotizaciones · "+esc(nomFinca(k))+" <span class='small muted'>("+esc((D.finca[k]||{}).zona||"")+" · "+esc((D.finca[k]||{}).ubicacion||"")+")</span>"}</h2>
+    ${porFinca[k].map(b=>{const p=D.byId[b.proveedor_id]||{};const e=EST_BOR[b.estado]||[b.estado,"c-gr"];
+      return `<div class="card"><div class="filtros" style="justify-content:space-between;margin:0 0 6px"><div><b>${esc(p.nombre||b.proveedor_id)}</b> <span class="chip ${e[1]}">${e[0]}</span>
+        <div class="small muted">Chat: «${esc(b.chat||"—")}» · ${esc(b.motivo||"")}${(b.lineas_agrocontrol||[]).length?" · "+esc(b.lineas_agrocontrol.join(", ")):""}${p.metricas&&p.metricas.mediana_respuesta_min!=null?" · suele responder en "+dur(p.metricas.mediana_respuesta_min):""}</div></div></div>
+        <textarea data-btxt="${esc(b.id)}" aria-label="Mensaje para ${esc(p.nombre||"")}" style="min-height:${b.tipo==="cotizacion"?260:120}px" ${b.estado!=="propuesto"?"readonly":""}>${esc(b.texto)}</textarea>
+        <div class="filtros" style="margin:8px 0 0">${b.estado==="propuesto"||b.estado==="fallo_envio"?`<button class="btn sm pri" type="button" data-benv="${esc(b.id)}" >Revisar y enviar</button>
+          <button class="btn sm" type="button" data-bdes="${esc(b.id)}">Descartar</button>`:b.estado==="enviando"?"":`<button class="btn sm" type="button" data-breab="${esc(b.id)}">Volver a «por revisar»</button>`}
+          ${b.enviado_en?`<span class="small muted">Enviado: ${esc(new Date(b.enviado_en).toLocaleString("es-EC"))}</span>`:""}${b.error?`<span class="small" style="color:var(--cr)">${esc(b.error)}</span>`:""}</div></div>`;}).join("")}`).join("")||`<div class="card"><p class="muted">No hay mensajes con ese filtro.</p></div>`}`;
+  const re=()=>{FL.tipo=$("#lt").value;FL.finca=$("#lf").value;FL.estado=$("#le").value;vListos();};
+  ["#lt","#lf","#le"].forEach(s=>$(s).onchange=re);
+  const txt=id=>{const t=document.querySelector(`[data-btxt="${CSS.escape(id)}"]`);return t?t.value:"";};
+  document.querySelectorAll("[data-btxt]").forEach(t=>t.onchange=()=>{CAPA.bor[t.dataset.btxt]=Object.assign({},CAPA.bor[t.dataset.btxt]||{},{texto:t.value});lsSet(LS,CAPA);fusion();});
+  activarPanelTelefono();
+  document.querySelectorAll("[data-bdes]").forEach(b=>b.onclick=()=>{guardarBor(b.dataset.bdes,{estado:"descartado"});toast("Descartado");});
+  document.querySelectorAll("[data-breab]").forEach(b=>b.onclick=()=>guardarBor(b.dataset.breab,{estado:"propuesto",enviado_en:null,error:null}));
+  document.querySelectorAll("[data-benv]").forEach(b=>b.onclick=()=>revisarYEnviar(b.dataset.benv,txt(b.dataset.benv)));
+}
+function revisarYEnviar(id,texto){const bor=D.borradores.find(x=>x.id===id);if(bor)abrirEnvio(bor,texto,true);}
+/* Envío genérico: obj = {id, chat, proveedor_id, finca}. esBorrador=true actualiza el estado del borrador. */
+const LS_TEL="agd_tel_proveedores";
+function telProv(chat){ try{ return (JSON.parse(localStorage.getItem(LS_TEL)||"{}"))[chat]||""; }catch(e){ return ""; } }
+function guardarTel(chat,num){ try{ const m=JSON.parse(localStorage.getItem(LS_TEL)||"{}"); if(num) m[chat]=num; else delete m[chat]; localStorage.setItem(LS_TEL,JSON.stringify(m)); }catch(e){} }
+function numEc(n){ let d=String(n||"").replace(/\D/g,""); if(!d) return ""; if(d.startsWith("0")) d="593"+d.slice(1); else if(d.length===9) d="593"+d; return d; }
+async function enviarMovil(t,bor,id,esBorrador){
+  const crudo=($("#revTel")&&$("#revTel").value.trim())||""; guardarTel(bor.chat,crudo); const num=numEc(crudo);
+  const marcar=()=>{ if(esBorrador) guardarBor(id,{texto:t,estado:"enviado",enviado_en:new Date().toISOString(),error:null}); };
+  $("#dlg").close();
+  if(num){ marcar(); location.href="https://wa.me/"+num+"?text="+encodeURIComponent(t); return; }
+  if(navigator.share){ try{ await navigator.share({text:t}); marcar(); toast("Elige el chat «"+(bor.chat||"")+"» y pulsa Enviar"); }catch(e){ toast("Envío cancelado"); } return; }
+  marcar(); location.href="whatsapp://send?text="+encodeURIComponent(t);
+}
+function abrirEnvio(bor,texto,esBorrador){const p=D.byId[bor.proveedor_id]||{nombre:bor.nombre||bor.chat};const id=bor.id;
+  if(!bor.chat){toast("Este proveedor no tiene chat en el WhatsApp de compras.");return;}
+  probarAgente(true);
+  abrirDlg("Revisar y enviar",`<p><b>Para:</b> ${esc(p.nombre||"")} <span class="small muted">(chat «${esc(bor.chat||"—")}» en WhatsApp Business)</span></p>
+  ${bor.finca?`<p class="small"><b>Finca:</b> ${esc(nomFinca(bor.finca))} · ${esc((D.finca[bor.finca]||{}).ubicacion||"")}</p>`:""}
+  <label for="revTxt" class="small muted">Mensaje (puedes corregirlo aquí)</label>
+  <textarea id="revTxt" style="min-height:300px">${esc(texto)}</textarea>
+  <p class="small muted">Al pulsar «Enviar ahora» el teléfono abre WhatsApp Business, busca ese chat exacto, comprueba el destinatario y el texto, y envía. Si algo no coincide, no envía nada.</p>
+  <div id="revAviso"></div>
+  <div class="filtros"><button class="btn pri" type="button" id="revOk">Enviar ahora</button><button class="btn" type="button" id="revNo">Cancelar</button></div>`);
+  if(!PUEDE_ENVIAR()){ const tel=telProv(bor.chat);
+    $("#revAviso").innerHTML=`<p class="small"><b>Envío desde este teléfono:</b> se abre WhatsApp con el mensaje listo; revisa y pulsa Enviar. Sin número, eliges el chat «${esc(bor.chat||"")}» en el menú Compartir.</p>
+    <label for="revTel" class="small muted">Número del proveedor (opcional, se guarda en este teléfono)</label>
+    <input id="revTel" inputmode="tel" placeholder="Ej.: 0991234567" value="${esc(tel)}" style="width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;font:inherit">`;
+    $("#revOk").textContent="Abrir en WhatsApp"; }
+  $("#revNo").onclick=()=>$("#dlg").close();
+  $("#revOk").onclick=()=>{const t=$("#revTxt").value.trim();if(!t){toast("El mensaje está vacío");return;}
+    if(!PUEDE_ENVIAR()){enviarMovil(t,bor,id,esBorrador);return;}
+    $("#revOk").disabled=true;$("#revOk").textContent="Enviando… (no toques el teléfono)";
+    if(esBorrador){CAPA.bor[id]=Object.assign({},CAPA.bor[id]||{},{texto:t,estado:"enviando"});lsSet(LS,CAPA);}
+    postAgente("/enviar",{id,chat:bor.chat,texto:t,original:bor.original||texto,tipo:bor.tipo||"",aprobado_por:"Wilson Pérez"}).then(j=>{$("#dlg").close();
+      if(j.ok){if(esBorrador)guardarBor(id,{texto:t,estado:"enviado",enviado_en:new Date().toISOString(),error:null});toast("Enviado ✔");}
+      else{if(esBorrador)guardarBor(id,{texto:t,estado:"fallo_envio",error:j.error||"No se pudo enviar"});toast("No se envió: "+(j.error||""));}
+      probarAgente(true);if(TAB==="asis")cargarAsistente();});};}
+
+/* --- Asistente: lo que detecta el vigía en WhatsApp --- */
+let ASIS={tareas:[],wa:{},vig:{},cargado:false,qrT:null};
+function cargarAsistente(){Promise.all([
+  fetch(AGENTE+"/tareas",{cache:"no-store"}).then(r=>r.json()).catch(()=>({})),
+  fetch(AGENTE+"/wa/estado",{cache:"no-store"}).then(r=>r.json()).catch(()=>({estado:"sin_servicio"})),
+  fetch(AGENTE+"/asistente/estado",{cache:"no-store"}).then(r=>r.json()).catch(()=>({})),
+  fetch(AGENTE+"/correo/estado",{cache:"no-store"}).then(r=>r.json()).catch(()=>({})),
+  fetch(AGENTE+"/aprendizaje",{cache:"no-store"}).then(r=>r.json()).catch(()=>({}))]).then(([t,w,v,c,a])=>{
+    ASIS={...ASIS,tareas:(t&&t.tareas)||[],wa:w||{},vig:v||{},correo:c||{},apr:a||{},cargado:true};if(TAB==="asis")vAsistente();});}
+function panelAprendizaje(){const a=ASIS.apr||{};if(!a.ok)return "";
+  return `<details class="card"><summary><b>Lo que he aprendido</b> <span class="small muted">· ${a.enviadas||0} mensajes enviados · ${a.respondidas||0} respuestas medidas · ${a.ediciones||0} correcciones tuyas · ${a.descartes||0} descartes</span></summary>
+   <p class="small">Aprendo solo de lo que haces: tus <b>correcciones</b> antes de enviar (escribo como tú), lo que <b>descartas</b> (dejo de proponer cosas parecidas y, si descartas 2 veces un mismo chat, dejo de revisarlo), y <b>quién responde y en cuánto tiempo</b> (los proveedores rápidos suben en las sugerencias; si alguien no responde en un día hábil te preparo el recordatorio).</p>
+   ${(a.rapidos||[]).length?`<p class="small"><b>Responden más rápido:</b> ${a.rapidos.map(r=>esc(r.chat)+" ("+dur(r.prom)+")").join(" · ")}</p>`:""}
+   ${(a.ignorados||[]).length?`<p class="small"><b>Chats que ya no reviso:</b></p><ul class="small">${a.ignorados.map(i=>`<li>${esc(i.chat)} <span class="muted">(${esc(i.motivo)})</span> <button class="btn sm" type="button" data-trest="${esc(i.chat)}">Volver a revisar</button></li>`).join("")}</ul>`:""}</details>`;}
+const TIPO_T={cotizar:"Cotizar",comprar:"Comprar",mantenimiento:"Mantenimiento",pago:"Pago",factura:"Factura",entrega:"Entrega",logistica:"Logística",informacion:"Información",cotizacion_recibida:"Cotización recibida",otro:"Revisar"};
+function vAsistente(){
+  if(!ASIS.cargado){cargarAsistente();$("#main").innerHTML=`<div class="card"><p class="muted">Cargando el asistente…</p></div>`;return;}
+  const w=ASIS.wa.estado;
+  let panel="";
+  if(w==="sin_servicio")panel=`<div class="card"><b>El vigía de WhatsApp corre en la PC de la casa (MAIA).</b> Desde el teléfono, usa «Hoy» y «Mensajes listos»: traen lo que el vigía preparó en el último paquete de datos.</div>`;
+  else if(w==="sin_vincular"){panel=`<div class="card" style="border-color:var(--al)"><h2>Vincula WhatsApp Business (una sola vez)</h2>
+    <p class="small">En el teléfono de compras: <b>WhatsApp Business → ⋮ → Dispositivos vinculados → Vincular un dispositivo</b> y escanea este código. Se renueva solo.</p>
+    <img alt="Código QR de WhatsApp Web" src="${AGENTE}/wa/qr.png?t=${Date.now()}" style="width:264px;height:264px;image-rendering:pixelated;background:#fff;border-radius:8px;padding:8px"></div>`;
+    clearTimeout(ASIS.qrT);ASIS.qrT=setTimeout(()=>{if(TAB==="asis")cargarAsistente();},15000);}
+  else if(w==="listo")panel=`<p class="small"><span class="chip c-ok">WhatsApp Web vinculado</span> Revisa tus chats cada ${ASIS.vig.intervalo_min||10} min (L-S 7:00-19:00)${ASIS.vig.ultimo_ciclo?" · última revisión "+esc(new Date(ASIS.vig.ultimo_ciclo).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})):""}${ASIS.vig.error?` · <span style="color:var(--cr)">${esc(ASIS.vig.error)}</span>`:""}
+    <button class="btn sm" type="button" id="asRev">Revisar ahora</button></p>`;
+  else panel=`<p class="small"><span class="chip c-md">WhatsApp Web: ${esc(w||"cargando")}</span> ${esc(ASIS.wa.error||"")} <button class="btn sm" type="button" id="asRe">Actualizar</button></p>`;
+  const T=ASIS.tareas.slice().sort((a,b)=>({alta:0,media:1,baja:2}[a.urgencia]??1)-({alta:0,media:1,baja:2}[b.urgencia]??1)||b.id-a.id);
+  $("#main").innerHTML=`<div class="card"><h2>Asistente de compras</h2>
+   <p class="small">${ASIS.correo&&ASIS.correo.configurado?`<span class="chip c-ok">Correo ${esc(ASIS.correo.cuenta||"")} conectado</span>`:`<span class="chip c-md">Correo sin configurar</span> <span class="muted">Ejecuta <code>scripts\\correo_compras_configurar.py</code> y escribe ahí la clave de compras@agrodavila.com.</span>`}</p>
+   <p class="small">Lee tus chats de WhatsApp Business y el correo de compras, detecta lo que te piden (compras, cotizaciones, mantenimiento, pagos, facturas), prepara las cotizaciones a 3 proveedores de la zona y una respuesta al que pidió, y te avisa por Telegram y WhatsApp con la voz de Maya. <b>Nada se envía sin tu «Revisar y enviar».</b></p>${panel}</div>${panelAprendizaje()}
+   ${T.length?T.map(t=>`<div class="card"><div class="filtros" style="justify-content:space-between;margin:0">
+     <div><span class="chip ${t.urgencia==="alta"?"c-cr":t.urgencia==="baja"?"c-gr":"c-al"}">${esc(t.urgencia||"media")}</span> <span class="chip c-az">${esc(TIPO_T[t.tipo]||t.tipo)}</span> <b>${esc(t.resumen)}</b>
+     <div class="small muted">${esc(t.solicitante||"")} · chat «${esc(t.chat||"")}»${t.finca?" · "+esc(t.finca):""}${t.plazo?" · para "+esc(t.plazo):""} · ${esc(new Date(t.creada).toLocaleString("es-EC"))}</div></div>
+     <div><button class="btn sm" type="button" data-tok="${t.id}">Hecha</button> <button class="btn sm" type="button" data-tdes="${t.id}">Descartar</button> <button class="btn sm" type="button" data-tign="${esc(t.chat||"")}" title="Dejar de revisar este chat">No revisar este chat</button></div></div>
+     ${t.accion?`<p class="small"><b>Qué hacer:</b> ${esc(t.accion)}</p>`:""}
+     ${t.evidencia?`<p class="ev">«${esc(t.evidencia)}»</p>`:""}
+     ${(t.items||[]).length?`<p class="small">${t.items.map(i=>esc([i.cantidad,i.unidad,i.descripcion].filter(Boolean).join(" "))).join(" · ")}</p>`:""}
+     ${(t.borradores||[]).map(b=>`<div style="border-top:1px solid var(--bd);padding-top:8px;margin-top:8px"><div class="small"><b>${b.tipo==="acuse"?"Respuesta a "+esc(b.proveedor):"Cotización a "+esc(b.proveedor)}</b> · chat «${esc(b.chat)}» <span class="chip ${b.estado==="enviado"?"c-ok":b.estado==="descartado"?"c-gr":b.estado==="fallo_envio"?"c-cr":"c-al"}">${esc(b.estado)}</span>${b.error?` <span style="color:var(--cr)">${esc(b.error)}</span>`:""}</div>
+       <textarea data-abtxt="${b.id}" style="min-height:${b.tipo==="acuse"?80:200}px" ${b.estado==="enviado"?"readonly":""}>${esc(b.texto)}</textarea>
+       ${b.estado==="propuesto"||b.estado==="fallo_envio"?`<div class="filtros" style="margin:6px 0 0"><button class="btn sm pri" type="button" data-aenv="${b.id}">Revisar y enviar</button><button class="btn sm" type="button" data-ades="${b.id}">Descartar</button></div>`:""}</div>`).join("")}
+   </div>`).join(""):`<div class="card"><p class="muted">${w==="listo"?"Sin pedidos nuevos por ahora. Te aviso apenas llegue uno.":"Cuando WhatsApp Web esté vinculado, aquí aparecerá lo que te pidan."}</p></div>`}`;
+  const rev=$("#asRev");if(rev)rev.onclick=()=>{rev.disabled=true;rev.textContent="Revisando…";postAgente("/asistente/revisar",{}).then(j=>{toast(j.ok?`Listo: ${j.nuevas||0} pedido(s) nuevo(s)`:(j.error||"No se pudo revisar"));cargarAsistente();});};
+  const re=$("#asRe");if(re)re.onclick=cargarAsistente;
+  document.querySelectorAll("[data-tok]").forEach(b=>b.onclick=()=>postAgente(`/tareas/${b.dataset.tok}/estado`,{estado:"hecha"}).then(cargarAsistente));
+  document.querySelectorAll("[data-tdes]").forEach(b=>b.onclick=()=>postAgente(`/tareas/${b.dataset.tdes}/estado`,{estado:"descartada"}).then(cargarAsistente));
+  document.querySelectorAll("[data-ades]").forEach(b=>b.onclick=()=>postAgente("/borradores/descartar",{id:+b.dataset.ades}).then(cargarAsistente));
+  document.querySelectorAll("[data-aenv]").forEach(b=>b.onclick=()=>{const bid=+b.dataset.aenv;const t=ASIS.tareas.find(x=>x.borradores.some(y=>y.id===bid));const bo=t.borradores.find(y=>y.id===bid);
+    const txt=document.querySelector(`[data-abtxt="${bid}"]`).value;abrirEnvio({id:"b"+bid,chat:bo.chat,nombre:bo.proveedor,finca:null,tipo:bo.tipo,original:bo.texto},txt,false);});
+  document.querySelectorAll("[data-tign]").forEach(b=>b.onclick=()=>{if(!confirm(`¿Dejar de revisar el chat «${b.dataset.tign}»? Puedes restaurarlo luego.`))return;postAgente("/aprendizaje/ignorar",{chat:b.dataset.tign}).then(()=>{toast("Aprendido: ese chat ya no se revisa");cargarAsistente();});});
+  document.querySelectorAll("[data-trest]").forEach(b=>b.onclick=()=>postAgente("/aprendizaje/restaurar",{chat:b.dataset.trest}).then(()=>{toast("Chat restaurado");cargarAsistente();}));
+}
+function enviarAProveedor(pid,texto,ref,finca){const p=D.byId[pid];if(!p){toast("Elige un proveedor");return;}
+  abrirEnvio({id:ref||("libre-"+Date.now()),chat:p.chat,proveedor_id:pid,finca:finca||null},texto,false);}
+
+/* --- Facturas, pagos y devoluciones --- */
+const TIPO_TRA={factura:["Factura por recibir","c-az"],pago:["Pago","c-al"],devolucion:["Devolución","c-md"],entrega:["Entrega","c-ok"]};
+function vTramites(){
+  const L=D.tramites.slice().sort((a,b)=>(a.estado==="hecho")-(b.estado==="hecho")||String(a.desde).localeCompare(String(b.desde)));
+  $("#main").innerHTML=`<div class="card"><h2>Facturas, pagos y devoluciones por cerrar</h2>
+  <p class="small muted">Lo que no es una compra nueva pero sí está pendiente con proveedores. Los pagos los aprueba y ejecuta Contabilidad; la contadora apoya con facturas y contabilidad.</p>
+  ${tabla("tT",[
+    {t:"Desde",v:t=>t.desde,h:t=>fecha(t.desde)},
+    {t:"Días",num:1,v:t=>dias(t.desde,D.corte),h:t=>dias(t.desde,D.corte)??raya},
+    {t:"Tipo",v:t=>t.tipo,h:t=>{const x=TIPO_TRA[t.tipo]||[t.tipo,"c-gr"];return `<span class="chip ${x[1]}">${x[0]}</span>`;}},
+    {t:"Proveedor",v:t=>nomProv(t.proveedor_id),h:t=>t.proveedor_id?`<button class="lnk" data-prov="${esc(t.proveedor_id)}">${esc(nomProv(t.proveedor_id))}</button>`:"—"},
+    {t:"Detalle",v:t=>t.detalle,h:t=>esc(t.detalle)},
+    {t:"Responsable",v:t=>t.responsable,h:t=>esc(t.responsable||raya)},
+    {t:"Estado",v:t=>t.estado,h:t=>`<select data-tra="${esc(t.id)}" aria-label="Estado del trámite">${["pendiente","reclamo","programar","seguimiento","responder","verificar","hecho"].map(s=>`<option ${s===t.estado?"selected":""}>${s}</option>`).join("")}</select>`}],L)}</div>`;
+  document.querySelectorAll("[data-tra]").forEach(s=>s.onchange=()=>{guardarTra(s.dataset.tra,{estado:s.value});toast("Guardado");});
+}
+
+/* --- Cómo trabajar (procedimiento) --- */
+function vProc(){
+  const fin=D.fincas.map(f=>`<tr><td><b>${esc(f.nombre)}</b></td><td>${esc(f.zona)}</td><td>${esc(f.ubicacion)}</td><td>${esc(f.entrega)}</td><td>${esc(f.responsable||raya)}</td><td class="small">${esc(f.facturar_a)}</td></tr>`).join("");
+  const per=D.personas.map(p=>`<li><b>${esc(p.nombre)}</b>: ${esc(p.rol)} <span class="muted small">(${esc(p.canal)})</span></li>`).join("");
+  $("#main").innerHTML=`<div class="card"><h2>Cómo trabajar una compra de principio a fin</h2>
+  <ol>
+   <li><b>Recibir el pedido.</b> Todo pedido debe estar en AgroControl con finca, cantidad, unidad y urgencia. Si llega por WhatsApp (grupos de fincas, la contadora), pide al solicitante que lo registre o regístralo tú el mismo día y responde «recibido, lo cotizo hoy».</li>
+   <li><b>Revisar antes de cotizar.</b> ¿Ya se compró antes? Mira «Precios». ¿Hay stock en otra finca? ¿La especificación está completa (medidas, marca, ingrediente activo, presentación)? Si falta un dato, pregúntalo antes de cotizar: una cotización con datos incompletos se pierde.</li>
+   <li><b>Pedir mínimo 3 cotizaciones</b> a proveedores de la <b>zona de la finca</b> (Costa: Puerto Cayo y El Carmen · Imbabura: Coñaqui, Eliana, Andrés López, Otoburo), o nacionales que entreguen allí. Usa «Mensajes listos»: cada mensaje dice finca, lugar de entrega y a quién facturar, y pide precio con y sin IVA, entrega, transporte, forma de pago y validez.</li>
+   <li><b>Plazo de respuesta:</b> si no responden en 24 horas, envía un recordatorio; a las 48 horas, busca otro proveedor. Esto baja su puntaje de rapidez.</li>
+   <li><b>Comparar con criterio:</b> precio total con IVA y transporte, tiempo de entrega a la finca, crédito, garantía, historial del proveedor (puntaje A/B/C). Registra todas las cotizaciones en AgroControl, no solo la elegida.</li>
+   <li><b>Seleccionar y pedir autorización:</b> en AgroControl, seleccionado → OK de Contabilidad, Administración y Gerencia. Sin los OK no se compra ni se promete nada al proveedor. Al proveedor no elegido, agradece y avísale.</li>
+   <li><b>Orden de compra:</b> genera la OC en AgroControl (una por proveedor y por finca, porque contabilidad pide una factura por OC) y envíala por el chat del proveedor con la fecha de entrega comprometida.</li>
+   <li><b>Pago:</b> Contabilidad ejecuta los pagos. Envía al grupo «Proveedores AGD» la OC y la factura o proforma; no envíes datos bancarios sueltos (la OC ya los tiene). Al proveedor, envía el comprobante con «PAGO OC ####».</li>
+   <li><b>Despacho y entrega:</b> pide número de guía o transporte. Confirma con el responsable de la finca que llegó completo y anota la fecha de entrega: así medimos el lead time real.</li>
+   <li><b>Factura y cierre:</b> exige la factura a nombre correcto, una por OC. Pásala a la contadora. Cierra la OC en AgroControl. Si hubo diferencias (faltantes o devoluciones), regístralas en «Facturas y pagos».</li>
+  </ol>
+  <h3>Reglas de oro</h3>
+  <ul><li>Nada se compra sin la autorización de AgroControl. Las cotizaciones de antes de noviembre (época de Edwin) no están aprobadas.</li>
+  <li>Cotiza solo lo que de verdad se va a comprar: a los proveedores les molesta cotizar sin vender (por ejemplo, Ferroeléctrico).</li>
+  <li>Responde a cada proveedor, aunque sea para decir que no.</li>
+  <li>Revisa las categorías con un solo proveedor (pestaña «Segmentación»): consigue un segundo proveedor.</li></ul></div>
+  <div class="card"><h2>Fincas y entregas</h2><div class="tw"><table><thead><tr><th class="nosort">Finca</th><th class="nosort">Zona</th><th class="nosort">Ubicación</th><th class="nosort">Entrega</th><th class="nosort">Solicita</th><th class="nosort">Facturar a</th></tr></thead><tbody>${fin}</tbody></table></div></div>
+  <div class="card"><h2>Personas</h2><ul>${per}</ul></div>
+  <div class="card"><h2>Rutina diaria (20 minutos)</h2><ol>
+   <li>08:00 · «Hoy» de esta app: revisa los cuatro grupos (por cotizar, por decidir, generar OC y en curso).</li>
+   <li>08:10 · «Mensajes listos»: revisa y envía las cotizaciones y los seguimientos.</li>
+   <li>11:00 y 15:00 · Registra en AgroControl las cotizaciones que llegaron; las que faltan, recuérdalas.</li>
+   <li>16:00 · Pide autorizaciones a Contabilidad y Gerencia en un solo mensaje con el resumen.</li>
+   <li>Viernes · «Facturas y pagos»: cierra facturas y reclamos de la semana con la contadora.</li></ol></div>`;
+}
+
+/* --- Ajustes --- */
+function vAjustes(){const P=AJ.pesos;
+  $("#main").innerHTML=`<div class="card"><h2>Pesos del puntaje de proveedores</h2><div class="grid2">
+  ${Object.entries({rapidez:"Rapidez de respuesta",respuesta:"% de solicitudes respondidas",precio:"Precio frente a otros",disponibilidad:"Disponibilidad (tiene stock)",cumplimiento:"Cumplimiento de entregas"}).map(([k,t])=>`<div class="campo"><label for="w_${k}">${t}</label><input id="w_${k}" type="number" min="0" max="100" value="${P[k]}"></div>`).join("")}</div>
+  <h2 style="margin-top:16px">Alertas</h2><div class="grid2">
+  <div class="campo"><label for="a1">Días para insistir en una cotización</label><input id="a1" type="number" min="0" value="${AJ.diasCot}"></div>
+  <div class="campo"><label for="a2">Días para marcar un pedido como atrasado</label><input id="a2" type="number" min="0" value="${AJ.diasPed}"></div>
+  <div class="campo"><label><input type="checkbox" id="a3" ${AJ.fechaHoy?"checked":""}> Contar los días hasta hoy (no hasta la fecha de corte)</label></div>
+  <div class="campo"><label for="a4">Firma en los mensajes («Le saluda …»)</label><input id="a4" value="${esc(AJ.firma||"")}" placeholder="Wilo, de Compras de AgroDávila"></div></div>
+  <p><button class="btn pri" type="button" id="gA">Guardar ajustes</button> <button class="btn" type="button" id="rA">Volver a los valores originales</button></p></div>
+  <div class="card"><h2>Mis cambios</h2><p class="small muted">Tienes ${Object.keys(CAPA.ped).length} pedidos y ${Object.keys(CAPA.prov).length} proveedores con cambios guardados en este computador.</p>
+  <button class="btn" type="button" id="bBorrar">Borrar mis cambios</button></div>`;
+  $("#gA").onclick=()=>{Object.keys(P).forEach(k=>AJ.pesos[k]=Math.max(0,Number($("#w_"+k).value)||0));AJ.diasCot=Number($("#a1").value)||0;AJ.diasPed=Number($("#a2").value)||0;AJ.fechaHoy=$("#a3").checked;AJ.firma=$("#a4").value.trim();lsSet(LSA,AJ);fusion();pintar();toast("Ajustes guardados");};
+  $("#rA").onclick=()=>{AJ=Object.assign({},AJ_DEF,{tema:AJ.tema,firma:AJ.firma,pesos:Object.assign({},AJ_DEF.pesos)});lsSet(LSA,AJ);fusion();pintar();toast("Valores originales");};
+  $("#bBorrar").onclick=()=>{if(!confirm("¿Borrar todos tus cambios guardados en este computador?"))return;CAPA={prov:{},ped:{},bor:{},tra:{}};lsSet(LS,CAPA);fusion();pintar();toast("Cambios borrados");};
+}
+
+/* ====== Importar / exportar / tema ====== */
+$("#bImp").onclick=()=>$("#fImp").click();
+$("#fImp").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{let t=String(r.result);if(!/^\s*\{/.test(t)){t=t.slice(t.indexOf("{"),t.lastIndexOf("}")+1);}
+  const obj=JSON.parse(t);if(!obj||!Array.isArray(obj.proveedores))throw new Error("forma");BASE=obj;$("#bannerEj").classList.add("hidden");fusion();pintar();toast("Datos importados");}catch(err){alert("No pude leer ese archivo. Debe ser el JSON de compras (con «proveedores»).");}};r.readAsText(f,"utf-8");e.target.value="";};
+$("#bExp").onclick=()=>{const o=Object.assign({},BASE,{proveedores:D.proveedores.map(p=>{const c=Object.assign({},p);delete c._comp;delete c._score;delete c._clase;return c;}),pedidos:D.pedidos,borradores:D.borradores,tramites:D.tramites,exportado:new Date().toISOString()});descargar("compras_whatsapp_"+new Date().toISOString().slice(0,10)+".json",JSON.stringify(o,null,1),"application/json");};
+function aplicarTema(){if(AJ.tema)document.documentElement.dataset.theme=AJ.tema;else delete document.documentElement.dataset.theme;}
+$("#bTema").onclick=()=>{const osc=AJ.tema?AJ.tema==="dark":matchMedia("(prefers-color-scheme:dark)").matches;AJ.tema=osc?"light":"dark";lsSet(LSA,AJ);aplicarTema();};
+
+/* ====== Inicio ====== */
+aplicarTema();
+(async()=>{ try{ await ComprasApp.exigirSesion(); }catch(e){ return; }
+  let d=null; try{ d=await ComprasApp.datosWA(); }catch(e){ $("#main").innerHTML=`<div class="card"><b>${esc(e.message)}</b> <a href="index.html">Volver a escribir la clave de datos</a></div>`; return; }
+  if(!d){ $("#main").innerHTML=`<div class="card"><b>Falta la clave de datos.</b> <a href="index.html">Escribirla en Inicio</a></div>`; return; }
+  window.DATOS_COMPRAS=d; BASE=d; fusion(); pintar(); })();
+</script>
+</body>
+</html>

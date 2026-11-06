@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control de Compras AgroDávila</title><meta name="theme-color" content="#1F5E3B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="comun.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#F4F6F3;--card:#FFFFFF;--tx:#1D2A22;--t2:#5E6B63;--bd:#DDE3DE;--ok:#2E7D4F;--okbg:#E5F3EA;--md:#B7791F;--mdbg:#FDF3DC;--al:#C2591B;--albg:#FCE9DC;--cr:#B42318;--crbg:#FBE4E2;--pri:#1F5E3B;--pri2:#E3EFE7;--az:#0F4C81}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121815;--card:#1B231F;--tx:#E6ECE8;--t2:#9AA9A0;--bd:#2C3832;--okbg:#1E3A2A;--mdbg:#3A2F17;--albg:#3D2618;--crbg:#43201D;--pri:#5FB386;--pri2:#21342A;--az:#7FB2E5}}
+:root[data-theme="dark"]{--bg:#121815;--card:#1B231F;--tx:#E6ECE8;--t2:#9AA9A0;--bd:#2C3832;--okbg:#1E3A2A;--mdbg:#3A2F17;--albg:#3D2618;--crbg:#43201D;--pri:#5FB386;--pri2:#21342A;--az:#7FB2E5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 "Segoe UI",system-ui,sans-serif}
+header{background:var(--card);border-bottom:1px solid var(--bd);padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+h1{font-size:17px;margin:0;color:var(--pri)}.sub{color:var(--t2);font-size:12px}
+.btn{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:8px;padding:7px 12px;font:inherit;cursor:pointer}
+.btn:hover{border-color:var(--pri)}.btn.p{background:var(--pri);color:#fff;border-color:var(--pri)}
+nav{display:flex;gap:4px;padding:8px 16px;overflow-x:auto;background:var(--card);border-bottom:1px solid var(--bd)}
+nav button{border:0;background:none;color:var(--t2);padding:8px 12px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+nav button.on{background:var(--pri2);color:var(--pri)}
+main{padding:16px;max-width:1280px;margin:0 auto}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px}
+.kpi .v{font-size:24px;font-weight:700;margin-top:4px}.kpi .l{font-size:12px;color:var(--t2)}.kpi .m{font-size:11px;color:var(--t2);margin-top:2px}
+.sec{margin:20px 0 8px;font-size:15px;font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:7px 8px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--t2);position:sticky;top:0;background:var(--card)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto;background:var(--card);border:1px solid var(--bd);border-radius:12px;max-height:70vh}
+.chip{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.Crítica{background:var(--crbg);color:var(--cr)}.Alta{background:var(--albg);color:var(--al)}.Media{background:var(--mdbg);color:var(--md)}.Baja,.ok{background:var(--okbg);color:var(--ok)}
+.filtros{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+select,input[type=search]{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:8px;padding:7px 9px;font:inherit}
+.bar{height:10px;border-radius:5px;background:var(--pri)}.barw{background:var(--pri2);border-radius:5px;flex:1}
+.fila{display:flex;align-items:center;gap:10px;margin:6px 0}.fila .et{width:250px;font-size:13px}.fila .num{width:150px;text-align:right;font-size:12px;color:var(--t2)}
+.aviso{background:var(--crbg);color:var(--cr);border-radius:10px;padding:10px 14px;font-weight:600;margin-bottom:12px}
+.nota{font-size:12px;color:var(--t2)}
+.kgrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px}
+@media (max-width:820px){.kgrid{grid-template-columns:1fr}.fila .et{width:130px}.fila .num{width:90px}}
+input[type=range]{width:80px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Control de Compras y Logística · AgroDávila</h1><div class="sub" id="fuente">—</div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a class="btn" href="index.html">← Inicio</a><button class="btn p" id="refrescar" type="button">Actualizar</button><label class="btn">Cargar Excel<input type="file" id="arch" accept=".xlsx,.xls" class="hide"></label>
+    <button class="btn" id="csv">Descargar pendientes (CSV)</button>
+    <button class="btn hide" id="cerrar">Cerrar panel ✕</button>
+  </div>
+</header>
+<nav id="tabs"></nav>
+<main id="vista"></main>
+<script>
+"use strict";
+let SNAP = {generado:new Date().toISOString(), filas:[]};
+const U = { montoTresCot:300, montoAlto:1000, diasEtapa:1, diasEstancado:3, varPrecio:0.10, diasPagoProx:3 };
+const ETAPAS = {1:["Revisión de campo","Supervisor de Campo"],2:["Por cotizar","Compras"],3:["Cotizando","Compras"],4:["Por autorizar","Contabilidad"],5:["Autorizado, espera resto del pedido","Compras / Contabilidad"],6:["Por programar pago","Gerencia"],7:["Faltan OK de pago","Contab. / Admin / Gerencia"],8:["Falta N° de OC","Compras"],9:["Contado: falta pago","Contabilidad / Admin"],10:["Crédito: esperando entrega","Compras / Logística"],11:["Pagada, falta entrega","Compras / Logística"],12:["Entregada, pago pendiente","Contabilidad"],13:["Cerrado","—"],14:["Descartado","—"]};
+const ALERTAS = {1:["Pago vencido o no registrado","Crítica",100,"Confirmar con Contabilidad si se pagó; si sí, registrar el pago en AgroControl."],2:["Entrega atrasada del proveedor","Crítica",95,"Llamar al proveedor, pedir nueva fecha y avisar a la finca."],3:["Pagado sin N° de OC","Alta",80,"Registrar la OC oficial."],4:["Pago cercano sin los 3 OK","Alta",70,"Pedir los OK que faltan antes de la fecha."],5:["Cotización demorada","Alta",65,"Cerrar cotizaciones hoy."],6:["Autorización demorada","Alta",60,"Recordar a Contabilidad con el comparativo."],7:["Autorizado sin OC: espera resto del pedido","Alta",60,"Generar la OC con lo autorizado."],8:["Pedido sin revisión de campo","Media",45,"Recordar al supervisor de campo."],9:["Menos cotizaciones de las exigidas","Media",40,"Pedir más cotizaciones o justificar."],10:["Se eligió una cotización más cara","Media",38,"Dejar escrito el motivo."],11:["OC sin programar pago","Media",35,"Pedir fecha de pago a Gerencia."],12:["OC sin número oficial","Media",35,"Registrar el N° de OC."],13:["Línea estancada","Baja",20,"Revisar por qué no avanza."]};
+const KR_DEF = {"Fertilizantes":[2,5,5,2,5],"Fungicidas y bactericidas":[3,4,5,4,4],"Insecticidas, acaricidas y molusquicidas":[3,4,5,4,3],"Herbicidas":[2,4,3,4,3],"Bioestimulantes y reguladores de crecimiento":[2,3,3,3,3],"Control biológico":[4,3,4,3,2],"Coadyuvantes y correctores de agua/pH":[1,2,2,2,1],"Abonos orgánicos y sustratos":[2,1,3,1,2],"Riego e hidráulica":[3,4,4,1,3],"Repuestos de maquinaria":[4,4,4,1,2],"Maquinaria y equipos motorizados":[3,4,4,1,3],"Equipos de fumigación y aplicación":[3,4,4,1,2],"Lubricantes, combustibles y fluidos":[1,3,4,2,2],"Material agrícola":[2,2,3,1,2],"EPP y seguridad":[1,2,3,3,1],"AREA SANIDAD":[2,2,3,3,2],"Servicios tecnicos":[3,1,3,1,2],"Herramientas":[1,2,1,1,2],"Ferretería y fijación":[1,1,1,1,1],"Construcción, acabados y plomería":[1,1,1,1,1],"Material eléctrico e iluminación":[1,2,2,1,1],"Desinfección y limpieza":[1,1,2,2,1],"Oficina":[1,1,1,1,1],"Medición Producto/insumo general":[1,1,1,1,1],"Sin clasificar":[1,1,1,1,1]};
+const KR_EST = {"Estratégico":["Alianza con 1–2 proveedores, acuerdo anual de precio y volumen, plan de demanda compartido.",20],"Cuello de botella":["Proveedor alterno homologado, stock de seguridad, comprar con anticipación.",20],"Apalancamiento":["3 cotizaciones siempre, compra consolidada entre fincas, negociar volumen y crédito.",10],"No crítico":["Lista de precios fijos, compra mensual consolidada, caja chica.",0]};
+const KR_COLOR = {"Estratégico":"#C2591B","Cuello de botella":"#B7791F","Apalancamiento":"#0F4C81","No crítico":"#2E7D4F"};
+let KR = (()=>{ try{ return Object.assign({}, KR_DEF, JSON.parse(localStorage.getItem("agd_kraljic")||"{}")); }catch(e){ return {...KR_DEF}; } })();
+let FILAS = [], AHORA = new Date(), TAB = (()=>{ try{ return localStorage.getItem("agd_tab")||"pend"; }catch(e){ return "pend"; } })();
+const F = {prio:"", finca:"", etapa:"", resp:"", q:""};
+
+const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+const num = v => { const n = typeof v==="number"?v:parseFloat(v); return isFinite(n)?n:0; };
+const fm = v => "$"+num(v).toLocaleString("es-EC",{minimumFractionDigits:0,maximumFractionDigits:0});
+const fm2 = v => "$"+num(v).toLocaleString("es-EC",{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct = v => v==null||!isFinite(v)?"—":Math.round(v*100)+"%";
+const d1 = v => v==null||!isFinite(v)?"—":v.toFixed(1);
+const fecha = v => v?v.toLocaleDateString("es-EC",{day:"2-digit",month:"short"}):"—";
+function aFecha(v){ if(v==null||v==="") return null; if(v instanceof Date) return isNaN(v)?null:v;
+  if(typeof v==="number") return new Date(Math.round((v-25569)*86400000)+new Date().getTimezoneOffset()*60000);
+  const s=String(v); if(/^\d{4}-\d{2}-\d{2}$/.test(s)){ const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
+  const d=new Date(s.length===16?s+":00":s); return isNaN(d)?null:d; }
+const dias = (a,b) => (a&&b)?(b-a)/86400000:null;
+const hoy0 = () => { const d=new Date(AHORA); d.setHours(0,0,0,0); return d; };
+const media = a => a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+
+function cuadrante(cat, pctGasto){
+  const k = KR[cat] || KR_DEF["Sin clasificar"];
+  const riesgo = k[0]*.35+k[1]*.2+k[2]*.3+k[3]*.15;
+  let fin = k[4];
+  if(pctGasto!=null){ const real = pctGasto>=.15?5:pctGasto>=.08?4:pctGasto>=.04?3:pctGasto>=.01?2:1; fin = Math.max(real, k[4]-1); }
+  const impacto = fin*.6 + k[2]*.4;
+  return {riesgo, impacto, q: impacto>=3?(riesgo>=3?"Estratégico":"Apalancamiento"):(riesgo>=3?"Cuello de botella":"No crítico")};
+}
+
+function procesar(crudas){
+  const D = ["F. pedido","F. revisión campo","F. 1ª cotización","F. última cotización","F. selección proveedor","F. autorización","F. OC creada","F. pago programada","Pago programado el","F. pago aprobado (3 OK)","F. registro N° OC","F. check final","F. pago realizado","F. entrega","F. anulación"];
+  const filas = crudas.filter(r=>r["Línea"]).map(r=>{ const x={...r}; D.forEach(k=>x[k]=aFecha(r[k])); return x; });
+  const H = hoy0();
+  filas.forEach(r=>{
+    const e=r["Estado (código)"], cot=num(r["N° cotizaciones"]);
+    r.total = num(r["Cantidad"])*num(r["Precio unit. elegido"]);
+    r.credito = (r["Tipo de pago"]==="Crédito"||r["Tipo de pago"]==="Cheque"||num(r["Días crédito"])>0);
+    let n;
+    if(e==="anulado"||e==="rechazado") n=14; else if(e==="entregado") n=13; else if(e==="pendiente") n=1;
+    else if(e==="aprobado_campo") n=cot?3:2; else if(e==="cotizado") n=3; else if(e==="seleccionado") n=4;
+    else if(!r["OC (código)"]) n=5; else if(!r["F. pago programada"]) n=6; else if(!r["F. pago aprobado (3 OK)"]) n=7;
+    else if(!r["N° OC"]) n=8; else if(r["F. entrega"]) n=r["F. pago realizado"]?13:12;
+    else if(r["F. pago realizado"]) n=11; else n=r.credito?10:9;
+    r.n=n; r.etapa=ETAPAS[n][0]; r.resp=ETAPAS[n][1]; r.abierta=n<13;
+    const ini = {1:r["F. pedido"],2:r["F. revisión campo"]||r["F. pedido"],3:r["F. 1ª cotización"]||r["F. revisión campo"],4:r["F. selección proveedor"]||r["F. última cotización"],5:r["F. autorización"],6:r["F. OC creada"],7:r["Pago programado el"],8:r["Pago programado el"],9:(r["F. registro N° OC"]&&r["Pago programado el"])?new Date(Math.max(r["F. registro N° OC"],r["Pago programado el"])):r["Pago programado el"],10:r["F. registro N° OC"]||r["F. OC creada"],11:r["F. pago realizado"],12:r["F. entrega"]}[n];
+    r.diasEtapa = (r.abierta&&ini)?Math.max(0,dias(ini,AHORA)):null;
+    r.lt = {campo:dias(r["F. pedido"],r["F. revisión campo"]),inicioCot:dias(r["F. revisión campo"],r["F. 1ª cotización"]),cotizando:dias(r["F. 1ª cotización"],r["F. selección proveedor"]),autoriz:dias(r["F. selección proveedor"],r["F. autorización"]),aOC:dias(r["F. autorización"],r["F. OC creada"]),progPago:dias(r["F. OC creada"],r["Pago programado el"]),numOC:dias(r["F. OC creada"],r["F. registro N° OC"]),pedOC:dias(r["F. pedido"],r["F. registro N° OC"]),entrega:dias(r["F. registro N° OC"],r["F. entrega"]),ciclo:dias(r["F. pedido"],r["F. entrega"])};
+    const de = r["Días entrega ofrecidos"]; let est=null;
+    if(de!==undefined&&de!==""&&de!==null){ const base = r["F. pago realizado"]||(r.credito&&r["F. registro N° OC"])||r["F. pago programada"]; if(base){ est=new Date(base); est.setHours(0,0,0,0); est.setDate(est.getDate()+num(de)); } }
+    r.entregaEst=est;
+    r.aTiempo = r["F. entrega"]&&est ? (r["F. entrega"]<=new Date(est.getTime()+86399000)) : null;
+    r.cotOK = (n<4||n===14)?null:(r.total>=U.montoTresCot?cot>=3:cot>=1);
+    const pmin=num(r["Precio unit. mínimo"]), pmax=num(r["Precio unit. máximo"]), pe=num(r["Precio unit. elegido"]);
+    r.ahorro = (pmax&&pe)?Math.max(0,(pmax-pe)*num(r["Cantidad"])):0;
+    r.sobre = (pmin&&pe)?Math.max(0,(pe-pmin)*num(r["Cantidad"])):0;
+    r.pctSobre = (pmin&&pe)?pe/pmin-1:null;
+    const de_ = r.diasEtapa||0, pp=r["F. pago programada"];
+    let a=0;
+    if(r.abierta&&pp&&!r["F. pago realizado"]&&pp<H) a=1;
+    else if(r.abierta&&!r["F. entrega"]&&est&&H>est) a=2;
+    else if(r["F. pago realizado"]&&!r["N° OC"]) a=3;
+    else if(n===7&&pp&&dias(H,pp)<=U.diasPagoProx) a=4;
+    else if((n===2||n===3)&&de_>=U.diasEtapa) a=5;
+    else if(n===4&&de_>=U.diasEtapa) a=6;
+    else if(n===5&&de_>=U.diasEtapa) a=7;
+    else if(n===1&&de_>=U.diasEtapa) a=8;
+    else if(r.abierta&&r.cotOK===false) a=9;
+    else if(r.abierta&&r.pctSobre!=null&&r.pctSobre>U.varPrecio) a=10;
+    else if(n===6&&de_>=U.diasEtapa) a=11;
+    else if(n===8&&de_>=U.diasEtapa) a=12;
+    else if(r.abierta&&de_>=U.diasEstancado) a=13;
+    r.alerta=a;
+  });
+  const tot = filas.filter(r=>r.n<14).reduce((s,r)=>s+r.total,0), porCat={};
+  filas.filter(r=>r.n<14).forEach(r=>porCat[r["Categoría"]||"Sin clasificar"]=(porCat[r["Categoría"]||"Sin clasificar"]||0)+r.total);
+  filas.forEach(r=>{
+    const c=r["Categoría"]||"Sin clasificar"; r.kr = cuadrante(c, tot?(porCat[c]||0)/tot:null).q;
+    r.puntaje = r.alerta ? ALERTAS[r.alerta][2] + Math.min(r.diasEtapa||0,30)*2 + (r.total>=U.montoAlto?15:0) + (KR_EST[r.kr]?KR_EST[r.kr][1]:5) : 0;
+  });
+  return filas;
+}
+
+function cargar(crudas, origen){ FILAS = procesar(crudas); document.getElementById("fuente").textContent = origen; pintar(); }
+
+/* ───── Vistas ───── */
+const TABS = [["pend","Pendientes"],["flujo","¿Dónde nos quedamos?"],["kpi","KPIs"],["kraljic","Kraljic"],["prov","Proveedores"],["pagos","Pagos y entregas"]];
+function pintarTabs(){ document.getElementById("tabs").innerHTML = TABS.map(([k,l])=>`<button class="${TAB===k?"on":""}" data-t="${k}">${l}${k==="pend"?` (${FILAS.filter(r=>r.alerta).length})`:""}</button>`).join(""); }
+document.getElementById("tabs").addEventListener("click",e=>{ const t=e.target.closest("button"); if(!t) return; TAB=t.dataset.t; try{localStorage.setItem("agd_tab",TAB);}catch(x){} pintar(); });
+
+function vPend(){
+  const al = FILAS.filter(r=>r.alerta).sort((a,b)=>b.puntaje-a.puntaje);
+  const opt = (arr,sel,todo)=>`<option value="">${todo}</option>`+[...new Set(arr)].filter(Boolean).sort().map(v=>`<option ${v===sel?"selected":""}>${esc(v)}</option>`).join("");
+  const q=F.q.toLowerCase();
+  const lista = al.filter(r=>(!F.prio||ALERTAS[r.alerta][1]===F.prio)&&(!F.finca||r["Finca"]===F.finca)&&(!F.etapa||r.etapa===F.etapa)&&(!F.resp||r.resp===F.resp)&&(!q||(r["Producto"]+" "+r["Línea"]+" "+(r["Proveedor"]||"")).toLowerCase().includes(q)));
+  const c = p=>al.filter(r=>ALERTAS[r.alerta][1]===p).length;
+  return `<div class="grid" style="margin-bottom:12px">
+    ${["Crítica","Alta","Media","Baja"].map(p=>`<div class="card kpi" style="cursor:pointer" data-prio="${p}"><div class="l">${p}</div><div class="v"><span class="chip ${p}" style="font-size:20px">${c(p)}</span></div><div class="m">${p==="Crítica"?"Atender hoy":p==="Alta"?"Atender en 24 h":p==="Media"?"Esta semana":"Revisar"}</div></div>`).join("")}</div>
+  <div class="filtros">
+    <select data-f="prio">${opt(["Crítica","Alta","Media","Baja"],F.prio,"Toda prioridad")}</select>
+    <select data-f="resp">${opt(al.map(r=>r.resp),F.resp,"Todo responsable")}</select>
+    <select data-f="etapa">${opt(al.map(r=>r.etapa),F.etapa,"Toda etapa")}</select>
+    <select data-f="finca">${opt(al.map(r=>r["Finca"]),F.finca,"Toda finca")}</select>
+    <input type="search" data-f="q" placeholder="Buscar producto, línea o proveedor" value="${esc(F.q)}">
+  </div>
+  <div class="tw"><table><thead><tr><th>#</th><th>Prioridad</th><th>Alerta</th><th>Línea</th><th>Producto</th><th>Finca</th><th>Etapa · responsable</th><th class="n">Días</th><th class="n">Total</th><th>Proveedor</th><th>Qué hacer</th></tr></thead><tbody>
+  ${lista.map((r,i)=>`<tr><td>${i+1}</td><td><span class="chip ${ALERTAS[r.alerta][1]}">${ALERTAS[r.alerta][1]}</span></td><td>${esc(ALERTAS[r.alerta][0])}</td><td>${esc(r["Línea"])}</td><td>${esc(r["Producto"])}<div class="nota">${esc(r["Categoría"]||"")} · ${esc(r.kr)}</div></td><td>${esc(r["Finca"])}</td><td>${esc(r.etapa)}<div class="nota">${esc(r.resp)}</div></td><td class="n">${d1(r.diasEtapa)}</td><td class="n">${r.total?fm2(r.total):"—"}</td><td>${esc(r["Proveedor"]||"—")}</td><td class="nota">${esc(ALERTAS[r.alerta][3])}</td></tr>`).join("")||`<tr><td colspan="11">No hay pendientes con estos filtros.</td></tr>`}
+  </tbody></table></div><p class="nota">${lista.length} de ${al.length} alertas. Orden: gravedad + días detenido + monto + categoría estratégica.</p>`;
+}
+
+function vFlujo(){
+  const ab = FILAS.filter(r=>r.abierta);
+  const et = Object.keys(ETAPAS).map(Number).filter(n=>n<13).map(n=>{ const f=ab.filter(r=>r.n===n); return {n,f,acum:f.reduce((s,r)=>s+(r.diasEtapa||0),0),monto:f.reduce((s,r)=>s+r.total,0),max:Math.max(0,...f.map(r=>r.diasEtapa||0))}; });
+  const tot = et.reduce((s,x)=>s+x.acum,0)||1, top = et.reduce((a,b)=>b.acum>a.acum?b:a,et[0]);
+  const tramos=[["Pedido → revisión de campo","campo",1],["Revisión → 1ª cotización","inicioCot",1],["1ª cotización → selección","cotizando",2],["Selección → autorización","autoriz",1],["Autorización → OC generada","aOC",1],["OC → pago programado","progPago",1],["OC → N° de OC","numOC",1],["Pedido → N° de OC (interno)","pedOC",4],["N° OC → entrega","entrega",3],["Ciclo pedido → entrega","ciclo",10]];
+  return `<div class="aviso">Cuello de botella: «${esc(top.f.length?ETAPAS[top.n][0]:"—")}» concentra ${pct(top.acum/tot)} de todos los días de espera (${top.f.length} líneas, ${d1(top.f.length?top.acum/top.f.length:0)} días en promedio). Responsable: ${esc(ETAPAS[top.n][1])}.</div>
+  <div class="card"><b>Días acumulados de espera por etapa</b> <span class="nota">(suma de los días que lleva detenida cada línea abierta)</span>
+  ${et.map(x=>`<div class="fila"><div class="et">${x.n}. ${esc(ETAPAS[x.n][0])}</div><div class="barw"><div class="bar" style="width:${(x.acum/tot*100).toFixed(1)}%;${x===top?"background:var(--cr)":""}"></div></div><div class="num">${x.f.length} lín · ${Math.round(x.acum)} días · ${fm(x.monto)}</div></div>`).join("")}</div>
+  <div class="sec">Lead time por tramo (fechas reales de AgroControl)</div>
+  <div class="tw"><table><thead><tr><th>Tramo</th><th class="n">Medidas</th><th class="n">Promedio (días)</th><th class="n">Máximo</th><th class="n">Meta</th><th>Estado</th></tr></thead><tbody>
+  ${tramos.map(([l,k,m])=>{ const v=FILAS.map(r=>r.lt[k]).filter(x=>x!=null&&x>=0); const p=media(v); const s=p==null?"sin datos":p<=m?"ok":p<=m*1.5?"Media":"Crítica";
+    return `<tr><td>${l}</td><td class="n">${v.length}</td><td class="n">${d1(p)}</td><td class="n">${v.length?d1(Math.max(...v)):"—"}</td><td class="n">${m}</td><td><span class="chip ${s}">${s==="ok"?"Cumple":s==="Media"?"Cerca":s==="Crítica"?"No cumple":"Sin datos"}</span></td></tr>`; }).join("")}
+  </tbody></table></div><p class="nota">Sin fechas de pago ni de entrega registradas en la app, los tramos finales no se pueden medir. Eso es lo primero que hay que corregir.</p>`;
+}
+
+function vKpi(){
+  const ab=FILAS.filter(r=>r.abierta), cot=FILAS.filter(r=>r.cotOK!=null), ent=FILAS.filter(r=>r.aTiempo!=null), H=hoy0();
+  const conOC=FILAS.filter(r=>r["N° OC"]), prox=FILAS.filter(r=>r.abierta&&r["F. pago programada"]&&!r["F. pago realizado"]&&r["F. pago programada"]>=H&&dias(H,r["F. pago programada"])<=7);
+  const k=[["Líneas abiertas",ab.length,"de "+FILAS.length+" pedidas"],["Detenidas ≥ "+U.diasEstancado+" días",ab.filter(r=>(r.diasEtapa||0)>=U.diasEstancado).length,"meta 0"],
+   ["Gasto comprometido",fm(FILAS.filter(r=>r.n>=5&&r.n<=13).reduce((s,r)=>s+r.total,0)),"autorizado en adelante"],["Pagos próximos 7 días",fm(prox.reduce((s,r)=>s+r.total,0)),prox.length+" líneas"],
+   ["Pagos vencidos / sin registrar",fm(FILAS.filter(r=>r.alerta===1).reduce((s,r)=>s+r.total,0)),FILAS.filter(r=>r.alerta===1).length+" líneas · meta 0"],
+   ["Pedido → N° OC",d1(media(FILAS.map(r=>r.lt.pedOC).filter(x=>x!=null)))+" d","meta 4 días"],["Entregas a tiempo",pct(ent.length?ent.filter(r=>r.aTiempo).length/ent.length:null),ent.length+" entregas medidas · meta 90%"],
+   ["OC con entrega registrada",pct(conOC.length?conOC.filter(r=>r["F. entrega"]).length/conOC.length:null),"meta 90%"],["Cotizaciones suficientes",pct(cot.length?cot.filter(r=>r.cotOK).length/cot.length:null),"≥3 si línea ≥ "+fm(U.montoTresCot)],
+   ["Ahorro documentado",fm(FILAS.reduce((s,r)=>s+r.ahorro,0)),"vs cotización más cara"],["Sobrecosto vs más barata",fm(FILAS.reduce((s,r)=>s+r.sobre,0)),"debe justificarse"],
+   ["Rechazados + anulados",pct(FILAS.filter(r=>r.n===14).length/(FILAS.length||1)),"meta ≤ 5%"]];
+  const fincas=[...new Set(FILAS.map(r=>r["Finca"]))].sort();
+  return `<div class="grid">${k.map(([l,v,m])=>`<div class="card kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="m">${m}</div></div>`).join("")}</div>
+  <div class="sec">Por finca</div><div class="tw"><table><thead><tr><th>Finca</th><th class="n">Gasto comprometido</th><th class="n">$ por ha</th><th class="n">Abiertas</th><th class="n">Alertas</th><th class="n">Críticas</th><th class="n">Pedido → N° OC</th></tr></thead><tbody>
+  ${fincas.map(f=>{ const x=FILAS.filter(r=>r["Finca"]===f), g=x.filter(r=>r.n>=5&&r.n<=13).reduce((s,r)=>s+r.total,0), ha=num((x[0]||{})["Hectáreas"]);
+    return `<tr><td>${esc(f)}</td><td class="n">${fm(g)}</td><td class="n">${ha?fm(g/ha):"—"}</td><td class="n">${x.filter(r=>r.abierta).length}</td><td class="n">${x.filter(r=>r.alerta).length}</td><td class="n">${x.filter(r=>r.alerta&&ALERTAS[r.alerta][1]==="Crítica").length}</td><td class="n">${d1(media(x.map(r=>r.lt.pedOC).filter(v=>v!=null)))}</td></tr>`; }).join("")}
+  </tbody></table></div>`;
+}
+
+function vKraljic(){
+  const act=FILAS.filter(r=>r.n<14), tot=act.reduce((s,r)=>s+r.total,0);
+  const cats=[...new Set([...Object.keys(KR),...act.map(r=>r["Categoría"]||"Sin clasificar")])];
+  const datos=cats.map(c=>{ const f=act.filter(r=>(r["Categoría"]||"Sin clasificar")===c), g=f.reduce((s,r)=>s+r.total,0); return {c,g,lin:f.length,prov:new Set(f.map(r=>r["Proveedor"]).filter(Boolean)).size,...cuadrante(c,tot?g/tot:null)}; }).sort((a,b)=>b.g-a.g);
+  const W=460,Hh=360,P=36, x=v=>P+(v-1)/4*(W-2*P), y=v=>Hh-P-(v-1)/4*(Hh-2*P), maxg=Math.max(1,...datos.map(d=>d.g));
+  const svg=`<svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Matriz de Kraljic">
+    <rect x="${x(3)}" y="${y(5)}" width="${x(5)-x(3)}" height="${y(3)-y(5)}" fill="${KR_COLOR["Estratégico"]}" opacity=".08"/><rect x="${x(1)}" y="${y(5)}" width="${x(3)-x(1)}" height="${y(3)-y(5)}" fill="${KR_COLOR["Apalancamiento"]}" opacity=".08"/>
+    <rect x="${x(3)}" y="${y(3)}" width="${x(5)-x(3)}" height="${y(1)-y(3)}" fill="${KR_COLOR["Cuello de botella"]}" opacity=".08"/><rect x="${x(1)}" y="${y(3)}" width="${x(3)-x(1)}" height="${y(1)-y(3)}" fill="${KR_COLOR["No crítico"]}" opacity=".08"/>
+    <line x1="${x(3)}" x2="${x(3)}" y1="${y(5)}" y2="${y(1)}" stroke="currentColor" opacity=".25"/><line x1="${x(1)}" x2="${x(5)}" y1="${y(3)}" y2="${y(3)}" stroke="currentColor" opacity=".25"/>
+    <text x="${x(4)}" y="${y(4.85)}" text-anchor="middle" font-size="11" font-weight="700" fill="${KR_COLOR["Estratégico"]}">ESTRATÉGICO</text><text x="${x(2)}" y="${y(4.85)}" text-anchor="middle" font-size="11" font-weight="700" fill="${KR_COLOR["Apalancamiento"]}">APALANCAMIENTO</text>
+    <text x="${x(4)}" y="${y(1.12)}" text-anchor="middle" font-size="11" font-weight="700" fill="${KR_COLOR["Cuello de botella"]}">CUELLO DE BOTELLA</text><text x="${x(2)}" y="${y(1.12)}" text-anchor="middle" font-size="11" font-weight="700" fill="${KR_COLOR["No crítico"]}">NO CRÍTICO</text>
+    <text x="${W/2}" y="${Hh-6}" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">Riesgo de suministro →</text><text x="12" y="${Hh/2}" transform="rotate(-90 12 ${Hh/2})" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">Impacto en el resultado →</text>
+    ${datos.filter(d=>d.g>0).map(d=>`<circle cx="${x(d.riesgo)}" cy="${y(d.impacto)}" r="${5+Math.sqrt(d.g/maxg)*18}" fill="${KR_COLOR[d.q]}" opacity=".55"><title>${esc(d.c)}: ${fm(d.g)} · riesgo ${d.riesgo.toFixed(1)} · impacto ${d.impacto.toFixed(1)}</title></circle>`).join("")}
+    ${(()=>{ const usados={}; return datos.filter(d=>d.g>0).slice(0,10).map(d=>{ const k=d.riesgo.toFixed(1)+"|"+d.impacto.toFixed(1); const n=usados[k]=(usados[k]||0)+1; return `<text x="${x(d.riesgo)+10}" y="${y(d.impacto)-4+(n-1)*12}" font-size="10" fill="currentColor">${esc(d.c.split(/[ ,]/)[0])}</text>`; }).join(""); })()}
+  </svg>`;
+  const sl=(c,i)=>`<input type="range" min="1" max="5" step="1" value="${(KR[c]||KR_DEF["Sin clasificar"])[i]}" data-c="${esc(c)}" data-i="${i}" aria-label="${["Escasez","Importado/volátil","Criticidad","Regulación","Impacto estimado"][i]} ${esc(c)}">`;
+  return `<div class="kgrid"><div class="card">${svg}<p class="nota">Tamaño del círculo = gasto. Pase el mouse para ver el detalle.</p></div>
+  <div class="card">${Object.keys(KR_EST).map(q=>{ const ds=datos.filter(d=>d.q===q); return `<div style="margin-bottom:12px"><span class="chip" style="background:${KR_COLOR[q]}22;color:${KR_COLOR[q]}">${q}</span> <b>${ds.length} categorías · ${fm(ds.reduce((s,d)=>s+d.g,0))}</b><div class="nota">${KR_EST[q][0]}</div></div>`; }).join("")}</div></div>
+  <div class="sec">Ajustar riesgo (1 = bajo, 5 = alto). Se guarda en este navegador.</div>
+  <div class="tw"><table><thead><tr><th>Categoría</th><th class="n">Gasto</th><th class="n">Prov.</th><th>Escasez</th><th>Importado / volátil</th><th>Criticidad cultivo</th><th>Regulación</th><th>Impacto estimado</th><th>Cuadrante</th></tr></thead><tbody>
+  ${datos.map(d=>`<tr><td>${esc(d.c)}</td><td class="n">${fm(d.g)}</td><td class="n">${d.prov}</td>${[0,1,2,3,4].map(i=>`<td>${sl(d.c,i)}</td>`).join("")}<td><span class="chip" style="background:${KR_COLOR[d.q]}22;color:${KR_COLOR[d.q]}">${d.q}</span></td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+function vProv(){
+  const act=FILAS.filter(r=>r.n<14&&r["Proveedor"]), tot=act.reduce((s,r)=>s+r.total,0);
+  const pv=[...new Set(act.map(r=>r["Proveedor"]))].map(p=>{ const f=act.filter(r=>r["Proveedor"]===p), e=f.filter(r=>r.aTiempo!=null);
+    return {p,g:f.reduce((s,r)=>s+r.total,0),lin:f.length,cats:new Set(f.map(r=>r["Categoría"])).size,tp:[...new Set(f.map(r=>r["Tipo de pago"]).filter(Boolean))].join(", "),cred:Math.max(0,...f.map(r=>num(r["Días crédito"]))),ofrec:media(f.map(r=>r["Días entrega ofrecidos"]).filter(v=>v!==undefined&&v!=="").map(num)),otd:e.length?e.filter(r=>r.aTiempo).length/e.length:null,atr:f.filter(r=>r.alerta===2).length,ah:f.reduce((s,r)=>s+r.ahorro,0)}; }).sort((a,b)=>b.g-a.g);
+  let acum=0;
+  return `<div class="tw"><table><thead><tr><th>Proveedor</th><th class="n">Gasto</th><th class="n">% acum.</th><th class="n">Líneas</th><th>Pago</th><th class="n">Crédito</th><th class="n">Entrega ofrecida (d)</th><th class="n">A tiempo</th><th class="n">Atrasos</th><th class="n">Ahorro logrado</th><th>Calificación</th></tr></thead><tbody>
+  ${pv.map(x=>{ acum+=x.g; const cal=x.otd==null?["Sin entregas registradas","Media"]:x.otd>=.9&&!x.atr?["A · Preferente","ok"]:x.otd>=.75?["B · Aceptable","Media"]:["C · Plan de mejora","Crítica"];
+    return `<tr><td>${esc(x.p)}</td><td class="n">${fm(x.g)}</td><td class="n">${pct(acum/(tot||1))}</td><td class="n">${x.lin}</td><td>${esc(x.tp)}</td><td class="n">${x.cred||"—"}</td><td class="n">${d1(x.ofrec)}</td><td class="n">${pct(x.otd)}</td><td class="n">${x.atr||"—"}</td><td class="n">${fm(x.ah)}</td><td><span class="chip ${cal[1]}">${cal[0]}</span></td></tr>`; }).join("")}
+  </tbody></table></div><p class="nota">«% acum.» sirve de Pareto: los proveedores hasta el 80% son los que hay que negociar primero.</p>`;
+}
+
+function vPagos(){
+  const H=hoy0(), oc={};
+  FILAS.filter(r=>r["OC (código)"]&&r.abierta).forEach(r=>{ const k=r["OC (código)"]; (oc[k]=oc[k]||{k,prov:r["Proveedor"],finca:r["Finca"],tp:r["Tipo de pago"],pp:r["F. pago programada"],nOC:r["N° OC"],est:r.entregaEst,ent:r["F. entrega"],pag:r["F. pago realizado"],tot:0,lin:0}); oc[k].tot+=r.total; oc[k].lin++; });
+  const L=Object.values(oc).sort((a,b)=>(a.pp||0)-(b.pp||0));
+  const est=o=>{ if(o.pag) return o.ent?["Cerrada","ok"]:["Pagada, falta entrega","Media"]; if(o.pp&&o.pp<H) return ["Pago vencido / sin registrar","Crítica"]; if(o.pp&&dias(H,o.pp)<=7) return ["Pagar esta semana","Alta"]; return ["Programado","ok"]; };
+  const ent=o=>o.ent?["Entregada","ok"]:(o.est&&H>o.est)?["Entrega atrasada","Crítica"]:o.est?["Esperada "+fecha(o.est),"Media"]:["Sin fecha","Baja"];
+  return `<div class="tw"><table><thead><tr><th>OC</th><th>N° OC</th><th>Proveedor</th><th>Finca</th><th>Pago</th><th>F. pago</th><th class="n">Monto</th><th>Estado del pago</th><th>Entrega</th></tr></thead><tbody>
+  ${L.map(o=>{ const a=est(o), b=ent(o); return `<tr><td>${esc(o.k)}</td><td>${esc(o.nOC||"—")}</td><td>${esc(o.prov||"—")}</td><td>${esc(o.finca)}</td><td>${esc(o.tp||"—")}</td><td>${fecha(o.pp)}</td><td class="n">${fm2(o.tot)}</td><td><span class="chip ${a[1]}">${a[0]}</span></td><td><span class="chip ${b[1]}">${b[0]}</span></td></tr>`; }).join("")}
+  </tbody></table></div><p class="nota">Una OC por fila (agrupa sus productos). «Sin registrar» = la fecha ya pasó y la app no tiene la fecha de pago real.</p>`;
+}
+
+function pintar(){
+  pintarTabs();
+  const v=document.getElementById("vista");
+  v.innerHTML = !FILAS.length ? `<div class="card">Cargue el Excel del exportador de AgroControl.</div>` : ({pend:vPend,flujo:vFlujo,kpi:vKpi,kraljic:vKraljic,prov:vProv,pagos:vPagos}[TAB]||vPend)();
+}
+document.getElementById("vista").addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset.f){ F[t.dataset.f]=t.value; pintar(); }
+  if(t.type==="range"){ const c=t.dataset.c; KR[c]=[...(KR[c]||KR_DEF["Sin clasificar"])]; KR[c][+t.dataset.i]=+t.value; try{localStorage.setItem("agd_kraljic",JSON.stringify(KR));}catch(x){} FILAS=procesar(FILAS.map(r=>r)); pintar(); }
+});
+document.getElementById("vista").addEventListener("input",e=>{ if(e.target.dataset.f==="q"){ F.q=e.target.value; const pos=e.target.selectionStart; pintar(); const s=document.querySelector('[data-f="q"]'); if(s){ s.focus(); s.setSelectionRange(pos,pos);} } });
+document.getElementById("vista").addEventListener("click",e=>{ const c=e.target.closest("[data-prio]"); if(c){ F.prio=F.prio===c.dataset.prio?"":c.dataset.prio; pintar(); } });
+document.getElementById("arch").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  if(typeof XLSX==="undefined"){ alert("Sin internet no se puede leer el Excel (se necesita la librería SheetJS)."); return; }
+  const wb=XLSX.read(await f.arrayBuffer(),{cellDates:true}); const ws=wb.Sheets[wb.SheetNames[0]];
+  const filas=XLSX.utils.sheet_to_json(ws,{defval:"",raw:true});
+  if(!filas.length||!("F. pedido" in filas[0])){ alert("Este archivo no es del exportador de AgroControl (falta la columna «F. pedido»)."); return; }
+  AHORA=new Date(); cargar(filas, `Archivo: ${f.name} · calculado el ${AHORA.toLocaleString("es-EC")}`);
+});
+document.getElementById("csv").addEventListener("click",()=>{
+  const al=FILAS.filter(r=>r.alerta).sort((a,b)=>b.puntaje-a.puntaje);
+  const cab=["Prioridad","Alerta","Línea","Producto","Finca","Etapa","Responsable","Días en etapa","Total","Proveedor","Acción"];
+  const q=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`;
+  const txt="﻿"+[cab.join(";")].concat(al.map(r=>[ALERTAS[r.alerta][1],ALERTAS[r.alerta][0],r["Línea"],r["Producto"],r["Finca"],r.etapa,r.resp,d1(r.diasEtapa),r.total.toFixed(2),r["Proveedor"]||"",ALERTAS[r.alerta][3]].map(q).join(";"))).join("\n");
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([txt],{type:"text/csv"})); a.download="pendientes_compras.csv"; a.click();
+});
+async function cargarVivo(){
+  document.getElementById("fuente").textContent="Leyendo AgroControl…";
+  try{ await ComprasApp.exigirSesion(); const s=await ComprasApp.snapAgro(); SNAP=s; AHORA=new Date(s.generado);
+       cargar(s.filas, `EN VIVO · AgroControl · ${s.usuario} · ${new Date(s.generado).toLocaleString("es-EC")}`); }
+  catch(e){ if(e.message!=="sin sesión") document.getElementById("vista").innerHTML=`<div class="card">No se pudo leer AgroControl: ${esc(e.message)}. Revise su conexión y presione «Actualizar».</div>`; }
+}
+document.getElementById("refrescar").onclick=cargarVivo;
+cargarVivo();
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F5E3B">
+<title>Compras AgroDávila</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconos/icono-192.png">
+<link rel="apple-touch-icon" href="iconos/icono-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="comun.js"></script>
+<style>
+:root{--bg:#F4F6F3;--card:#FFFFFF;--tx:#1D2A22;--t2:#5E6B63;--bd:#DDE3DE;--pri:#1F5E3B;--pri2:#E3EFE7;--cr:#B42318;--crbg:#FBE4E2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121815;--card:#1B231F;--tx:#E6ECE8;--t2:#9AA9A0;--bd:#2C3832;--pri:#5FB386;--pri2:#21342A;--crbg:#43201D}}
+:root[data-theme="dark"]{--bg:#121815;--card:#1B231F;--tx:#E6ECE8;--t2:#9AA9A0;--bd:#2C3832;--pri:#5FB386;--pri2:#21342A;--crbg:#43201D}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 "Segoe UI",system-ui,sans-serif;min-height:100vh}
+main{max-width:460px;margin:0 auto;padding:28px 16px calc(28px + env(safe-area-inset-bottom))}
+h1{font-size:22px;margin:0 0 2px;color:var(--pri)}.sub{color:var(--t2);font-size:13px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:14px}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
+input[type=email],input[type=password]{width:100%;padding:12px;border:1px solid var(--bd);border-radius:10px;font:inherit;background:var(--card);color:var(--tx)}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--pri);outline-offset:2px}
+.btn{display:block;width:100%;border:0;border-radius:10px;padding:13px;font:inherit;font-weight:700;background:var(--pri);color:#fff;cursor:pointer;margin-top:16px;min-height:48px}
+.btn.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd)}
+.err{background:var(--crbg);color:var(--cr);border-radius:10px;padding:10px 12px;font-size:14px;margin-top:12px}
+.nota{font-size:12px;color:var(--t2);margin-top:10px}
+.menu a{display:flex;gap:14px;align-items:center;text-decoration:none;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:12px;min-height:84px}
+.menu a b{display:block;font-size:17px}.menu a span{font-size:13px;color:var(--t2)}
+.ico{width:46px;height:46px;border-radius:12px;background:var(--pri2);display:grid;place-items:center;font-size:24px;flex:none}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin-top:12px}.chk input{width:20px;height:20px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+  <h1>Compras AgroDávila</h1>
+  <div class="sub" id="sub">Compras y logística · AgroControl + WhatsApp</div>
+
+  <section class="card hide" id="pLogin" aria-labelledby="tLogin">
+    <b id="tLogin">Entrar con su usuario de AgroControl</b>
+    <form id="fLogin">
+      <label for="correo">Correo</label><input id="correo" type="email" autocomplete="username" required>
+      <label for="clave">Contraseña</label><input id="clave" type="password" autocomplete="current-password" required>
+      <button class="btn" type="submit" id="bEntrar">Entrar</button>
+    </form>
+    <div id="eLogin" class="err hide" role="alert"></div>
+    <p class="nota">Es el mismo usuario y contraseña de agrocontrol-agd.netlify.app. La app solo lee los datos; no cambia nada en AgroControl.</p>
+  </section>
+
+  <section class="card hide" id="pClave" aria-labelledby="tClave">
+    <b id="tClave">Clave de datos de WhatsApp</b>
+    <p class="nota" style="margin-top:4px">Los proveedores, precios y mensajes van cifrados. Escriba la clave de datos que le entregó Compras.</p>
+    <form id="fClave">
+      <label for="frase">Clave de datos</label><input id="frase" type="password" autocomplete="off" required>
+      <label class="chk"><input type="checkbox" id="recordar" checked> Recordar en este teléfono</label>
+      <button class="btn" type="submit" id="bClave">Abrir datos</button>
+    </form>
+    <div id="eClave" class="err hide" role="alert"></div>
+    <button class="btn sec" type="button" id="bSaltar">Seguir sin datos de WhatsApp</button>
+  </section>
+
+  <section class="hide menu" id="pMenu">
+    <a href="control.html"><div class="ico" aria-hidden="true">📊</div><div><b>Control de compras</b><span>AgroControl en vivo: pendientes, cuellos de botella, KPIs, Kraljic, proveedores y pagos.</span></div></a>
+    <a href="whatsapp.html"><div class="ico" aria-hidden="true">💬</div><div><b>Compras por WhatsApp</b><span>Mensajes listos para proveedores, a quién pedir, precios, facturas y pagos.</span></div></a>
+    <div class="card"><div class="nota" id="usuario" style="margin:0"></div>
+      <button class="btn sec" type="button" id="bClave2">Cambiar clave de datos</button>
+      <button class="btn sec" type="button" id="bSalir">Cerrar sesión</button></div>
+    <p class="nota" id="instalar"></p>
+  </section>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const ver=id=>["pLogin","pClave","pMenu"].forEach(x=>$("#"+x).classList.toggle("hide",x!==id));
+function err(el,t){ el.textContent=t; el.classList.toggle("hide",!t); }
+async function iniciar(){
+  let s=null; try{ s=await ComprasApp.sesion(); }catch(e){}
+  if(!s){ ver("pLogin"); $("#correo").focus(); return; }
+  $("#usuario").textContent="Sesión: "+(s.user&&s.user.email||"");
+  if(!ComprasApp.tieneClave() && !sessionStorage.getItem("agd_sin_wa")){ ver("pClave"); return; }
+  ver("pMenu");
+}
+$("#fLogin").addEventListener("submit",async e=>{ e.preventDefault(); err($("#eLogin"),""); $("#bEntrar").disabled=true; $("#bEntrar").textContent="Entrando…";
+  try{ await ComprasApp.entrar($("#correo").value,$("#clave").value); $("#clave").value=""; await iniciar(); }
+  catch(x){ err($("#eLogin"),x.message||"No se pudo entrar."); }
+  $("#bEntrar").disabled=false; $("#bEntrar").textContent="Entrar"; });
+$("#fClave").addEventListener("submit",async e=>{ e.preventDefault(); err($("#eClave"),""); $("#bClave").disabled=true; $("#bClave").textContent="Abriendo…";
+  try{ await ComprasApp.abrirDatos($("#frase").value,$("#recordar").checked); $("#frase").value=""; ver("pMenu"); }
+  catch(x){ err($("#eClave"),x.message||"No se pudo abrir."); }
+  $("#bClave").disabled=false; $("#bClave").textContent="Abrir datos"; });
+$("#bSaltar").onclick=()=>{ sessionStorage.setItem("agd_sin_wa","1"); ver("pMenu"); };
+$("#bClave2").onclick=()=>{ try{localStorage.removeItem("agd_clave_datos_v1");sessionStorage.removeItem("agd_clave_datos_v1");}catch(e){} ver("pClave"); };
+$("#bSalir").onclick=async()=>{ await ComprasApp.salir(); ver("pLogin"); };
+let aviso=null; window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); aviso=e;
+  $("#instalar").innerHTML='<button class="btn" type="button" id="bInst">Instalar la app en este teléfono</button>';
+  $("#bInst").onclick=async()=>{ aviso.prompt(); aviso=null; $("#instalar").textContent=""; }; });
+iniciar();
+</script>
+</body>
+</html>
