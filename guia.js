@@ -6,6 +6,8 @@
     inicio: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
     control: '<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="12" y="8" width="3" height="10" rx="1"/><rect x="17" y="5" width="3" height="13" rx="1"/>',
     whatsapp: '<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.7-5.3A8.4 8.4 0 1 1 21 11.5Z"/><path d="M8.5 9.5c.3 2.5 2.4 4.6 5 5"/>',
+    proveedores: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    nube: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
     ayuda: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.3-2.5 3.9"/><path d="M12 17h.01"/>',
     refrescar: '<path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/>',
     excel: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="m9 12 6 6"/><path d="m15 12-6 6"/>',
@@ -51,13 +53,16 @@
       msgs: ["Plantillas", "Textos base que puede reutilizar."],
       proc: ["Cómo trabajar", "El procedimiento de compras paso a paso y la rutina diaria."],
       ajustes: ["Ajustes", "Preferencias de la app en este equipo."]
+    },
+    "proveedores.html": {
+      matriz: ["Matriz oficial de proveedores", "Aquí se registran los datos que cada proveedor envía por correo: RUC, razón social, contacto, crédito, fichas técnicas y lista de precios. Toque una fila para abrir su ficha y guardar."]
     }
   };
 
   /* Pasos del recorrido de cada pantalla: [selector, título, texto] */
   const TOUR = {
     "index.html": [
-      [".marco", "Su barra de secciones", "Desde aquí pasa entre Inicio, Control y WhatsApp. En el teléfono está abajo, al alcance del pulgar."],
+      [".marco", "Su barra de secciones", "Desde aquí pasa entre Inicio, Control, WhatsApp y Proveedores. En el teléfono está abajo, al alcance del pulgar."],
       ["#urgente", "Lo urgente hoy", "Un vistazo a lo que espera por usted en AgroControl, actualizado en vivo."],
       ["#accesos", "Accesos rápidos", "Las tareas de todos los días a un toque: ver pendientes, enviar mensajes y bajar el Excel."],
       [".ayuda", "Ayuda cuando la necesite", "Toque «¿Cómo uso esto?» en cualquier pantalla para volver a ver este recorrido."]
@@ -72,13 +77,19 @@
       ["#nav", "Pestañas", "Hoy, Mensajes listos, Pedidos, Facturas, Proveedores y más."],
       ['[data-tab="listos"]', "Mensajes listos", "Aquí están los mensajes para proveedores, ya redactados."],
       ['[data-tab="aquien"]', "¿A quién le pido?", "Elija finca y producto, y la app le sugiere proveedores de la zona."]
+    ],
+    "proveedores.html": [
+      ["#avanceBox", "Indicador de avance", "Muestra cuántos de los 60 proveedores ya tienen sus datos completos (RUC, contacto, crédito y documentos)."],
+      ["#bCargarWA", "Cargar desde WhatsApp", "Trae los 60 proveedores base del paquete de WhatsApp sin pisar ningún dato que usted ya haya editado."],
+      ["#bExcelProv", "Excel de la matriz", "Descarga toda la matriz de proveedores en un archivo .xlsx listo para compartir con Contabilidad o Gerencia."],
+      ["#filtrosProv", "Buscador y filtros", "Filtre por estado de datos (pendiente, incompleto, recibido), zona o categoría, y toque cualquier proveedor para editar su ficha."]
     ]
   };
 
   function ponerMarco() {
     if (document.querySelector(".marco")) return;
     const p = pag();
-    const items = [["index.html", "inicio", "Inicio"], ["control.html", "control", "Control"], ["whatsapp.html", "whatsapp", "WhatsApp"]];
+    const items = [["index.html", "inicio", "Inicio"], ["control.html", "control", "Control"], ["whatsapp.html", "whatsapp", "WhatsApp"], ["proveedores.html", "proveedores", "Proveedores"]];
     const n = document.createElement("nav"); n.className = "marco"; n.setAttribute("aria-label", "Secciones de la app");
     n.innerHTML = `<a class="marca" href="index.html"><span class="sello">${ico("hoja")}</span>Compras AgroDávila</a>` +
       items.map(([h, i, t]) => `<a class="sec" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}<span>${t}</span></a>`).join("") +

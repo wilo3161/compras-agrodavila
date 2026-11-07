@@ -1,0 +1,540 @@
+/* Compras AgroDávila · Sincronización en la nube con Firebase (Cloud Firestore + Google Auth).
+   Usa Firebase JS SDK modular v10 desde CDN con persistencia sin conexión.
+   Si el usuario no inició sesión con Google, todo sigue funcionando localmente (localStorage). */
+"use strict";
+(function () {
+  const VERSION_SDK = "10.12.2";
+  const CDN_BASE = `https://www.gstatic.com/firebasejs/${VERSION_SDK}`;
+  const RAIZ = "espacios/agrodavila";
+  const LS_CAPA = "compras_wa_v1";
+  const LS_TEL = "agd_tel_proveedores";
+  const LS_KRALJIC = "agd_kraljic";
+  const LS_PASOS = "agd_pasos";
+
+  let modApp = null, modAuth = null, modFs = null;
+  let app = null, auth = null, db = null;
+  let usuarioActual = null;
+  let promesaInicio = null;
+  let oyentesEstado = [];
+  let unsubBorradores = null, unsubTelefonos = null, unsubAjustes = null;
+
+  function configLista() {
+    const cfg = window.AGD_FIREBASE_CONFIG;
+    return !!(cfg && cfg.apiKey && cfg.projectId);
+  }
+
+  function esMovil() {
+    return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || "") ||
+      (window.matchMedia && window.matchMedia("(max-width: 760px)").matches);
+  }
+
+  function chatIdSeguro(chat) {
+    const s = String(chat || "").trim();
+    if (!s) return "";
+    try {
+      const bytes = new TextEncoder().encode(s);
+      let bin = "";
+      bytes.forEach(b => { bin += String.fromCharCode(b); });
+      return "c_" + btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    } catch (e) {
+      return "c_" + encodeURIComponent(s).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 120);
+    }
+  }
+
+  function msFecha(iso) {
+    if (!iso) return 0;
+    const t = Date.parse(iso);
+    return isNaN(t) ? 0 : t;
+  }
+
+  function notificarEstado() {
+    const est = estado();
+    oyentesEstado.forEach(fn => { try { fn(est); } catch (e) {} });
+  }
+
+  async function inicializar() {
+    if (!configLista()) return false;
+    if (promesaInicio) return promesaInicio;
+    promesaInicio = (async () => {
+      try {
+        [modApp, modAuth, modFs] = await Promise.all([
+          import(`${CDN_BASE}/firebase-app.js`),
+          import(`${CDN_BASE}/firebase-auth.js`),
+          import(`${CDN_BASE}/firebase-firestore.js`)
+        ]);
+        const cfg = window.AGD_FIREBASE_CONFIG;
+        app = modApp.getApps().length ? modApp.getApp() : modApp.initializeApp(cfg);
+        auth = modAuth.getAuth(app);
+        try {
+          db = modFs.initializeFirestore(app, {
+            localCache: modFs.persistentLocalCache({
+              tabManager: modFs.persistentMultipleTabManager()
+            })
+          });
+        } catch (e) {
+          db = modFs.getFirestore(app);
+        }
+        try { await modAuth.getRedirectResult(auth); } catch (e) {}
+        await new Promise(resolve => {
+          let resuelto = false;
+          modAuth.onAuthStateChanged(auth, u => {
+            usuarioActual = u || null;
+            notificarEstado();
+            if (!resuelto) { resuelto = true; resolve(); }
+          });
+        });
+        return true;
+      } catch (e) {
+        promesaInicio = null;
+        return false;
+      }
+    })();
+    return promesaInicio;
+  }
+
+  function estado() {
+    return {
+      configurado: configLista(),
+      conectado: !!usuarioActual,
+      correo: usuarioActual ? (usuarioActual.email || "") : "",
+      nombre: usuarioActual ? (usuarioActual.displayName || "") : "",
+      uid: usuarioActual ? (usuarioActual.uid || "") : ""
+    };
+  }
+
+  function alCambiarEstado(cb) {
+    if (typeof cb === "function") {
+      oyentesEstado.push(cb);
+      inicializar().then(() => { try { cb(estado()); } catch (e) {} });
+    }
+  }
+
+  async function conectar() {
+    if (!configLista()) {
+      throw new Error("Falta configurar las credenciales públicas de Firebase en firebase_config.js.");
+    }
+    const ok = await inicializar();
+    if (!ok || !auth) throw new Error("No se pudo cargar Firebase. Revise su conexión a internet.");
+    const proveedor = new modAuth.GoogleAuthProvider();
+    proveedor.setCustomParameters({ prompt: "select_account" });
+    if (esMovil()) {
+      try {
+        const res = await modAuth.signInWithPopup(auth, proveedor);
+        usuarioActual = res.user;
+        notificarEstado();
+        return estado();
+      } catch (err) {
+        if (err && (err.code === "auth/popup-blocked" || err.code === "auth/operation-not-supported-in-this-environment")) {
+          await modAuth.signInWithRedirect(auth, proveedor);
+          return estado();
+        }
+        throw err;
+      }
+    } else {
+      const res = await modAuth.signInWithPopup(auth, proveedor);
+      usuarioActual = res.user;
+      notificarEstado();
+      return estado();
+    }
+  }
+
+  async function desconectar() {
+    if (unsubBorradores) { try { unsubBorradores(); } catch (e) {} unsubBorradores = null; }
+    if (unsubTelefonos) { try { unsubTelefonos(); } catch (e) {} unsubTelefonos = null; }
+    if (unsubAjustes) { try { unsubAjustes(); } catch (e) {} unsubAjustes = null; }
+    if (auth && modAuth) {
+      try { await modAuth.signOut(auth); } catch (e) {}
+    }
+    usuarioActual = null;
+    notificarEstado();
+  }
+
+  /* ── Borradores: espacios/agrodavila/borradores/{id} ──────────────────────── */
+  async function guardarBorrador(id, datosBor) {
+    if (!id) return;
+    await inicializar();
+    if (!db || !usuarioActual) return;
+    const ahora = (datosBor && datosBor.actualizado_en) || new Date().toISOString();
+    const docRef = modFs.doc(db, `${RAIZ}/borradores/${id}`);
+    const carga = {
+      estado: (datosBor && datosBor.estado) || "propuesto",
+      texto: (datosBor && datosBor.texto) != null ? String(datosBor.texto) : "",
+      enviado_en: (datosBor && datosBor.enviado_en) || null,
+      actualizado_en: ahora,
+      actualizado_por: usuarioActual.email || ""
+    };
+    try { await modFs.setDoc(docRef, carga, { merge: true }); } catch (e) {}
+  }
+
+  async function sincronizarBorradores(CAPA, alActualizar) {
+    await inicializar();
+    if (!db || !usuarioActual) return null;
+    if (unsubBorradores) { try { unsubBorradores(); } catch (e) {} }
+    const colRef = modFs.collection(db, `${RAIZ}/borradores`);
+
+    unsubBorradores = modFs.onSnapshot(colRef, snap => {
+      let huboCambioLocal = false;
+      const remotos = {};
+      snap.forEach(d => { remotos[d.id] = d.data(); });
+
+      // 1. De nube a local (gana actualizado_en más reciente)
+      Object.keys(remotos).forEach(id => {
+        const rem = remotos[id] || {};
+        const loc = (CAPA.bor && CAPA.bor[id]) || null;
+        const tRem = msFecha(rem.actualizado_en || rem.enviado_en);
+        const tLoc = loc ? msFecha(loc.actualizado_en || loc.enviado_en) : -1;
+        if (!loc || tRem > tLoc) {
+          CAPA.bor[id] = Object.assign({}, loc || {}, {
+            estado: rem.estado || (loc && loc.estado) || "propuesto",
+            texto: rem.texto != null ? rem.texto : (loc && loc.texto) || "",
+            enviado_en: rem.enviado_en || null,
+            actualizado_en: rem.actualizado_en || new Date().toISOString(),
+            actualizado_por: rem.actualizado_por || ""
+          });
+          huboCambioLocal = true;
+        }
+      });
+
+      // 2. De local a nube (subir los que sean más recientes en local o no estén en nube)
+      Object.keys(CAPA.bor || {}).forEach(id => {
+        const loc = CAPA.bor[id];
+        if (!loc) return;
+        const rem = remotos[id];
+        const tLoc = msFecha(loc.actualizado_en || loc.enviado_en);
+        const tRem = rem ? msFecha(rem.actualizado_en || rem.enviado_en) : -1;
+        if (!rem || tLoc > tRem) {
+          if (!loc.actualizado_en) loc.actualizado_en = loc.enviado_en || new Date().toISOString();
+          guardarBorrador(id, loc);
+        }
+      });
+
+      if (huboCambioLocal) {
+        try { localStorage.setItem(LS_CAPA, JSON.stringify(CAPA)); } catch (e) {}
+        if (typeof alActualizar === "function") { try { alActualizar(); } catch (e) {} }
+      }
+    }, () => {});
+    return unsubBorradores;
+  }
+
+  /* ── Teléfonos: espacios/agrodavila/telefonos/{chatSeguro} ────────────────── */
+  function leerMapaTel() {
+    try {
+      const crudo = JSON.parse(localStorage.getItem(LS_TEL) || "{}");
+      const meta = JSON.parse(localStorage.getItem(LS_TEL + "_meta") || "{}");
+      return { crudo, meta };
+    } catch (e) { return { crudo: {}, meta: {} }; }
+  }
+
+  function escribirMapaTel(crudo, meta) {
+    try {
+      localStorage.setItem(LS_TEL, JSON.stringify(crudo));
+      localStorage.setItem(LS_TEL + "_meta", JSON.stringify(meta));
+    } catch (e) {}
+  }
+
+  async function guardarTelefono(chat, numero) {
+    if (!chat) return;
+    const ahora = new Date().toISOString();
+    const { crudo, meta } = leerMapaTel();
+    if (numero) crudo[chat] = numero; else delete crudo[chat];
+    meta[chat] = ahora;
+    escribirMapaTel(crudo, meta);
+
+    await inicializar();
+    if (!db || !usuarioActual) return;
+    const idSeg = chatIdSeguro(chat);
+    if (!idSeg) return;
+    const docRef = modFs.doc(db, `${RAIZ}/telefonos/${idSeg}`);
+    try {
+      await modFs.setDoc(docRef, {
+        chat: String(chat),
+        numero: String(numero || ""),
+        actualizado_en: ahora
+      }, { merge: true });
+    } catch (e) {}
+  }
+
+  async function sincronizarTelefonos(alActualizar) {
+    await inicializar();
+    if (!db || !usuarioActual) return null;
+    if (unsubTelefonos) { try { unsubTelefonos(); } catch (e) {} }
+    const colRef = modFs.collection(db, `${RAIZ}/telefonos`);
+
+    unsubTelefonos = modFs.onSnapshot(colRef, snap => {
+      const { crudo, meta } = leerMapaTel();
+      let cambio = false;
+      const remotosPorChat = {};
+      snap.forEach(d => {
+        const data = d.data() || {};
+        if (data.chat) remotosPorChat[data.chat] = data;
+      });
+
+      Object.keys(remotosPorChat).forEach(chat => {
+        const rem = remotosPorChat[chat];
+        const tRem = msFecha(rem.actualizado_en);
+        const tLoc = msFecha(meta[chat]);
+        if (tRem > tLoc || (crudo[chat] === undefined && rem.numero)) {
+          if (rem.numero) crudo[chat] = rem.numero; else delete crudo[chat];
+          meta[chat] = rem.actualizado_en || new Date().toISOString();
+          cambio = true;
+        }
+      });
+
+      Object.keys(crudo).forEach(chat => {
+        const rem = remotosPorChat[chat];
+        const tLoc = msFecha(meta[chat]);
+        const tRem = rem ? msFecha(rem.actualizado_en) : -1;
+        if (!rem || tLoc > tRem) {
+          const ahora = meta[chat] || new Date().toISOString();
+          meta[chat] = ahora;
+          const idSeg = chatIdSeguro(chat);
+          if (idSeg) {
+            modFs.setDoc(modFs.doc(db, `${RAIZ}/telefonos/${idSeg}`), {
+              chat,
+              numero: String(crudo[chat] || ""),
+              actualizado_en: ahora
+            }, { merge: true }).catch(() => {});
+          }
+        }
+      });
+
+      if (cambio) {
+        escribirMapaTel(crudo, meta);
+        if (typeof alActualizar === "function") { try { alActualizar(crudo); } catch (e) {} }
+      }
+    }, () => {});
+    return unsubTelefonos;
+  }
+
+  /* ── Ajustes: espacios/agrodavila/ajustes/app ─────────────────────────────── */
+  async function guardarAjustes(parcial) {
+    await inicializar();
+    if (!db || !usuarioActual) return;
+    const docRef = modFs.doc(db, `${RAIZ}/ajustes/app`);
+    try {
+      const kraljic = (parcial && parcial.kraljic) || JSON.parse(localStorage.getItem(LS_KRALJIC) || "{}");
+      const pasos = (parcial && parcial.pasos) || JSON.parse(localStorage.getItem(LS_PASOS) || "{}");
+      await modFs.setDoc(docRef, {
+        kraljic,
+        pasos,
+        actualizado_en: new Date().toISOString(),
+        actualizado_por: usuarioActual.email || ""
+      }, { merge: true });
+    } catch (e) {}
+  }
+
+  async function sincronizarAjustes(alActualizar) {
+    await inicializar();
+    if (!db || !usuarioActual) return null;
+    if (unsubAjustes) { try { unsubAjustes(); } catch (e) {} }
+    const docRef = modFs.doc(db, `${RAIZ}/ajustes/app`);
+    unsubAjustes = modFs.onSnapshot(docRef, snap => {
+      if (!snap.exists()) {
+        guardarAjustes({});
+        return;
+      }
+      const data = snap.data() || {};
+      let cambio = false;
+      try {
+        if (data.pasos && typeof data.pasos === "object") {
+          const locP = JSON.parse(localStorage.getItem(LS_PASOS) || "{}");
+          const mezP = Object.assign({}, locP, data.pasos);
+          if (JSON.stringify(mezP) !== JSON.stringify(locP)) {
+            localStorage.setItem(LS_PASOS, JSON.stringify(mezP));
+            cambio = true;
+          }
+        }
+        if (data.kraljic && typeof data.kraljic === "object") {
+          const locK = JSON.parse(localStorage.getItem(LS_KRALJIC) || "{}");
+          const mezK = Object.assign({}, locK, data.kraljic);
+          if (JSON.stringify(mezK) !== JSON.stringify(locK)) {
+            localStorage.setItem(LS_KRALJIC, JSON.stringify(mezK));
+            cambio = true;
+          }
+        }
+      } catch (e) {}
+      if (cambio && typeof alActualizar === "function") { try { alActualizar(data); } catch (e) {} }
+    }, () => {});
+    return unsubAjustes;
+  }
+
+  /* ── Matriz de proveedores: espacios/agrodavila/proveedores/{proveedorId} ── */
+  const LS_MATRIZ = "agd_matriz_proveedores_v1";
+
+  function leerMatrizLocal() {
+    try { return JSON.parse(localStorage.getItem(LS_MATRIZ) || "{}"); } catch (e) { return {}; }
+  }
+
+  function escribirMatrizLocal(mapa) {
+    try { localStorage.setItem(LS_MATRIZ, JSON.stringify(mapa)); } catch (e) {}
+  }
+
+  function normalizarProveedor(id, base) {
+    const p = base || {};
+    const cond = p.condiciones || {};
+    return {
+      id: String(id || p.id || ""),
+      nombre: p.nombre || "",
+      razon_social: p.razon_social || "",
+      ruc: p.ruc || "",
+      contacto: p.contacto || "",
+      cargo: p.cargo || "",
+      correo: p.correo || "",
+      telefono: p.telefono || "",
+      ciudad: p.ciudad && p.ciudad !== "—" ? p.ciudad : "",
+      zona: p.zona || "",
+      cobertura: p.cobertura || "",
+      categorias: Array.isArray(p.categorias) ? p.categorias : [],
+      condiciones_pago: p.condiciones_pago != null ? p.condiciones_pago : (cond.pago || ""),
+      dias_credito: p.dias_credito != null ? Number(p.dias_credito) || 0 : (Number(cond.credito_dias) || 0),
+      requisitos_credito: p.requisitos_credito || "",
+      ficha_tecnica: Boolean(p.ficha_tecnica),
+      fichas_detalle: p.fichas_detalle || "",
+      lista_precios: Boolean(p.lista_precios),
+      fecha_lista_precios: p.fecha_lista_precios || "",
+      garantia: p.garantia || "",
+      caducidad_ok: Boolean(p.caducidad_ok),
+      estado_datos: ["pendiente", "recibido", "incompleto"].includes(p.estado_datos) ? p.estado_datos : "pendiente",
+      notas: p.notas || "",
+      chat: p.chat || "",
+      actualizado_en: p.actualizado_en || new Date().toISOString(),
+      actualizado_por: p.actualizado_por || (usuarioActual ? usuarioActual.email || "" : "local")
+    };
+  }
+
+  async function guardarProveedorMatriz(id, datos) {
+    if (!id) throw new Error("Falta el identificador del proveedor.");
+    const ahora = new Date().toISOString();
+    const mapa = leerMatrizLocal();
+    const previo = mapa[id] || {};
+    const limpio = normalizarProveedor(id, Object.assign({}, previo, datos, {
+      actualizado_en: ahora,
+      actualizado_por: usuarioActual ? (usuarioActual.email || "") : "local"
+    }));
+    mapa[id] = limpio;
+    escribirMatrizLocal(mapa);
+
+    await inicializar();
+    if (db && usuarioActual) {
+      const docRef = modFs.doc(db, `${RAIZ}/proveedores/${id}`);
+      const copia = Object.assign({}, limpio);
+      delete copia.id;
+      await modFs.setDoc(docRef, copia, { merge: true });
+    }
+    return limpio;
+  }
+
+  async function cargarProveedoresDesdeWA(listaBase) {
+    if (!Array.isArray(listaBase) || !listaBase.length) return { creados: 0, total: 0 };
+    const { crudo: mapaTel } = leerMapaTel();
+    const mapaLoc = leerMatrizLocal();
+    let creados = 0;
+
+    await inicializar();
+    let existentesRemotos = {};
+    if (db && usuarioActual) {
+      try {
+        const snap = await modFs.getDocs(modFs.collection(db, `${RAIZ}/proveedores`));
+        snap.forEach(d => { existentesRemotos[d.id] = d.data(); });
+      } catch (e) {}
+    }
+
+    for (const b of listaBase) {
+      if (!b || !b.id) continue;
+      const yaExiste = Boolean(existentesRemotos[b.id] || mapaLoc[b.id]);
+      if (yaExiste) continue;
+      const tel = (b.chat && mapaTel[b.chat]) ? mapaTel[b.chat] : (b.telefono || "");
+      const docNuevo = normalizarProveedor(b.id, Object.assign({}, b, { telefono: tel }));
+      mapaLoc[b.id] = docNuevo;
+      creados++;
+      if (db && usuarioActual) {
+        const copia = Object.assign({}, docNuevo);
+        delete copia.id;
+        try { await modFs.setDoc(modFs.doc(db, `${RAIZ}/proveedores/${b.id}`), copia, { merge: true }); } catch (e) {}
+      }
+    }
+    escribirMatrizLocal(mapaLoc);
+    return { creados, total: Object.keys(Object.assign({}, mapaLoc, existentesRemotos)).length };
+  }
+
+  async function escucharMatriz(cb, alError) {
+    const emitirLocal = () => {
+      const m = leerMatrizLocal();
+      const lista = Object.keys(m).map(id => normalizarProveedor(id, m[id]));
+      if (typeof cb === "function") cb(lista, { fuente: "local" });
+    };
+
+    await inicializar();
+    if (!db || !usuarioActual) {
+      emitirLocal();
+      return () => {};
+    }
+
+    const colRef = modFs.collection(db, `${RAIZ}/proveedores`);
+    return modFs.onSnapshot(colRef, snap => {
+      const mLoc = leerMatrizLocal();
+      const remotos = {};
+      snap.forEach(d => { remotos[d.id] = d.data(); });
+
+      // Resolver conflictos por actualizado_en entre local y nube
+      const todosIds = new Set([...Object.keys(mLoc), ...Object.keys(remotos)]);
+      todosIds.forEach(id => {
+        const loc = mLoc[id];
+        const rem = remotos[id];
+        const tLoc = loc ? msFecha(loc.actualizado_en) : -1;
+        const tRem = rem ? msFecha(rem.actualizado_en) : -1;
+        if (rem && tRem >= tLoc) {
+          mLoc[id] = normalizarProveedor(id, rem);
+        } else if (loc && tLoc > tRem) {
+          const copia = Object.assign({}, normalizarProveedor(id, loc));
+          delete copia.id;
+          modFs.setDoc(modFs.doc(db, `${RAIZ}/proveedores/${id}`), copia, { merge: true }).catch(() => {});
+        }
+      });
+
+      escribirMatrizLocal(mLoc);
+      const lista = Object.keys(mLoc).map(id => normalizarProveedor(id, mLoc[id]));
+      if (typeof cb === "function") cb(lista, { fuente: "nube" });
+    }, err => {
+      emitirLocal();
+      if (typeof alError === "function") alError(err);
+    });
+  }
+
+  /* Matriz en vivo de Gerencia: el motor (cada 30 min) deja en la nube el resumen de AgroControl y los enlaces del
+     Excel que se actualiza solo. Solo los correos autorizados pueden leerlos. cb({excel, resumen}) en cada cambio. */
+  let unsubMatrizVivo = [];
+  async function escucharMatrizEnVivo(cb) {
+    await inicializar();
+    unsubMatrizVivo.forEach(u => { try { u(); } catch (e) {} });
+    unsubMatrizVivo = [];
+    if (!db || !usuarioActual || typeof cb !== "function") return false;
+    const actual = { excel: null, resumen: null };
+    const oir = (ruta, clave) => modFs.onSnapshot(modFs.doc(db, ruta), snap => {
+      actual[clave] = snap.exists() ? snap.data() : null;
+      cb(Object.assign({}, actual));
+    }, () => cb(Object.assign({}, actual, { error: true })));
+    unsubMatrizVivo.push(oir(`${RAIZ}/ajustes/excel`, "excel"), oir(`${RAIZ}/agrocontrol/resumen`, "resumen"));
+    return true;
+  }
+
+  window.AgdNube = {
+    escucharMatrizEnVivo,
+    inicializar,
+    conectar,
+    desconectar,
+    estado,
+    alCambiarEstado,
+    guardarBorrador,
+    sincronizarBorradores,
+    guardarTelefono,
+    sincronizarTelefonos,
+    guardarAjustes,
+    sincronizarAjustes,
+    guardarProveedorMatriz,
+    cargarProveedoresDesdeWA,
+    escucharMatriz,
+    normalizarProveedor,
+    chatIdSeguro
+  };
+})();

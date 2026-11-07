@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="comun.js"></script>
+<script src="comun.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script>
 <script src="guia.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -168,12 +168,21 @@ input[type=email],input[type=password]{width:100%;padding:12px 14px;font:inherit
     </section>
     <section class="bloque" aria-labelledby="tCuenta">
       <h2 id="tCuenta">Su cuenta</h2>
-      <p class="muted" id="usuario" style="margin:0"></p>
+      <p class="muted" id="usuario" style="margin:0"></p><p class="muted" id="estadoNube" style="margin:6px 0 0;font-size:13px">Sincronización: solo en este equipo (sin conectar).</p>
       <div class="cuenta">
-        <button class="btn sm" type="button" id="bClave2"><span data-i="llave"></span>Cambiar clave de datos</button>
+        <button class="btn sm p" type="button" id="bNube"><span data-i="nube"></span><span id="txtNube">Sincronizar entre mis equipos</span></button><button class="btn sm" type="button" id="bClave2"><span data-i="llave"></span>Cambiar clave de datos</button>
         <button class="btn sm" type="button" id="bSalir"><span data-i="salir"></span>Cerrar sesión</button>
       </div>
       <p class="nota" id="instIOS"></p>
+    </section>
+    <section class="bloque hide" id="bMatrizVivo" aria-labelledby="tMatrizVivo">
+      <h2 id="tMatrizVivo">Matriz de Gestión en vivo (Gerencia)</h2>
+      <p class="muted" id="estadoMatrizVivo" style="margin:0">Buscando la última lectura de AgroControl…</p>
+      <div class="cuenta">
+        <a class="btn sm p hide" id="lMatrizXlsx" href="#" rel="noopener"><span data-i="hoja"></span>Descargar el Excel en vivo</a>
+        <button class="btn sm hide" type="button" id="bCopiarDatos">Copiar enlace de los datos</button>
+      </div>
+      <p class="nota">El Excel se llena solo al abrirlo y cada 30 minutos con lo último de AgroControl. Compártalo solo con Gerencia: el enlace da acceso a los datos.</p>
     </section>
   </div>
 </main>
@@ -188,7 +197,7 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",
 /* Primeros pasos: se marcan solos al usarlos */
 const PASOS=[["instalar","Instale la app en su teléfono"],["criticos","Revise lo pendiente de prioridad Crítica"],["mensajes","Envíe los mensajes listos a proveedores"],["excel","Baje el Excel para la matriz del viernes"]];
 const hechos=()=>{ try{ return JSON.parse(localStorage.getItem("agd_pasos")||"{}"); }catch(e){ return {}; } };
-function marcar(k){ const h=hechos(); h[k]=1; try{ localStorage.setItem("agd_pasos",JSON.stringify(h)); }catch(e){} pintarPasos(); }
+function marcar(k){ const h=hechos(); h[k]=1; try{ localStorage.setItem("agd_pasos",JSON.stringify(h)); }catch(e){} if(window.AgdNube) AgdNube.guardarAjustes({pasos:h}); pintarPasos(); }
 function pintarPasos(){ const h=hechos(); if(window.matchMedia("(display-mode: standalone)").matches) h.instalar=1;
   $("#pasos").innerHTML=PASOS.map(([k,t])=>`<li class="${h[k]?"hecho":""}"><span class="c">${I("check")}</span><span>${t}</span></li>`).join(""); }
 document.addEventListener("click",e=>{ const a=e.target.closest("[data-paso]"); if(a&&a.dataset.paso!=="excel"&&a.dataset.paso!=="instalar") marcar(a.dataset.paso); });
@@ -242,6 +251,51 @@ $("#fClave").addEventListener("submit",async e=>{ e.preventDefault(); err($("#eC
 $("#bSaltar").onclick=()=>{ sessionStorage.setItem("agd_sin_wa","1"); iniciar(); };
 $("#bClave2").onclick=()=>{ try{localStorage.removeItem("agd_clave_datos_v1");sessionStorage.removeItem("agd_clave_datos_v1");}catch(e){} ver("pClave"); };
 $("#bSalir").onclick=async()=>{ await ComprasApp.salir(); ver("pLogin"); };
+function haceCuanto(iso){
+  const t=Date.parse(iso||""); if(isNaN(t)) return "";
+  const m=Math.round((Date.now()-t)/60000);
+  return m<1?"hace un momento":m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:`hace ${Math.round(m/1440)} días`;
+}
+function pintarMatrizVivo(d){
+  const caja=$("#bMatrizVivo"), est=$("#estadoMatrizVivo"), lx=$("#lMatrizXlsx"), bc=$("#bCopiarDatos");
+  caja.classList.remove("hide");
+  const r=d&&d.resumen, x=d&&d.excel;
+  if(d&&d.error&&!r){ est.textContent="No se pudo leer la matriz en vivo (revise que su correo esté autorizado)."; return; }
+  if(!r){ est.textContent="Todavía no llega la primera lectura de AgroControl a la nube."; }
+  else{
+    const corte=new Date(r.corte||r.actualizado_en);
+    est.textContent=`${r.filas} líneas de pedido · lectura de AgroControl del ${isNaN(corte)?"—":corte.toLocaleString("es-EC",{dateStyle:"short",timeStyle:"short"})} · subida ${haceCuanto(r.actualizado_en)}.`;
+  }
+  lx.classList.toggle("hide",!(x&&x.url_xlsx)); if(x&&x.url_xlsx) lx.href=x.url_xlsx;
+  bc.classList.toggle("hide",!(x&&x.url_csv));
+  bc.onclick=async()=>{ try{ await navigator.clipboard.writeText(x.url_csv); bc.textContent="Enlace copiado"; }catch(e){ prompt("Copie el enlace:",x.url_csv); } };
+}
+function pintarEstadoNube(est){
+  const el=$("#estadoNube"), bt=$("#bNube"), tx=$("#txtNube"); if(!el||!bt||!tx) return;
+  if(est && est.conectado){
+    el.textContent=`Sincronizado en la nube como ${est.correo||"usuario conectado"}.`;
+    tx.textContent="Desconectar sincronización";
+    bt.classList.remove("p");
+  }else if(est && !est.configurado){
+    el.textContent="Sincronización: pendiente de configurar proyecto Firebase (guardando en este equipo).";
+    tx.textContent="Sincronizar entre mis equipos";
+    bt.classList.add("p");
+  }else{
+    el.textContent="Sincronización: solo en este equipo (conecte su cuenta Google para compartir teléfono y PC).";
+    tx.textContent="Sincronizar entre mis equipos";
+    bt.classList.add("p");
+  }
+}
+if(window.AgdNube){
+  AgdNube.alCambiarEstado(est=>{ pintarEstadoNube(est); if(est&&est.conectado){ AgdNube.sincronizarAjustes(()=>pintarPasos()); AgdNube.escucharMatrizEnVivo(pintarMatrizVivo); } else $("#bMatrizVivo").classList.add("hide"); });
+  $("#bNube").onclick=async()=>{
+    const est=AgdNube.estado();
+    try{
+      if(est.conectado) await AgdNube.desconectar();
+      else await AgdNube.conectar();
+    }catch(e){ alert(e.message||"No se pudo conectar con Google."); }
+  };
+}
 let aviso=null; window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); aviso=e; $("#bInst").classList.remove("hide"); });
 $("#bInst").onclick=async()=>{ if(!aviso) return; aviso.prompt(); const r=await aviso.userChoice; if(r.outcome==="accepted") marcar("instalar"); aviso=null; $("#bInst").classList.add("hide"); };
 const esIOS=/iphone|ipad|ipod/i.test(navigator.userAgent), instalada=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone;

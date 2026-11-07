@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Compras WhatsApp · AgroDávila</title><meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="comun.js"></script><script src="guia.js"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Compras WhatsApp · AgroDávila</title><meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F4F6F3;--card:#FFFFFF;--tx:#1D2A22;--t2:#5E6B63;--bd:#DDE3DE;--ok:#2E7D4F;--okbg:#E5F3EA;--md:#B7791F;--mdbg:#FDF3DC;--al:#C2591B;--albg:#FCE9DC;--cr:#B42318;--crbg:#FBE4E2;--pri:#1F5E3B;--pri2:#E3EFE7;--az:#0F4C81;--azbg:#E4EEF8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121815;--card:#1B231F;--tx:#E6ECE8;--t2:#9AA9A0;--bd:#2C3832;--ok:#6CC08E;--okbg:#1E3A2A;--md:#E2B25A;--mdbg:#3A2F17;--al:#EE9A63;--albg:#3D2618;--cr:#F0857A;--crbg:#43201D;--pri:#5FB386;--pri2:#21342A;--az:#7FB2E5;--azbg:#1A2A3A}}
@@ -186,7 +186,7 @@ function msgSeguimiento(p){const prov=D.byId[p.proveedor_id];const it=itemsTxt(p
 
 /* ====== Persistencia de cambios ====== */
 function guardarPed(id,cambio){CAPA.ped[id]=Object.assign({},CAPA.ped[id]||{},cambio);lsSet(LS,CAPA);fusion();pintar();}
-function guardarBor(id,cambio){CAPA.bor[id]=Object.assign({},CAPA.bor[id]||{},cambio);lsSet(LS,CAPA);fusion();pintar();}
+function guardarBor(id,cambio){const ahora=new Date().toISOString();CAPA.bor[id]=Object.assign({},CAPA.bor[id]||{},cambio,{actualizado_en:ahora});lsSet(LS,CAPA);if(window.AgdNube)AgdNube.guardarBorrador(id,CAPA.bor[id]);fusion();pintar();}
 function guardarTra(id,cambio){CAPA.tra=CAPA.tra||{};CAPA.tra[id]=Object.assign({},CAPA.tra[id]||{},cambio);lsSet(LS,CAPA);fusion();pintar();}
 function guardarProv(id,cambio){CAPA.prov[id]=Object.assign({},CAPA.prov[id]||{},cambio);lsSet(LS,CAPA);fusion();pintar();}
 
@@ -561,7 +561,7 @@ function vListos(){probarAgente();
   const re=()=>{FL.tipo=$("#lt").value;FL.finca=$("#lf").value;FL.estado=$("#le").value;vListos();};
   ["#lt","#lf","#le"].forEach(s=>$(s).onchange=re);
   const txt=id=>{const t=document.querySelector(`[data-btxt="${CSS.escape(id)}"]`);return t?t.value:"";};
-  document.querySelectorAll("[data-btxt]").forEach(t=>t.onchange=()=>{CAPA.bor[t.dataset.btxt]=Object.assign({},CAPA.bor[t.dataset.btxt]||{},{texto:t.value});lsSet(LS,CAPA);fusion();});
+  document.querySelectorAll("[data-btxt]").forEach(t=>t.onchange=()=>{const id=t.dataset.btxt,ahora=new Date().toISOString();CAPA.bor[id]=Object.assign({},CAPA.bor[id]||{},{texto:t.value,actualizado_en:ahora});lsSet(LS,CAPA);if(window.AgdNube)AgdNube.guardarBorrador(id,CAPA.bor[id]);fusion();});
   activarPanelTelefono();
   document.querySelectorAll("[data-bdes]").forEach(b=>b.onclick=()=>{guardarBor(b.dataset.bdes,{estado:"descartado"});toast("Descartado");});
   document.querySelectorAll("[data-breab]").forEach(b=>b.onclick=()=>guardarBor(b.dataset.breab,{estado:"propuesto",enviado_en:null,error:null}));
@@ -571,7 +571,7 @@ function revisarYEnviar(id,texto){const bor=D.borradores.find(x=>x.id===id);if(b
 /* Envío genérico: obj = {id, chat, proveedor_id, finca}. esBorrador=true actualiza el estado del borrador. */
 const LS_TEL="agd_tel_proveedores";
 function telProv(chat){ try{ return (JSON.parse(localStorage.getItem(LS_TEL)||"{}"))[chat]||""; }catch(e){ return ""; } }
-function guardarTel(chat,num){ try{ const m=JSON.parse(localStorage.getItem(LS_TEL)||"{}"); if(num) m[chat]=num; else delete m[chat]; localStorage.setItem(LS_TEL,JSON.stringify(m)); }catch(e){} }
+function guardarTel(chat,num){ try{ const m=JSON.parse(localStorage.getItem(LS_TEL)||"{}"); if(num) m[chat]=num; else delete m[chat]; localStorage.setItem(LS_TEL,JSON.stringify(m)); }catch(e){} if(window.AgdNube) AgdNube.guardarTelefono(chat,num); }
 function numEc(n){ let d=String(n||"").replace(/\D/g,""); if(!d) return ""; if(d.startsWith("0")) d="593"+d.slice(1); else if(d.length===9) d="593"+d; return d; }
 async function enviarMovil(t,bor,id,esBorrador){
   const crudo=($("#revTel")&&$("#revTel").value.trim())||""; guardarTel(bor.chat,crudo); const num=numEc(crudo);
@@ -740,7 +740,8 @@ aplicarTema();
 (async()=>{ try{ await ComprasApp.exigirSesion(); }catch(e){ return; }
   let d=null; try{ d=await ComprasApp.datosWA(); }catch(e){ $("#main").innerHTML=`<div class="card"><b>${esc(e.message)}</b> <a href="index.html">Volver a escribir la clave de datos</a></div>`; return; }
   if(!d){ $("#main").innerHTML=`<div class="card"><b>Falta la clave de datos.</b> <a href="index.html">Escribirla en Inicio</a></div>`; return; }
-  window.DATOS_COMPRAS=d; BASE=d; fusion(); pintar(); })();
+  window.DATOS_COMPRAS=d; BASE=d; fusion(); pintar();
+  if(window.AgdNube){ AgdNube.alCambiarEstado(est=>{ if(est&&est.conectado){ AgdNube.sincronizarBorradores(CAPA,()=>{fusion();pintar();}); AgdNube.sincronizarTelefonos(()=>{if(TAB==="listos")pintar();}); } }); } })();
 </script>
 </body>
 </html>

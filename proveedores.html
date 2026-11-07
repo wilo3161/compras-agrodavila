@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#23262B">
+<title>Matriz de proveedores · Compras AgroDávila</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconos/icono-192.png">
+<link rel="apple-touch-icon" href="iconos/icono-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="comun.js"></script>
+<script src="guia.js"></script>
+<script src="firebase_config.js"></script>
+<script src="nube.js"></script>
+<link rel="stylesheet" href="marco.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-size:15px;line-height:1.45}
+header{background:var(--tinta);color:#F2F3F5;padding:18px 20px;border-bottom:1px solid var(--bd)}
+header .cab{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px}
+header h1{margin:0;font-size:24px;color:#fff}
+header .sub{margin:3px 0 0;font-size:13px;color:#C8CDD4}
+header .acc{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+main{max-width:1180px;margin:0 auto;padding:20px 20px 44px}
+.hide{display:none !important}
+.muted{color:var(--t2)}
+.small{font-size:13px}
+
+/* Indicador de avance y KPIs */
+.resumen{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:12px;margin-bottom:16px}
+.avance-card{padding:16px 18px;display:flex;flex-direction:column;justify-content:center;gap:8px}
+.avance-cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.avance-cab b{font-family:var(--titulo);font-size:18px}
+.barra{height:10px;border-radius:999px;background:var(--bd);overflow:hidden}
+.barra > span{display:block;height:100%;background:var(--pri);border-radius:999px;transition:width .25s ease}
+.kpi{padding:14px 16px;cursor:pointer;transition:border-color .15s,transform .12s}
+.kpi:hover{border-color:var(--pri)}
+.kpi.act{border-color:var(--pri) !important;background:var(--pri2) !important}
+.kpi .t{font-size:13px;color:var(--t2);font-weight:600}
+.kpi .v{font:700 24px var(--titulo);margin-top:4px}
+
+/* Filtros */
+.filtros-bar{padding:14px 16px;margin-bottom:16px;display:grid;grid-template-columns:1.6fr repeat(3,1fr);gap:10px;align-items:end}
+.campo label{display:block;font-size:12px;font-weight:600;color:var(--t2);margin:0 0 4px}
+.campo input,.campo select{width:100%;padding:8px 12px}
+
+/* Tabla */
+.tw{overflow-x:auto;border:1px solid var(--bd)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--bd);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.03em;font-weight:700}
+tr.fila-prov{cursor:pointer}
+.chip{display:inline-flex;align-items:center;padding:3px 9px;font-size:12px}
+.c-ok{background:var(--okbg);color:var(--ok)}
+.c-md{background:var(--mdbg);color:var(--md)}
+.c-cr{background:var(--albg);color:var(--al)}
+.c-az{background:var(--azbg);color:var(--az)}
+.cats{display:flex;flex-wrap:wrap;gap:4px}
+.cats span{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:2px 7px;font-size:11px;color:var(--t2)}
+
+/* Estados vacío / carga / error */
+.estado-caja{padding:28px 20px;text-align:center}
+.estado-caja h3{margin:0 0 6px;font-size:18px}
+.estado-caja p{margin:0 0 14px;color:var(--t2)}
+
+/* Diálogo de edición */
+dialog{border:1px solid var(--bd);border-radius:20px;padding:0;width:min(760px,94vw);max-height:90vh;background:var(--card);color:var(--tx);box-shadow:var(--sombra-alta)}
+dialog::backdrop{background:rgba(14,20,30,.55)}
+.dlg-cab{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--card);z-index:2}
+.dlg-cab h2{margin:0;font-size:20px}
+.dlg-cuerpo{padding:18px 20px;overflow-y:auto;max-height:calc(90vh - 134px)}
+.dlg-pie{padding:14px 20px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;bottom:0;background:var(--card)}
+.grid-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid-form .ancho2{grid-column:1 / -1}
+.grid-form label{display:block;font-size:13px;font-weight:600;margin:0 0 4px}
+.grid-form input[type=text],.grid-form input[type=email],.grid-form input[type=tel],.grid-form input[type=number],.grid-form input[type=date],.grid-form select,.grid-form textarea{width:100%;padding:9px 12px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font:inherit}
+.grid-form textarea{min-height:76px;resize:vertical}
+.checks{display:flex;flex-wrap:wrap;gap:16px;padding:8px 0}
+.checks label{display:inline-flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;margin:0}
+.checks input{width:18px;height:18px;accent-color:var(--pri)}
+
+.toast{position:fixed;bottom:22px;right:22px;background:var(--tinta);color:#fff;padding:11px 16px;border-radius:12px;box-shadow:var(--sombra-alta);font-size:14px;z-index:1200}
+@media (max-width:860px){
+  .resumen{grid-template-columns:1fr 1fr}
+  .avance-card{grid-column:1 / -1}
+  .filtros-bar{grid-template-columns:1fr 1fr}
+  .filtros-bar .busq{grid-column:1 / -1}
+}
+@media (max-width:760px){
+  .grid-form{grid-template-columns:1fr}
+  .toast{bottom:84px;left:16px;right:16px;text-align:center}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="cab">
+    <div>
+      <h1>Matriz de proveedores</h1>
+      <p class="sub" id="subEstado">Cargando matriz de proveedores…</p>
+    </div>
+    <div class="acc">
+      <button class="btn sm p" type="button" id="bCargarWA"><span data-i="bajar"></span>Cargar proveedores desde WhatsApp</button>
+      <button class="btn sm" type="button" id="bNuevoProv">+ Nuevo proveedor</button>
+      <button class="btn sm" type="button" id="bExcelProv"><span data-i="excel"></span>Excel de la matriz</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <section class="resumen" aria-label="Avance de la matriz">
+    <div class="card avance-card" id="avanceBox">
+      <div class="avance-cab">
+        <b id="txtAvance">0 de 60 proveedores con datos completos</b>
+        <span class="small muted" id="pctAvance">0 %</span>
+      </div>
+      <div class="barra" aria-hidden="true"><span id="barraAvance" style="width:0%"></span></div>
+      <span class="small muted">Datos recibidos por correo: razón social, RUC, contacto, crédito, fichas técnicas y lista de precios.</span>
+    </div>
+    <div class="card kpi" data-fest="recibido" role="button" tabindex="0">
+      <div class="t">Completos (Recibido)</div>
+      <div class="v" id="kRecibido">0</div>
+    </div>
+    <div class="card kpi" data-fest="incompleto" role="button" tabindex="0">
+      <div class="t">Incompletos</div>
+      <div class="v" id="kIncompleto">0</div>
+    </div>
+    <div class="card kpi" data-fest="pendiente" role="button" tabindex="0">
+      <div class="t">Pendientes</div>
+      <div class="v" id="kPendiente">0</div>
+    </div>
+  </section>
+
+  <section class="card filtros-bar" id="filtrosProv" aria-label="Filtros de búsqueda">
+    <div class="campo busq">
+      <label for="fQ">Buscar proveedor, RUC, razón social o contacto</label>
+      <input type="search" id="fQ" placeholder="Ej.: Solvesa, 1790..., Willian, Ibarra">
+    </div>
+    <div class="campo">
+      <label for="fEstado">Estado de datos</label>
+      <select id="fEstado">
+        <option value="">Todos los estados</option>
+        <option value="pendiente">Pendiente</option>
+        <option value="incompleto">Incompleto</option>
+        <option value="recibido">Recibido (completo)</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="fZona">Zona</label>
+      <select id="fZona"><option value="">Todas las zonas</option></select>
+    </div>
+    <div class="campo">
+      <label for="fCat">Categoría</label>
+      <select id="fCat"><option value="">Todas las categorías</option></select>
+    </div>
+  </section>
+
+  <div id="contenedorTabla">
+    <div class="card estado-caja" id="estadoCarga">
+      <h3>Leyendo matriz de proveedores…</h3>
+      <p>Un momento por favor.</p>
+    </div>
+  </div>
+</main>
+
+<dialog id="dlgProv" aria-labelledby="dlgTit">
+  <form id="fProv" method="dialog">
+    <div class="dlg-cab">
+      <h2 id="dlgTit">Ficha del proveedor</h2>
+      <button class="btn sm" type="button" id="bCerrarDlg">Cerrar</button>
+    </div>
+    <div class="dlg-cuerpo">
+      <input type="hidden" id="p_id">
+      <div class="grid-form">
+        <div>
+          <label for="p_nombre">Nombre comercial *</label>
+          <input type="text" id="p_nombre" required>
+        </div>
+        <div>
+          <label for="p_razon">Razón social</label>
+          <input type="text" id="p_razon" placeholder="Tal como figura en el RUC / factura">
+        </div>
+        <div>
+          <label for="p_ruc">RUC / Cédula</label>
+          <input type="text" id="p_ruc" inputmode="numeric" placeholder="13 dígitos (ej. 1790012345001)">
+        </div>
+        <div>
+          <label for="p_estado">Estado de los datos</label>
+          <select id="p_estado">
+            <option value="pendiente">Pendiente</option>
+            <option value="incompleto">Incompleto</option>
+            <option value="recibido">Recibido (completo)</option>
+          </select>
+        </div>
+        <div>
+          <label for="p_contacto">Persona de contacto</label>
+          <input type="text" id="p_contacto" placeholder="Nombre del asesor / ejecutivo">
+        </div>
+        <div>
+          <label for="p_cargo">Cargo</label>
+          <input type="text" id="p_cargo" placeholder="Ej.: Ventas, Gerente comercial">
+        </div>
+        <div>
+          <label for="p_correo">Correo electrónico</label>
+          <input type="email" id="p_correo" placeholder="ventas@proveedor.com">
+        </div>
+        <div>
+          <label for="p_telefono">Teléfono / WhatsApp</label>
+          <input type="tel" id="p_telefono" placeholder="Ej.: 0991234567">
+        </div>
+        <div>
+          <label for="p_ciudad">Ciudad</label>
+          <input type="text" id="p_ciudad" placeholder="Ej.: Ibarra, Quito, Guayaquil">
+        </div>
+        <div>
+          <label for="p_zona">Zona</label>
+          <input type="text" id="p_zona" list="lstZonas" placeholder="Imbabura, Nacional, Costa, Exterior">
+          <datalist id="lstZonas"><option value="Imbabura"><option value="Nacional"><option value="Costa"><option value="Exterior"></datalist>
+        </div>
+        <div class="ancho2">
+          <label for="p_cobertura">Cobertura / Entrega en fincas</label>
+          <input type="text" id="p_cobertura" placeholder="Ej.: Entrega en Ibarra y encomienda a Puerto Cayo / El Carmen">
+        </div>
+        <div class="ancho2">
+          <label for="p_categorias">Categorías (separadas por coma)</label>
+          <input type="text" id="p_categorias" placeholder="Fertilizantes, Herbicidas, Riego e hidráulica">
+        </div>
+        <div>
+          <label for="p_condiciones">Condiciones de pago</label>
+          <input type="text" id="p_condiciones" placeholder="Ej.: Contado, Crédito, Cheque">
+        </div>
+        <div>
+          <label for="p_dias">Días de crédito</label>
+          <input type="number" id="p_dias" min="0" max="365" step="1" placeholder="0">
+        </div>
+        <div class="ancho2">
+          <label for="p_requisitos">Requisitos de crédito</label>
+          <input type="text" id="p_requisitos" placeholder="Ej.: Solicitud firmada, RUC, 3 referencias comerciales, pagaré">
+        </div>
+        <div class="ancho2 checks">
+          <label><input type="checkbox" id="p_ficha"> Ficha técnica entregada</label>
+          <label><input type="checkbox" id="p_lista"> Lista de precios vigente</label>
+          <label><input type="checkbox" id="p_caducidad"> Compromiso de caducidad (&gt; 1 año)</label>
+        </div>
+        <div>
+          <label for="p_fichas_det">Detalle de fichas técnicas / registros</label>
+          <input type="text" id="p_fichas_det" placeholder="Ej.: Fichas PDF y hojas de seguridad (MSDS)">
+        </div>
+        <div>
+          <label for="p_fecha_lista">Fecha de lista de precios</label>
+          <input type="date" id="p_fecha_lista">
+        </div>
+        <div class="ancho2">
+          <label for="p_garantia">Garantía comercial / técnica</label>
+          <input type="text" id="p_garantia" placeholder="Ej.: Reposición por defecto de fábrica, asistencia en campo">
+        </div>
+        <div class="ancho2">
+          <label for="p_notas">Notas y acuerdos con el proveedor</label>
+          <textarea id="p_notas" placeholder="Observaciones, descuentos por volumen, cuentas bancarias, etc."></textarea>
+        </div>
+      </div>
+      <p class="small muted" id="p_meta" style="margin:10px 0 0"></p>
+    </div>
+    <div class="dlg-pie">
+      <span class="small muted" id="dlgAviso"></span>
+      <div style="display:flex;gap:8px">
+        <button class="btn" type="button" id="bCancelarDlg">Cancelar</button>
+        <button class="btn p" type="submit" id="bGuardarDlg">Guardar cambios</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast hide" role="status" aria-live="polite"></div>
+
+<script>
+var TAB = "matriz";
+const $ = s => document.querySelector(s), I = n => AgdGuia.ico(n);
+document.querySelectorAll("[data-i]").forEach(e => { e.innerHTML = I(e.dataset.i); });
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+let LISTA = [];
+let TOTAL_META = 60;
+let FILTRO = { q: "", estado: "", zona: "", cat: "" };
+let unsubMatriz = null;
+
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.remove("hide");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.add("hide"), 3600);
+}
+
+function chipEst(est) {
+  if (est === "recibido") return '<span class="chip c-ok">Recibido</span>';
+  if (est === "incompleto") return '<span class="chip c-md">Incompleto</span>';
+  return '<span class="chip c-cr">Pendiente</span>';
+}
+
+function poblarSelectores() {
+  const zonas = [...new Set(LISTA.map(p => p.zona).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+  const cats = [...new Set(LISTA.flatMap(p => p.categorias || []).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+  const zActual = $("#fZona").value, cActual = $("#fCat").value;
+  $("#fZona").innerHTML = '<option value="">Todas las zonas</option>' + zonas.map(z => `<option value="${esc(z)}">${esc(z)}</option>`).join("");
+  $("#fCat").innerHTML = '<option value="">Todas las categorías</option>' + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  $("#fZona").value = zActual;
+  $("#fCat").value = cActual;
+}
+
+function pintar() {
+  const denom = Math.max(TOTAL_META, LISTA.length || 60);
+  const nRec = LISTA.filter(p => p.estado_datos === "recibido").length;
+  const nInc = LISTA.filter(p => p.estado_datos === "incompleto").length;
+  const nPen = LISTA.filter(p => p.estado_datos !== "recibido" && p.estado_datos !== "incompleto").length;
+  const pct = denom ? Math.min(100, Math.round((nRec / denom) * 100)) : 0;
+
+  $("#txtAvance").textContent = `${nRec} de ${denom} proveedores con datos completos`;
+  $("#pctAvance").textContent = `${pct} %`;
+  $("#barraAvance").style.width = `${pct}%`;
+  $("#kRecibido").textContent = nRec;
+  $("#kIncompleto").textContent = nInc;
+  $("#kPendiente").textContent = nPen;
+
+  document.querySelectorAll(".kpi[data-fest]").forEach(el => {
+    el.classList.toggle("act", FILTRO.estado === el.dataset.fest);
+  });
+
+  const q = norm(FILTRO.q);
+  const filtrados = LISTA.filter(p => {
+    if (FILTRO.estado && p.estado_datos !== FILTRO.estado) return false;
+    if (FILTRO.zona && p.zona !== FILTRO.zona) return false;
+    if (FILTRO.cat && !(p.categorias || []).includes(FILTRO.cat)) return false;
+    if (q) {
+      const bolsa = norm([p.nombre, p.razon_social, p.ruc, p.contacto, p.correo, p.telefono, p.ciudad, p.zona, (p.categorias || []).join(" "), p.notas].join(" "));
+      if (!bolsa.includes(q)) return false;
+    }
+    return true;
+  }).sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"));
+
+  const caja = $("#contenedorTabla");
+  if (!LISTA.length) {
+    caja.innerHTML = `<div class="card estado-caja">
+      <h3>Aún no hay proveedores cargados en la matriz</h3>
+      <p>Use el botón «Cargar proveedores desde WhatsApp» para traer los 60 proveedores base y empezar a completar sus fichas.</p>
+      <button class="btn p" type="button" id="bCargarVacio">${I("bajar")}Cargar proveedores desde WhatsApp</button>
+    </div>`;
+    const b = $("#bCargarVacio");
+    if (b) b.onclick = () => $("#bCargarWA").click();
+    return;
+  }
+
+  if (!filtrados.length) {
+    caja.innerHTML = `<div class="card estado-caja">
+      <h3>Ningún proveedor coincide con el filtro</h3>
+      <p>Pruebe con otra palabra o limpie los filtros de estado, zona y categoría.</p>
+      <button class="btn sm" type="button" id="bLimpiarF">Mostrar todos (${LISTA.length})</button>
+    </div>`;
+    $("#bLimpiarF").onclick = () => {
+      FILTRO = { q: "", estado: "", zona: "", cat: "" };
+      $("#fQ").value = ""; $("#fEstado").value = ""; $("#fZona").value = ""; $("#fCat").value = "";
+      pintar();
+    };
+    return;
+  }
+
+  caja.innerHTML = `<div class="tw"><table>
+    <thead><tr>
+      <th>Proveedor / Razón social</th>
+      <th>RUC</th>
+      <th>Contacto</th>
+      <th>Zona / Ciudad</th>
+      <th>Categorías</th>
+      <th>Pago y crédito</th>
+      <th>Documentos</th>
+      <th>Estado</th>
+    </tr></thead>
+    <tbody>${filtrados.map(p => {
+      const docs = [
+        p.ficha_tecnica ? "Ficha ✔" : "",
+        p.lista_precios ? "Precios ✔" : "",
+        p.caducidad_ok ? "Caducidad ✔" : ""
+      ].filter(Boolean).join(" · ") || "—";
+      const pago = [p.condiciones_pago || "—", p.dias_credito ? `${p.dias_credito} d` : ""].filter(Boolean).join(" · ");
+      return `<tr class="fila-prov" data-id="${esc(p.id)}">
+        <td data-l="Proveedor"><b>${esc(p.nombre || "—")}</b>${p.razon_social ? `<div class="small muted">${esc(p.razon_social)}</div>` : ""}</td>
+        <td data-l="RUC" class="num">${esc(p.ruc || "—")}</td>
+        <td data-l="Contacto">${esc(p.contacto || "—")}${p.telefono ? `<div class="small muted">${esc(p.telefono)}</div>` : ""}${p.correo ? `<div class="small muted">${esc(p.correo)}</div>` : ""}</td>
+        <td data-l="Zona">${esc(p.zona || "—")}${p.ciudad ? `<div class="small muted">${esc(p.ciudad)}</div>` : ""}</td>
+        <td data-l="Categorías"><div class="cats">${(p.categorias || []).slice(0, 3).map(c => `<span>${esc(c)}</span>`).join("")}${(p.categorias || []).length > 3 ? `<span>+${p.categorias.length - 3}</span>` : ""}</div></td>
+        <td data-l="Pago y crédito">${esc(pago)}</td>
+        <td data-l="Documentos" class="small">${esc(docs)}</td>
+        <td data-l="Estado">${chipEst(p.estado_datos)}</td>
+      </tr>`;
+    }).join("")}</tbody>
+  </table></div>`;
+
+  caja.querySelectorAll("tr.fila-prov").forEach(tr => {
+    tr.onclick = () => abrirFicha(tr.dataset.id);
+  });
+}
+
+function abrirFicha(id) {
+  const p = LISTA.find(x => x.id === id) || AgdNube.normalizarProveedor("", {});
+  $("#dlgTit").textContent = p.id ? `Editar: ${p.nombre}` : "Nuevo proveedor";
+  $("#p_id").value = p.id || "";
+  $("#p_nombre").value = p.nombre || "";
+  $("#p_razon").value = p.razon_social || "";
+  $("#p_ruc").value = p.ruc || "";
+  $("#p_estado").value = p.estado_datos || "pendiente";
+  $("#p_contacto").value = p.contacto || "";
+  $("#p_cargo").value = p.cargo || "";
+  $("#p_correo").value = p.correo || "";
+  $("#p_telefono").value = p.telefono || "";
+  $("#p_ciudad").value = p.ciudad || "";
+  $("#p_zona").value = p.zona || "";
+  $("#p_cobertura").value = p.cobertura || "";
+  $("#p_categorias").value = (p.categorias || []).join(", ");
+  $("#p_condiciones").value = p.condiciones_pago || "";
+  $("#p_dias").value = p.dias_credito != null ? p.dias_credito : 0;
+  $("#p_requisitos").value = p.requisitos_credito || "";
+  $("#p_ficha").checked = Boolean(p.ficha_tecnica);
+  $("#p_fichas_det").value = p.fichas_detalle || "";
+  $("#p_lista").checked = Boolean(p.lista_precios);
+  $("#p_fecha_lista").value = p.fecha_lista_precios || "";
+  $("#p_garantia").value = p.garantia || "";
+  $("#p_caducidad").checked = Boolean(p.caducidad_ok);
+  $("#p_notas").value = p.notas || "";
+  $("#p_meta").textContent = p.actualizado_en
+    ? `Última actualización: ${new Date(p.actualizado_en).toLocaleString("es-EC")}${p.actualizado_por ? " por " + p.actualizado_por : ""}`
+    : "";
+  $("#dlgProv").showModal();
+}
+
+$("#bCerrarDlg").onclick = () => $("#dlgProv").close();
+$("#bCancelarDlg").onclick = () => $("#dlgProv").close();
+$("#bNuevoProv").onclick = () => abrirFicha("");
+
+$("#fProv").addEventListener("submit", async e => {
+  e.preventDefault();
+  const nombre = $("#p_nombre").value.trim();
+  if (!nombre) { toast("Escriba el nombre comercial del proveedor."); return; }
+  let id = $("#p_id").value.trim();
+  if (!id) {
+    id = norm(nombre).replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40) || ("prov_" + Date.now());
+  }
+  const cats = $("#p_categorias").value.split(",").map(s => s.trim()).filter(Boolean);
+  const datos = {
+    nombre,
+    razon_social: $("#p_razon").value.trim(),
+    ruc: $("#p_ruc").value.trim(),
+    estado_datos: $("#p_estado").value,
+    contacto: $("#p_contacto").value.trim(),
+    cargo: $("#p_cargo").value.trim(),
+    correo: $("#p_correo").value.trim(),
+    telefono: $("#p_telefono").value.trim(),
+    ciudad: $("#p_ciudad").value.trim(),
+    zona: $("#p_zona").value.trim(),
+    cobertura: $("#p_cobertura").value.trim(),
+    categorias: cats,
+    condiciones_pago: $("#p_condiciones").value.trim(),
+    dias_credito: Math.max(0, Number($("#p_dias").value) || 0),
+    requisitos_credito: $("#p_requisitos").value.trim(),
+    ficha_tecnica: $("#p_ficha").checked,
+    fichas_detalle: $("#p_fichas_det").value.trim(),
+    lista_precios: $("#p_lista").checked,
+    fecha_lista_precios: $("#p_fecha_lista").value,
+    garantia: $("#p_garantia").value.trim(),
+    caducidad_ok: $("#p_caducidad").checked,
+    notas: $("#p_notas").value.trim()
+  };
+  const b = $("#bGuardarDlg");
+  b.disabled = true; b.textContent = "Guardando…";
+  try {
+    const guardado = await AgdNube.guardarProveedorMatriz(id, datos);
+    const idx = LISTA.findIndex(x => x.id === id);
+    if (idx >= 0) LISTA[idx] = guardado; else LISTA.push(guardado);
+    poblarSelectores();
+    pintar();
+    $("#dlgProv").close();
+    toast("Proveedor guardado ✔");
+  } catch (err) {
+    alert("No se pudo guardar: " + (err.message || err));
+  }
+  b.disabled = false; b.textContent = "Guardar cambios";
+});
+
+$("#bCargarWA").onclick = async () => {
+  const b = $("#bCargarWA");
+  b.classList.add("cargando");
+  try {
+    const d = await ComprasApp.datosWA();
+    if (!d || !Array.isArray(d.proveedores)) {
+      throw new Error("Primero abra su clave de datos de WhatsApp en la pantalla de Inicio.");
+    }
+    TOTAL_META = d.proveedores.length || 60;
+    const res = await AgdNube.cargarProveedoresDesdeWA(d.proveedores);
+    await iniciarEscucha();
+    toast(res.creados
+      ? `Se cargaron ${res.creados} proveedores nuevos desde WhatsApp (sin pisar lo editado).`
+      : `Los ${res.total} proveedores ya estaban en la matriz.`);
+  } catch (err) {
+    alert(err.message || "No se pudieron cargar los proveedores.");
+  }
+  b.classList.remove("cargando");
+};
+
+$("#bExcelProv").onclick = () => {
+  if (!window.XLSX) { alert("No cargó la librería de Excel. Revise su conexión."); return; }
+  if (!LISTA.length) { alert("Aún no hay proveedores en la matriz para exportar."); return; }
+  const filas = LISTA.slice().sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es")).map(p => ({
+    "ID": p.id,
+    "Nombre comercial": p.nombre,
+    "Razón social": p.razon_social,
+    "RUC": p.ruc,
+    "Estado de datos": p.estado_datos,
+    "Contacto": p.contacto,
+    "Cargo": p.cargo,
+    "Correo": p.correo,
+    "Teléfono": p.telefono,
+    "Ciudad": p.ciudad,
+    "Zona": p.zona,
+    "Cobertura": p.cobertura,
+    "Categorías": (p.categorias || []).join(", "),
+    "Condiciones de pago": p.condiciones_pago,
+    "Días de crédito": p.dias_credito,
+    "Requisitos de crédito": p.requisitos_credito,
+    "Ficha técnica": p.ficha_tecnica ? "Sí" : "No",
+    "Detalle fichas": p.fichas_detalle,
+    "Lista de precios": p.lista_precios ? "Sí" : "No",
+    "Fecha lista precios": p.fecha_lista_precios,
+    "Garantía": p.garantia,
+    "Caducidad OK": p.caducidad_ok ? "Sí" : "No",
+    "Notas": p.notas,
+    "Actualizado el": p.actualizado_en,
+    "Actualizado por": p.actualizado_por
+  }));
+  const ws = XLSX.utils.json_to_sheet(filas);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Proveedores");
+  const hoy = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `matriz_proveedores_agrodavila_${hoy}.xlsx`);
+  toast("Excel de la matriz descargado ✔");
+};
+
+$("#fQ").oninput = e => { FILTRO.q = e.target.value; pintar(); };
+$("#fEstado").onchange = e => { FILTRO.estado = e.target.value; pintar(); };
+$("#fZona").onchange = e => { FILTRO.zona = e.target.value; pintar(); };
+$("#fCat").onchange = e => { FILTRO.cat = e.target.value; pintar(); };
+document.querySelectorAll(".kpi[data-fest]").forEach(el => {
+  el.onclick = () => {
+    const v = el.dataset.fest;
+    FILTRO.estado = FILTRO.estado === v ? "" : v;
+    $("#fEstado").value = FILTRO.estado;
+    pintar();
+  };
+});
+
+async function iniciarEscucha() {
+  if (unsubMatriz) { try { unsubMatriz(); } catch (e) {} unsubMatriz = null; }
+  unsubMatriz = await AgdNube.escucharMatriz((lista, meta) => {
+    LISTA = lista || [];
+    const est = AgdNube.estado();
+    $("#subEstado").textContent = (meta && meta.fuente === "nube" && est.conectado)
+      ? `Sincronizado en vivo con la nube (${est.correo}) · ${LISTA.length} proveedores`
+      : `Guardado en este equipo · Conecte Google en Inicio para sincronizar entre teléfono y PC`;
+    poblarSelectores();
+    pintar();
+  }, err => {
+    $("#contenedorTabla").innerHTML = `<div class="card estado-caja">
+      <h3>No se pudo leer la nube</h3>
+      <p>${esc(err && err.message ? err.message : "Error de conexión o permisos en Firestore.")}</p>
+    </div>`;
+  });
+}
+
+(async () => {
+  try { await ComprasApp.exigirSesion(); } catch (e) { return; }
+  try {
+    const d = await ComprasApp.datosWA();
+    if (d && Array.isArray(d.proveedores) && d.proveedores.length) {
+      TOTAL_META = d.proveedores.length;
+      // Si aún no hay proveedores guardados, precargar los 60 de WhatsApp automáticamente
+      const actuales = JSON.parse(localStorage.getItem("agd_matriz_proveedores_v1") || "{}");
+      if (!Object.keys(actuales).length) {
+        await AgdNube.cargarProveedoresDesdeWA(d.proveedores);
+      }
+    }
+  } catch (e) {}
+  AgdNube.alCambiarEstado(() => { iniciarEscucha(); });
+  await iniciarEscucha();
+})();
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Control de Compras AgroDávila</title><meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="comun.js"></script><script src="guia.js"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Control de Compras AgroDávila</title><meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#F4F6F3;--card:#FFFFFF;--tx:#1D2A22;--t2:#5E6B63;--bd:#DDE3DE;--ok:#2E7D4F;--okbg:#E5F3EA;--md:#B7791F;--mdbg:#FDF3DC;--al:#C2591B;--albg:#FCE9DC;--cr:#B42318;--crbg:#FBE4E2;--pri:#1F5E3B;--pri2:#E3EFE7;--az:#0F4C81}
@@ -255,7 +255,7 @@ function pintar(){
 document.getElementById("vista").addEventListener("change",e=>{
   const t=e.target;
   if(t.dataset.f){ F[t.dataset.f]=t.value; pintar(); }
-  if(t.type==="range"){ const c=t.dataset.c; KR[c]=[...(KR[c]||KR_DEF["Sin clasificar"])]; KR[c][+t.dataset.i]=+t.value; try{localStorage.setItem("agd_kraljic",JSON.stringify(KR));}catch(x){} FILAS=procesar(FILAS.map(r=>r)); pintar(); }
+  if(t.type==="range"){ const c=t.dataset.c; KR[c]=[...(KR[c]||KR_DEF["Sin clasificar"])]; KR[c][+t.dataset.i]=+t.value; try{localStorage.setItem("agd_kraljic",JSON.stringify(KR));}catch(x){} if(window.AgdNube)AgdNube.guardarAjustes({kraljic:KR}); FILAS=procesar(FILAS.map(r=>r)); pintar(); }
 });
 document.getElementById("vista").addEventListener("input",e=>{ if(e.target.dataset.f==="q"){ F.q=e.target.value; const pos=e.target.selectionStart; pintar(); const s=document.querySelector('[data-f="q"]'); if(s){ s.focus(); s.setSelectionRange(pos,pos);} } });
 document.getElementById("vista").addEventListener("click",e=>{ const c=e.target.closest("[data-prio]"); if(c){ F.prio=F.prio===c.dataset.prio?"":c.dataset.prio; pintar(); } });
@@ -290,6 +290,7 @@ function toast_(t){ const f=document.getElementById("fuente"), a=f.textContent; 
 setInterval(()=>{ if(document.visibilityState==="visible") cargarVivo(true); }, 5*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && Date.now()-ULTIMA>2*60*1000) cargarVivo(true); });
 window.addEventListener("online",()=>cargarVivo(true));
+if(window.AgdNube)AgdNube.alCambiarEstado(est=>{if(est&&est.conectado)AgdNube.sincronizarAjustes(d=>{if(d&&d.kraljic){KR=Object.assign({},KR_DEF,d.kraljic);if(TAB==="kraljic")pintar();}});});
 cargarVivo(false);
 </script>
 </body>
