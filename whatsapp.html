@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Compras WhatsApp · AgroDávila</title><meta name="theme-color" content="#1F5E3B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="comun.js"></script>
+<title>Compras WhatsApp · AgroDávila</title><meta name="theme-color" content="#2D6A39"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="comun.js"></script><script src="guia.js"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F4F6F3;--card:#FFFFFF;--tx:#1D2A22;--t2:#5E6B63;--bd:#DDE3DE;--ok:#2E7D4F;--okbg:#E5F3EA;--md:#B7791F;--mdbg:#FDF3DC;--al:#C2591B;--albg:#FCE9DC;--cr:#B42318;--crbg:#FBE4E2;--pri:#1F5E3B;--pri2:#E3EFE7;--az:#0F4C81;--azbg:#E4EEF8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121815;--card:#1B231F;--tx:#E6ECE8;--t2:#9AA9A0;--bd:#2C3832;--ok:#6CC08E;--okbg:#1E3A2A;--md:#E2B25A;--mdbg:#3A2F17;--al:#EE9A63;--albg:#3D2618;--cr:#F0857A;--crbg:#43201D;--pri:#5FB386;--pri2:#21342A;--az:#7FB2E5;--azbg:#1A2A3A}}
@@ -127,7 +127,7 @@ const CERRADOS=new Set(["cerrado","cancelado"]);
 const AJ_DEF={pesos:{rapidez:30,respuesta:20,precio:25,disponibilidad:10,cumplimiento:15},diasCot:2,diasPed:7,tema:"",fechaHoy:false};
 let BASE=null, CAPA=Object.assign({prov:{},ped:{},bor:{}},lsGet(LS,{})), AJ=Object.assign({},AJ_DEF,lsGet(LSA,{}));
 AJ.pesos=Object.assign({},AJ_DEF.pesos,AJ.pesos||{});
-let D=null, TAB="hoy";
+let D=null, TAB=(["hoy","listos","pedidos","tramites","prov","aquien","precios","rapidez","kraljic","proc"].includes(location.hash.slice(1))?location.hash.slice(1):"hoy");
 
 function fusion(){
   const b=BASE||{};
