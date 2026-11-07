@@ -1,11 +1,11 @@
-/* Compras AgroDávila · identidad «Campo moderno», paleta sobria azul pizarra (06/11/2026: Wilo pidió menos verde).
+/* Compras AgroDávila · identidad «Campo moderno», paleta «Grafito, ladrillo y azul» deconstruida con REA de Agrivi y Granular (06/11/2026: sin verdes saturados).
    Se carga después de los estilos propios de cada pantalla: redefine la paleta, la tipografía, los botones,
    la barra de secciones, las guías y las tablas-tarjeta del teléfono. */
 :root{
-  --bg:#F3F3F0; --card:#FFFFFF; --tx:#1C2430; --t2:#596372; --bd:#E1E3E6;
-  --pri:#2B4C6F; --pri-osc:#1E3A57; --pri2:#E7EDF4; --tierra:#A65A2A; --tierra2:#F6EBE2; --maiz:#C48A16; --maiz2:#FBF3E2;
-  --ok:#2F7352; --okbg:#E6F2EB; --md:#8F6510; --mdbg:#FBF3E2; --al:#A65A2A; --albg:#F6EBE2; --cr:#B42318; --crbg:#FBE5E1;
-  --az:#2B4C6F; --azbg:#E7EDF4;
+  --bg:#F7F7F5; --card:#FFFFFF; --tx:#23262B; --t2:#5E6570; --bd:#E2E4E7; --tinta:#23262B;
+  --pri:#2E5E8E; --pri-osc:#234A71; --pri2:#E8EFF7; --tierra:#B5452F; --tierra2:#F8E8E4; --maiz:#C7901A; --maiz2:#FBF3E0;
+  --ok:#3E7A5A; --okbg:#E7F1EB; --md:#8C650F; --mdbg:#FBF3E0; --al:#B5452F; --albg:#F8E8E4; --cr:#B42318; --crbg:#FBE5E1;
+  --az:#2E5E8E; --azbg:#E8EFF7;
   --sombra:0 1px 2px rgba(20,28,40,.06),0 6px 18px -6px rgba(20,28,40,.14);
   --sombra-alta:0 2px 4px rgba(20,28,40,.08),0 18px 40px -12px rgba(20,28,40,.28);
   --radio:16px; --marco-alto:68px;
@@ -13,14 +13,14 @@
   --titulo:"Bricolage Grotesque","Figtree",system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#12161C; --card:#1A2029; --tx:#E6EAF0; --t2:#9AA4B2; --bd:#2A323D;
-  --pri:#8EB1D9; --pri-osc:#B3CDEA; --pri2:#1E2A3A; --tierra:#E09A6A; --tierra2:#3A2A1E; --maiz:#E2B654; --maiz2:#3A311A;
-  --ok:#7DC39D; --okbg:#1E3328; --md:#E2B654; --mdbg:#3A311A; --al:#E09A6A; --albg:#3A2A1E; --cr:#F08B7A; --crbg:#43221C; --az:#8EB1D9; --azbg:#1E2A3A;
+  --bg:#111317; --card:#1A1D22; --tx:#E8EAED; --t2:#A0A6AF; --bd:#2B2F36; --tinta:#0C0E11;
+  --pri:#8FB4DD; --pri-osc:#B5CDEA; --pri2:#1D2733; --tierra:#E4826B; --tierra2:#3A221C; --maiz:#E2B654; --maiz2:#3A311A;
+  --ok:#86C2A1; --okbg:#1E3128; --md:#E2B654; --mdbg:#3A311A; --al:#E4826B; --albg:#3A221C; --cr:#F08B7A; --crbg:#43221C; --az:#8FB4DD; --azbg:#1D2733;
   --sombra:0 1px 2px rgba(0,0,0,.3),0 8px 22px -8px rgba(0,0,0,.5); --sombra-alta:0 18px 44px -12px rgba(0,0,0,.6)}}
 :root[data-theme="dark"]{
-  --bg:#12161C; --card:#1A2029; --tx:#E6EAF0; --t2:#9AA4B2; --bd:#2A323D;
-  --pri:#8EB1D9; --pri-osc:#B3CDEA; --pri2:#1E2A3A; --tierra:#E09A6A; --tierra2:#3A2A1E; --maiz:#E2B654; --maiz2:#3A311A;
-  --ok:#7DC39D; --okbg:#1E3328; --md:#E2B654; --mdbg:#3A311A; --al:#E09A6A; --albg:#3A2A1E; --cr:#F08B7A; --crbg:#43221C; --az:#8EB1D9; --azbg:#1E2A3A;
+  --bg:#111317; --card:#1A1D22; --tx:#E8EAED; --t2:#A0A6AF; --bd:#2B2F36; --tinta:#0C0E11;
+  --pri:#8FB4DD; --pri-osc:#B5CDEA; --pri2:#1D2733; --tierra:#E4826B; --tierra2:#3A221C; --maiz:#E2B654; --maiz2:#3A311A;
+  --ok:#86C2A1; --okbg:#1E3128; --md:#E2B654; --mdbg:#3A311A; --al:#E4826B; --albg:#3A221C; --cr:#F08B7A; --crbg:#43221C; --az:#8FB4DD; --azbg:#1D2733;
   --sombra:0 1px 2px rgba(0,0,0,.3),0 8px 22px -8px rgba(0,0,0,.5); --sombra-alta:0 18px 44px -12px rgba(0,0,0,.6)}
 
 /* Base */
@@ -64,8 +64,8 @@ select,input[type=search],input[type=text],input[type=tel],input[type=email],inp
 /* Barra de secciones */
 .marco{display:flex;align-items:center;gap:6px;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:saturate(1.2) blur(8px);
   border-bottom:1px solid var(--bd);padding:8px 20px;position:sticky;top:0;z-index:40}
-.marco .marca{display:flex;align-items:center;gap:10px;font:700 16px var(--titulo);color:var(--pri);margin-right:auto;white-space:nowrap;text-decoration:none}
-.marco .marca .sello{width:32px;height:32px;border-radius:10px;background:var(--pri);color:#fff;display:grid;place-items:center}
+.marco .marca{display:flex;align-items:center;gap:10px;font:700 16px var(--titulo);color:var(--tx);margin-right:auto;white-space:nowrap;text-decoration:none}
+.marco .marca .sello{width:32px;height:32px;border-radius:10px;background:var(--tierra);color:#fff;display:grid;place-items:center}
 .marco a.sec{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--t2);font-weight:600;font-size:14px;padding:8px 14px;border-radius:999px;min-height:42px}
 .marco a.sec[aria-current="page"]{background:var(--pri2);color:var(--pri)}
 .marco a.sec:hover{color:var(--tx)}
@@ -73,6 +73,10 @@ select,input[type=search],input[type=text],input[type=tel],input[type=email],inp
 .marco .ayuda:hover{border-color:var(--maiz);background:var(--maiz2)}
 /* cuando hay marco, el encabezado propio de cada pantalla deja de ser «pegajoso» */
 .marco ~ header{position:static !important}
+
+/* Encabezado de la pantalla de WhatsApp: grafito en vez de color de marca */
+header:has(.top){background:var(--tinta) !important;color:#F2F3F5 !important}
+header:has(.top) nav button{color:#F2F3F5 !important}
 
 /* Guía de cada pestaña */
 .guia-pestana{display:flex;gap:12px;align-items:flex-start;background:var(--maiz2);border:1px solid color-mix(in srgb,var(--maiz) 45%,transparent);color:var(--tx);

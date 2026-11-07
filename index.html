@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#2B4C6F">
+<meta name="theme-color" content="#23262B">
 <title>Compras AgroDávila</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="iconos/icono-192.png">
@@ -24,12 +24,12 @@ body:has(#pLogin:not(.hide)) .marco,body:has(#pClave:not(.hide)) .marco{display:
 
 /* Entrada */
 .entrada{display:grid;grid-template-columns:1.05fr 1fr;min-height:calc(100vh - 60px);max-width:1040px;margin:0 auto;padding:28px 20px;gap:28px;align-items:center}
-.lema{background:var(--pri);color:#F4F1E6;border-radius:26px;padding:40px 36px;min-height:420px;display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden;box-shadow:var(--sombra-alta)}
+.lema{background:var(--tinta);color:#F4F1E6;border-radius:26px;padding:40px 36px;min-height:420px;display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden;box-shadow:var(--sombra-alta)}
 .lema::before{content:"";position:absolute;inset:0;background:
   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 420' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23F4F1E6' stroke-opacity='.10' stroke-width='2'%3E%3Cpath d='M-20 420C120 300 260 250 620 230'/%3E%3Cpath d='M-20 380C140 270 280 215 620 190'/%3E%3Cpath d='M-20 340C160 240 300 180 620 150'/%3E%3Cpath d='M-20 300C180 210 320 145 620 110'/%3E%3Cpath d='M-20 260C200 180 340 110 620 70'/%3E%3Cpath d='M-20 220C220 150 360 75 620 30'/%3E%3C/g%3E%3C/svg%3E") center/100% 100% no-repeat,
-  radial-gradient(120% 70% at 85% 0%,rgba(217,162,31,.35),transparent 60%)}
+  radial-gradient(120% 70% at 85% 0%,rgba(181,69,47,.38),transparent 60%)}
 .lema > *{position:relative}
-.lema .sello{width:52px;height:52px;border-radius:16px;background:#F4F1E6;color:var(--pri);display:grid;place-items:center;margin-bottom:auto}
+.lema .sello{width:52px;height:52px;border-radius:16px;background:var(--tierra);color:#fff;display:grid;place-items:center;margin-bottom:auto}
 .lema .sello .ico{width:28px;height:28px}
 .lema h1{font-size:clamp(30px,4vw,44px);line-height:1.05;margin:24px 0 10px;color:#fff}
 .lema p{margin:0;opacity:.9;max-width:38ch}

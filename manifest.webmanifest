@@ -5,8 +5,8 @@
  "start_url": "./index.html",
  "scope": "./",
  "display": "standalone",
- "background_color": "#F3F3F0",
- "theme_color": "#2B4C6F",
+ "background_color": "#F7F7F5",
+ "theme_color": "#23262B",
  "description": "Control de compras y logística de AgroDávila: AgroControl en vivo y compras por WhatsApp.",
  "icons": [
   {
