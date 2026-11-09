@@ -570,14 +570,15 @@ function vListos(){probarAgente();
 function revisarYEnviar(id,texto){const bor=D.borradores.find(x=>x.id===id);if(bor)abrirEnvio(bor,texto,true);}
 /* Envío genérico: obj = {id, chat, proveedor_id, finca}. esBorrador=true actualiza el estado del borrador. */
 const LS_TEL="agd_tel_proveedores";
-function telProv(chat){ try{ return (JSON.parse(localStorage.getItem(LS_TEL)||"{}"))[chat]||""; }catch(e){ return ""; } }
+function telProv(chat){ let n=""; try{ n=(JSON.parse(localStorage.getItem(LS_TEL)||"{}"))[chat]||""; }catch(e){} if(!n){ const p=(D.proveedores||[]).find(x=>x.chat===chat); n=(p&&p.telefono)||""; } return n; }
 function guardarTel(chat,num){ try{ const m=JSON.parse(localStorage.getItem(LS_TEL)||"{}"); if(num) m[chat]=num; else delete m[chat]; localStorage.setItem(LS_TEL,JSON.stringify(m)); }catch(e){} if(window.AgdNube) AgdNube.guardarTelefono(chat,num); }
 function numEc(n){ let d=String(n||"").replace(/\D/g,""); if(!d) return ""; if(d.startsWith("0")) d="593"+d.slice(1); else if(d.length===9) d="593"+d; return d; }
 async function enviarMovil(t,bor,id,esBorrador){
   const crudo=($("#revTel")&&$("#revTel").value.trim())||""; guardarTel(bor.chat,crudo); const num=numEc(crudo);
   const marcar=()=>{ if(esBorrador) guardarBor(id,{texto:t,estado:"enviado",enviado_en:new Date().toISOString(),error:null}); };
   $("#dlg").close();
-  if(num){ marcar(); location.href="https://wa.me/"+num+"?text="+encodeURIComponent(t); return; }
+  if(num){ marcar(); const url="https://wa.me/"+num+"?text="+encodeURIComponent(t);
+    if(/Android|iPhone|iPad/i.test(navigator.userAgent)) location.href=url; else { window.open(url,"_blank"); toast("Se abrió WhatsApp con el mensaje listo: pulse Enviar"); } return; }
   if(navigator.share){ try{ await navigator.share({text:t}); marcar(); toast("Elige el chat «"+(bor.chat||"")+"» y pulsa Enviar"); }catch(e){ toast("Envío cancelado"); } return; }
   marcar(); location.href="whatsapp://send?text="+encodeURIComponent(t);
 }
@@ -592,7 +593,7 @@ function abrirEnvio(bor,texto,esBorrador){const p=D.byId[bor.proveedor_id]||{nom
   <div id="revAviso"></div>
   <div class="filtros"><button class="btn pri" type="button" id="revOk">Enviar ahora</button><button class="btn" type="button" id="revNo">Cancelar</button></div>`);
   if(!PUEDE_ENVIAR()){ const tel=telProv(bor.chat);
-    $("#revAviso").innerHTML=`<p class="small"><b>Envío desde este teléfono:</b> se abre WhatsApp con el mensaje listo; revisa y pulsa Enviar. Sin número, eliges el chat «${esc(bor.chat||"")}» en el menú Compartir.</p>
+    $("#revAviso").innerHTML=`<p class="small"><b>${tel?"Se abrirá WhatsApp en el chat del proveedor ("+esc(tel)+") con el mensaje listo; usted solo pulsa Enviar.":"Este proveedor aún no tiene número: escríbalo una vez y queda guardado."}</b></p>
     <label for="revTel" class="small muted">Número del proveedor (opcional, se guarda en este teléfono)</label>
     <input id="revTel" inputmode="tel" placeholder="Ej.: 0991234567" value="${esc(tel)}" style="width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;font:inherit">`;
     $("#revOk").textContent="Abrir en WhatsApp"; }
