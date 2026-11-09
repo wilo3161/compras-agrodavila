@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#23262B">
+<title>Checklist del día · Compras AgroDávila</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconos/icono-192.png">
+<link rel="apple-touch-icon" href="iconos/icono-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="comun.js"></script>
+<script src="guia.js"></script>
+<script src="firebase_config.js"></script>
+<script src="nube.js"></script>
+<link rel="stylesheet" href="marco.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-size:15px;line-height:1.45}
+header{background:var(--tinta);color:#F2F3F5;padding:16px 20px;border-bottom:1px solid var(--bd)}
+header .cab{max-width:1240px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px}
+header h1{margin:0;font-size:22px;color:#fff}
+header .sub{margin:2px 0 0;font-size:13px;color:#C8CDD4}
+header .acc{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+main{max-width:1240px;margin:0 auto;padding:18px 20px 48px}
+.hide{display:none !important}
+.muted{color:var(--t2)}
+.small{font-size:13px}
+.tabular{font-variant-numeric:tabular-nums}
+
+/* Resumen del día (arriba) */
+.resumen-dia{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:18px 20px;margin-bottom:18px;box-shadow:var(--sombra);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px}
+.resumen-dia .tit{display:flex;align-items:center;gap:12px}
+.resumen-dia .sello-res{width:42px;height:42px;border-radius:12px;background:var(--pri2);color:var(--pri);display:grid;place-items:center;flex:none}
+.resumen-dia .tit h2{margin:0;font-size:18px}
+.resumen-dia .tit p{margin:2px 0 0;color:var(--t2);font-size:13px}
+.resumen-dia .metricas{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.chip-res{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;border:1px solid var(--bd)}
+.chip-res.pri{background:var(--pri2);color:var(--pri);border-color:color-mix(in srgb,var(--pri) 30%,transparent)}
+.chip-res.tierra{background:var(--tierra2);color:var(--tierra);border-color:color-mix(in srgb,var(--tierra) 30%,transparent)}
+.chip-res.maiz{background:var(--maiz2);color:var(--md);border-color:color-mix(in srgb,var(--maiz) 30%,transparent)}
+
+/* Tarjetas de Etapas (7) */
+.etapas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px}
+.etapa-card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px 14px;cursor:pointer;transition:border-color .15s,transform .12s,box-shadow .15s;display:flex;flex-direction:column;gap:6px}
+.etapa-card:hover{border-color:var(--pri);box-shadow:var(--sombra)}
+.etapa-card.act{border-color:var(--pri) !important;background:var(--pri2) !important}
+.etapa-card .num{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--t2);letter-spacing:.03em}
+.etapa-card .nom{font-family:var(--titulo);font-size:15px;font-weight:700;line-height:1.2;color:var(--tx)}
+.etapa-card .pie{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;padding-top:4px}
+.etapa-card .cnt{font:700 22px var(--titulo);color:var(--tx)}
+.etapa-card .aviso-badge{font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px}
+.badge-alerta{background:var(--albg);color:var(--al)}
+.badge-ok{background:var(--okbg);color:var(--ok)}
+
+/* Filtros y controles */
+.filtros-caja{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px 16px;margin-bottom:18px;display:grid;grid-template-columns:1.8fr repeat(3,1fr);gap:10px;align-items:end}
+.filtro-item label{display:block;font-size:12px;font-weight:600;color:var(--t2);margin:0 0 4px}
+.filtro-item input,.filtro-item select{width:100%;padding:8px 12px;font-size:14px}
+
+/* Bloques de etapas */
+.bloque-etapa{margin-bottom:24px}
+.bloque-etapa .cab-etapa{display:flex;justify-content:space-between;align-items:baseline;padding:8px 4px;margin-bottom:8px;border-bottom:2px solid var(--bd)}
+.bloque-etapa .cab-etapa h3{margin:0;font-size:18px;display:flex;align-items:center;gap:8px}
+.bloque-etapa .cab-etapa .sub-etapa{font-size:13px;color:var(--t2);font-weight:500}
+
+/* Tabla de líneas */
+.tw{overflow-x:auto;border:1px solid var(--bd);background:var(--card);border-radius:var(--radio)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--bd);vertical-align:middle}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.03em;font-weight:700;color:var(--t2);background:var(--bg)}
+tr.fila-linea:hover td{background:color-mix(in srgb,var(--pri2) 30%,transparent)}
+tr.fila-hecha td{background:color-mix(in srgb,var(--okbg) 35%,transparent)}
+
+/* Casilla Hecho hoy y Nota */
+.chk-hecho{display:flex;align-items:center;justify-content:center}
+.chk-hecho input[type="checkbox"]{width:20px;height:20px;accent-color:var(--pri);cursor:pointer;margin:0}
+.nota-input{width:100%;min-width:130px;max-width:220px;padding:6px 9px;font-size:13px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--tx)}
+.nota-input:focus{border-color:var(--pri);outline:none}
+
+/* Chips de alerta */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.c-ok{background:var(--okbg);color:var(--ok)}
+.c-al{background:var(--albg);color:var(--al)}
+.c-cr{background:var(--crbg);color:var(--cr)}
+.c-neu{background:var(--bg);color:var(--t2);border:1px solid var(--bd)}
+
+/* Aviso de diferencia (marcado vs AgroControl) */
+.aviso-diferencia{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:4px 9px;border-radius:8px;background:var(--tierra2);color:var(--tierra);border:1px solid color-mix(in srgb,var(--tierra) 35%,transparent);margin-top:4px}
+
+/* Estados */
+.estado-caja{padding:36px 20px;text-align:center;background:var(--card);border:1px solid var(--bd);border-radius:var(--radio)}
+.estado-caja h3{margin:0 0 6px;font-size:18px}
+.estado-caja p{margin:0 0 16px;color:var(--t2)}
+.esqueleto{height:20px;border-radius:8px;background:linear-gradient(90deg,var(--bd) 0,color-mix(in srgb,var(--bd) 40%,transparent) 50%,var(--bd) 100%);background-size:200% 100%;animation:brillo 1.2s infinite}
+@keyframes brillo{to{background-position:-200% 0}}
+
+/* Toast de aviso */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--tinta);color:#fff;padding:12px 18px;border-radius:12px;box-shadow:var(--sombra-alta);font-size:14px;z-index:1200;display:flex;align-items:center;gap:8px}
+
+@media (max-width:860px){
+  .filtros-caja{grid-template-columns:1fr 1fr}
+  .filtros-caja .busq{grid-column:1 / -1}
+  .resumen-dia{flex-direction:column;align-items:flex-start}
+}
+@media (max-width:760px){
+  header h1{font-size:19px}
+  .etapas-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .filtros-caja{grid-template-columns:1fr}
+  .nota-input{max-width:100%}
+  .toast{bottom:84px;left:16px;right:16px;text-align:center;justify-content:center}
+}
+@media (max-width:375px){
+  main{padding:12px 10px 48px}
+  .etapas-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="cab">
+    <div>
+      <h1>Checklist del día</h1>
+      <div class="sub" id="fuente">Leyendo AgroControl en vivo…</div>
+    </div>
+    <div class="acc">
+      <button class="btn sm" id="refrescar" type="button" aria-label="Actualizar datos">Actualizar</button>
+      <div id="btnExcelGrp" style="display:flex;gap:6px">
+        <button class="btn sm" id="btnDescargarExcel" type="button" aria-label="Descargar checklist en Excel">Descargar checklist (Excel)</button>
+        <button class="btn sm" id="btnSubirExcel" type="button" aria-label="Subir checklist marcado desde Excel">Subir checklist marcado</button>
+      </div>
+      <input type="file" id="archExcel" accept=".xlsx,.xls" class="hide" aria-hidden="true" tabindex="-1">
+    </div>
+  </div>
+</header>
+
+<main id="vista">
+  <!-- Resumen del día -->
+  <section class="resumen-dia" id="resumenDia" aria-labelledby="titResumen">
+    <div class="tit">
+      <div class="sello-res" id="selloRes"></div>
+      <div>
+        <h2 id="titResumen">Avance del día</h2>
+        <p id="subResumen">Comparando contra el historial más reciente</p>
+      </div>
+    </div>
+    <div class="metricas" id="metricasDia">
+      <span class="chip-res pri" id="mTotAvanzadas">0 líneas avanzadas</span>
+      <span class="chip-res maiz" id="mCotizadas">0 cotizadas</span>
+      <span class="chip-res tierra" id="mOC">0 OC</span>
+      <span class="chip-res pri" id="mEntregas">0 entregas registradas</span>
+    </div>
+  </section>
+
+  <!-- Tarjetas contadoras de las 7 etapas -->
+  <section class="etapas-grid" id="tarjetasEtapas" aria-label="Contador por etapa">
+    <!-- Se llena dinámicamente -->
+  </section>
+
+  <!-- Barra de filtros -->
+  <section class="filtros-caja" id="filtrosBar" aria-label="Filtros de búsqueda">
+    <div class="filtro-item busq">
+      <label for="fBusq">Buscar</label>
+      <input type="search" id="fBusq" placeholder="Producto, línea, pedido o proveedor…">
+    </div>
+    <div class="filtro-item">
+      <label for="fEtapa">Etapa</label>
+      <select id="fEtapa">
+        <option value="">Todas las etapas</option>
+        <option value="1">1. Por cotizar</option>
+        <option value="2">2. Cotizando</option>
+        <option value="3">3. Por aprobar</option>
+        <option value="4">4. Por generar o subir la OC</option>
+        <option value="5">5. Por entregar</option>
+        <option value="6">6. Por pagar</option>
+        <option value="7">7. Cerrado</option>
+      </select>
+    </div>
+    <div class="filtro-item">
+      <label for="fFinca">Finca</label>
+      <select id="fFinca"><option value="">Todas las fincas</option></select>
+    </div>
+    <div class="filtro-item">
+      <label for="fEstadoChk">Estado</label>
+      <select id="fEstadoChk">
+        <option value="">Todos los registros</option>
+        <option value="hecho">Solo Hecho hoy</option>
+        <option value="pendiente">Solo Pendientes de marcar</option>
+        <option value="alerta">Solo Alertas (≥ 1 día hábil)</option>
+        <option value="estancado">Solo Estancados (≥ 3 días)</option>
+        <option value="diferencia">Con diferencia en AgroControl</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- Contenedor de listas agrupadas por etapa -->
+  <section id="listaEtapas" aria-label="Líneas agrupadas por etapa">
+    <div class="estado-caja">
+      <div class="esqueleto" style="width:50%;margin:0 auto 12px"></div>
+      <div class="esqueleto" style="width:75%;margin:0 auto"></div>
+      <p style="margin-top:16px">Cargando datos de AgroControl…</p>
+    </div>
+  </section>
+</main>
+
+<div class="toast hide" id="toastMsg" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+const ETAPAS = [
+  { id: 1, key: "por_cotizar", nombre: "Por cotizar", desc: "Aprobada por campo, sin cotizaciones (n_cot = 0)", accion: "cotizado" },
+  { id: 2, key: "cotizando", nombre: "Cotizando", desc: "Tiene cotizaciones, pero no hay proveedor seleccionado", accion: "proveedor seleccionado" },
+  { id: 3, key: "por_aprobar", nombre: "Por aprobar", desc: "Proveedor seleccionado, faltan Lola, Daniela o Gerencia", accion: "aprobado" },
+  { id: 4, key: "por_generar_oc", nombre: "Por generar o subir la OC", desc: "Aprobada, sin número oficial de OC", accion: "OC generada" },
+  { id: 5, key: "por_entregar", nombre: "Por entregar", desc: "Tiene OC y no tiene fecha de entrega registrada", accion: "entregado" },
+  { id: 6, key: "por_pagar", nombre: "Por pagar", desc: "Entregada y sin fecha de pago realizado, con fecha programada", accion: "pagado" },
+  { id: 7, key: "cerrado", nombre: "Cerrado", desc: "Entregada y pagada, o anulada/rechazada", accion: "cerrado" }
+];
+
+let SNAP_FILAS = [];
+let CHECKLIST_MAPA = {};
+let FILTRO_ETAPA_ACTIVA = "";
+let ULTIMO_CORTE_MIN = 0;
+let CARGANDO = false;
+
+/* ---- Funciones auxiliares ---- */
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fechaCorta = v => {
+  if (!v) return "—";
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? String(v).slice(0, 10) : d.toLocaleDateString("es-EC", { day: "2-digit", month: "short" });
+};
+const hoyISO = () => new Date().toISOString().slice(0, 10);
+
+function diasHabiles(fechaStr) {
+  if (!fechaStr) return 0;
+  const d = new Date(fechaStr);
+  if (isNaN(d.getTime())) return 0;
+  const hoy = new Date();
+  d.setHours(0, 0, 0, 0);
+  hoy.setHours(0, 0, 0, 0);
+  if (hoy <= d) return 0;
+  let count = 0;
+  let cur = new Date(d);
+  while (cur < hoy) {
+    cur.setDate(cur.getDate() + 1);
+    const diaSem = cur.getDay();
+    if (diaSem !== 0 && diaSem !== 6) count++;
+  }
+  return count;
+}
+
+function alertaWilo(diasH) {
+  if (diasH >= 3) return { tipo: "estancado", label: `Estancado (${diasH} d)`, cls: "c-cr" };
+  if (diasH >= 1) return { tipo: "alerta", label: `Alerta (${diasH} d)`, cls: "c-al" };
+  return { tipo: "ok", label: `Al día (${diasH} d)`, cls: "c-ok" };
+}
+
+/* Clasificación estricta en una sola etapa */
+function clasificarLinea(r) {
+  const e = (r["Estado (código)"] || "").toLowerCase();
+  const nCot = Number(r["N° cotizaciones"] || 0);
+  const prov = (r["Proveedor"] || "").trim();
+  const numOc = String(r["N° OC"] || "").trim();  // la OC cuenta cuando ya tiene número registrado en AgroControl
+  const fEntrega = r["F. entrega"];
+  const fPagoReal = r["F. pago realizado"];
+  const fPagoProg = r["F. pago programada"];
+  const fAut = r["F. autorización"];
+  const okLola = r["OK Lola (día)"];
+  const okDan = r["OK Daniela (día)"];
+  const okGer = r["OK Gerencia (día)"];
+  const ok3 = r["F. pago aprobado (3 OK)"];
+
+  // 7. Cerrado: anulado, rechazado, o entregado Y pagado
+  if (e === "anulado" || e === "rechazado") {
+    return { etapaId: 7, nombre: "Cerrado", fechaInicio: r["F. anulación"] || r["Última edición"] };
+  }
+  if (fEntrega && (fPagoReal || e === "cerrado")) {
+    return { etapaId: 7, nombre: "Cerrado", fechaInicio: fPagoReal || fEntrega };
+  }
+
+  // 6. Por pagar: entregada y sin f_pago_real, con fecha programada
+  if (fEntrega && !fPagoReal) {
+    return { etapaId: 6, nombre: "Por pagar", fechaInicio: fEntrega, fPagoProg: fPagoProg || "" };
+  }
+
+  // 5. Por entregar: tiene OC y no tiene f_entrega
+  if (numOc) {
+    return { etapaId: 5, nombre: "Por entregar", fechaInicio: r["F. registro N° OC"] || r["F. OC creada"] || r["Pago programado el"] };
+  }
+
+  // 4. Por generar o subir la OC: aprobada, sin numero_oc
+  const tieneAprobacion = !!(ok3 || (okLola && okDan && okGer) || fAut || e === "aprobado" || e === "autorizado");
+  if (tieneAprobacion) {
+    return { etapaId: 4, nombre: "Por generar o subir la OC", fechaInicio: fAut || ok3 || r["F. selección proveedor"] };
+  }
+
+  // 3. Por aprobar: proveedor seleccionado, faltan Lola, Daniela o Gerencia
+  if (prov || e === "seleccionado") {
+    return { etapaId: 3, nombre: "Por aprobar", fechaInicio: r["F. selección proveedor"] || r["F. última cotización"] };
+  }
+
+  // 2. Cotizando: tiene cotizaciones, pero no hay proveedor seleccionado
+  if (nCot > 0 || e === "cotizado") {
+    return { etapaId: 2, nombre: "Cotizando", fechaInicio: r["F. 1ª cotización"] || r["F. revisión campo"] };
+  }
+
+  // 1. Por cotizar: aprobada por campo, sin cotizaciones (n_cot = 0)
+  return { etapaId: 1, nombre: "Por cotizar", fechaInicio: r["F. revisión campo"] || r["F. pedido"] };
+}
+
+/* Toast */
+function toast_(msg) {
+  const el = document.getElementById("toastMsg");
+  el.textContent = msg;
+  el.classList.remove("hide");
+  setTimeout(() => el.classList.add("hide"), 4500);
+}
+
+/* ---- Carga de datos ---- */
+async function cargarDatos(silencioso) {
+  if (CARGANDO) return;
+  CARGANDO = true;
+  const f = document.getElementById("fuente");
+  if (!silencioso) f.textContent = "Leyendo AgroControl en vivo…";
+
+  try {
+    await ComprasApp.exigirSesion();
+    const snap = await ComprasApp.snapAgro();
+    SNAP_FILAS = snap.filas || [];
+    ULTIMO_CORTE_MIN = Date.now();
+
+    // Sincronizar checklist
+    CHECKLIST_MAPA = (window.AgdNube && AgdNube.leerChecklistLocal()) || {};
+
+    // Auto-cierre de marcas cuando AgroControl ya avanzó
+    await autoCerrarMarcasAvanzadas();
+
+    // Actualizar resumen y vista
+    await actualizarResumenDia();
+    poblarFiltroFincas();
+    renderizarTodo();
+
+    const hora = new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" });
+    f.textContent = `EN VIVO · ${snap.usuario || "Compras"} · ${SNAP_FILAS.length} líneas · actualizado ${hora}`;
+  } catch (err) {
+    if (err.message !== "sin sesión") {
+      if (silencioso) {
+        f.textContent = "Sin conexión: mostrando la última lectura de AgroControl";
+      } else {
+        document.getElementById("listaEtapas").innerHTML = `
+          <div class="estado-caja">
+            <h3>No se pudo leer AgroControl</h3>
+            <p>${esc(err.message)}</p>
+            <button class="btn pri sm" type="button" onclick="cargarDatos(false)">Reintentar</button>
+          </div>`;
+      }
+    }
+  } finally {
+    CARGANDO = false;
+  }
+}
+
+/* Auto-cierre de marcas si AgroControl ya muestra una etapa posterior */
+async function autoCerrarMarcasAvanzadas() {
+  if (!SNAP_FILAS.length || !window.AgdNube) return;
+  const hoy = hoyISO();
+  const mapaLineas = {};
+  SNAP_FILAS.forEach(r => {
+    if (r["Línea"]) mapaLineas[r["Línea"]] = clasificarLinea(r);
+  });
+
+  const promesas = [];
+  Object.keys(CHECKLIST_MAPA).forEach(lin => {
+    const chk = CHECKLIST_MAPA[lin];
+    if (!chk || !chk.hecho) return;
+
+    const actual = mapaLineas[lin];
+    if (!actual) return;
+
+    // Buscar etapa marcada
+    const etMarcada = ETAPAS.find(e => e.nombre === chk.etapa_marcada || e.id === Number(chk.etapa_marcada));
+    const idMarcado = etMarcada ? etMarcada.id : 0;
+
+    // Si la etapa actual es posterior a la marcada, se cierra sola y va al historial
+    if (actual.etapaId > idMarcado && idMarcado > 0) {
+      let tipoAvance = "general";
+      if (idMarcado === 1) tipoAvance = "cotizada";
+      else if (idMarcado === 4) tipoAvance = "oc";
+      else if (idMarcado === 5) tipoAvance = "entrega";
+
+      promesas.push(
+        AgdNube.archivarMarcaEnHistorial(lin, hoy, {
+          linea: lin,
+          etapa_anterior: etMarcada.nombre,
+          etapa_nueva: actual.nombre,
+          nota: chk.nota || "",
+          tipo_avance: tipoAvance
+        })
+      );
+    }
+  });
+
+  if (promesas.length) {
+    await Promise.all(promesas);
+    CHECKLIST_MAPA = AgdNube.leerChecklistLocal();
+  }
+}
+
+/* Resumen del día contra historial */
+async function actualizarResumenDia() {
+  const hoy = hoyISO();
+  let histHoy = null;
+  let histAyer = null;
+
+  if (window.AgdNube) {
+    histHoy = await AgdNube.obtenerHistorialDia(hoy);
+    const dAyer = new Date();
+    dAyer.setDate(dAyer.getDate() - 1);
+    histAyer = await AgdNube.obtenerHistorialDia(dAyer.toISOString().slice(0, 10));
+  }
+
+  const totHoy = (histHoy && histHoy.total_avanzadas) || 0;
+  const cotsHoy = (histHoy && histHoy.cotizadas) || 0;
+  const ocHoy = (histHoy && histHoy.oc) || 0;
+  const entHoy = (histHoy && histHoy.entregas) || 0;
+
+  document.getElementById("mTotAvanzadas").textContent = `${totHoy} líneas avanzadas`;
+  document.getElementById("mCotizadas").textContent = `${cotsHoy} cotizadas`;
+  document.getElementById("mOC").textContent = `${ocHoy} OC`;
+  document.getElementById("mEntregas").textContent = `${entHoy} entregas registradas`;
+
+  const compTxt = histAyer && histAyer.total_avanzadas
+    ? `Ayer avanzaron ${histAyer.total_avanzadas} líneas (${histAyer.cotizadas || 0} cotizadas, ${histAyer.oc || 0} OC, ${histAyer.entregas || 0} entregas)`
+    : "Primer corte del día; marque sus tareas o suba el Excel de control";
+  document.getElementById("subResumen").textContent = compTxt;
+}
+
+function poblarFiltroFincas() {
+  const sel = document.getElementById("fFinca");
+  const actual = sel.value;
+  const fincas = [...new Set(SNAP_FILAS.map(r => r["Finca"]).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Todas las fincas</option>' +
+    fincas.map(f => `<option value="${esc(f)}"${f === actual ? " selected" : ""}>${esc(f)}</option>`).join("");
+}
+
+/* ---- Renderizado principal ---- */
+function renderizarTodo() {
+  const q = document.getElementById("fBusq").value.trim().toLowerCase();
+  const fFinca = document.getElementById("fFinca").value;
+  const fEstado = document.getElementById("fEstadoChk").value;
+  const etapaFiltro = FILTRO_ETAPA_ACTIVA || document.getElementById("fEtapa").value;
+
+  // Clasificar todas las líneas
+  const clasificadas = SNAP_FILAS.map(r => {
+    const lin = r["Línea"] || "";
+    const info = clasificarLinea(r);
+    const dHab = diasHabiles(info.fechaInicio);
+    const al = alertaWilo(dHab);
+    const chk = CHECKLIST_MAPA[lin] || { hecho: false, nota: "" };
+    const etapaObj = ETAPAS.find(e => e.id === info.etapaId);
+
+    // Detección de diferencia (Wilo marcó Hecho pero AgroControl sigue en la misma etapa)
+    let avisoDif = "";
+    if (chk.hecho && chk.etapa_marcada === etapaObj.nombre && info.etapaId < 7) {
+      if (info.etapaId === 5) avisoDif = "Marcó entregado, pero falta registrarlo en AgroControl";
+      else if (info.etapaId === 1) avisoDif = "Marcó cotizado, pero falta registrarlo en AgroControl";
+      else if (info.etapaId === 3) avisoDif = "Marcó aprobado, pero falta registrarlo en AgroControl";
+      else if (info.etapaId === 4) avisoDif = "Marcó OC generada, pero falta registrarlo en AgroControl";
+      else if (info.etapaId === 6) avisoDif = "Marcó pagado, pero falta registrarlo en AgroControl";
+      else avisoDif = `Marcó ${esc(etapaObj.accion)}, pero falta registrarlo en AgroControl`;
+    }
+
+    return {
+      raw: r,
+      linea: lin,
+      pedido: r["Pedido"] || "—",
+      finca: r["Finca"] || "—",
+      producto: r["Producto"] || "—",
+      categoria: r["Categoría"] || "",
+      cantidad: r["Cantidad"] || 0,
+      unidad: r["Unidad"] || "",
+      proveedor: r["Proveedor"] || "— Sin proveedor —",
+      etapaId: info.etapaId,
+      etapaNombre: etapaObj.nombre,
+      etapaObj,
+      fechaInicio: info.fechaInicio,
+      diasH: dHab,
+      alerta: al,
+      chk,
+      avisoDif
+    };
+  });
+
+  // Renderizar tarjetas de etapas arriba
+  renderizarTarjetasEtapas(clasificadas);
+
+  // Filtrar
+  const filtradas = clasificadas.filter(item => {
+    if (etapaFiltro && item.etapaId !== Number(etapaFiltro)) return false;
+    if (fFinca && item.finca !== fFinca) return false;
+    if (fEstado === "hecho" && !item.chk.hecho) return false;
+    if (fEstado === "pendiente" && item.chk.hecho) return false;
+    if (fEstado === "alerta" && item.diasH < 1) return false;
+    if (fEstado === "estancado" && item.diasH < 3) return false;
+    if (fEstado === "diferencia" && !item.avisoDif) return false;
+    if (q) {
+      const match = (item.linea + " " + item.pedido + " " + item.producto + " " + item.proveedor + " " + item.finca).toLowerCase();
+      if (!match.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Renderizar bloques por etapa
+  renderizarBloquesEtapas(filtradas);
+}
+
+function renderizarTarjetasEtapas(todas) {
+  const cont = document.getElementById("tarjetasEtapas");
+  const etapaFiltro = FILTRO_ETAPA_ACTIVA || document.getElementById("fEtapa").value;
+
+  cont.innerHTML = ETAPAS.map(e => {
+    const items = todas.filter(x => x.etapaId === e.id);
+    const alertas = items.filter(x => x.diasH >= 1).length;
+    const estancadas = items.filter(x => x.diasH >= 3).length;
+    const esActiva = etapaFiltro === String(e.id);
+
+    return `
+      <div class="etapa-card${esActiva ? " act" : ""}" data-etapa="${e.id}" role="button" tabindex="0">
+        <span class="num">${e.id}. Etapa</span>
+        <span class="nom">${esc(e.nombre)}</span>
+        <div class="pie">
+          <span class="cnt tabular">${items.length}</span>
+          ${estancadas > 0 ? `<span class="aviso-badge badge-alerta">${estancadas} est.</span>` :
+            alertas > 0 ? `<span class="aviso-badge badge-alerta">${alertas} al.</span>` :
+            `<span class="aviso-badge badge-ok">Al día</span>`}
+        </div>
+      </div>`;
+  }).join("");
+
+  cont.querySelectorAll(".etapa-card").forEach(card => {
+    card.onclick = () => {
+      const id = card.dataset.etapa;
+      if (FILTRO_ETAPA_ACTIVA === id) {
+        FILTRO_ETAPA_ACTIVA = "";
+        document.getElementById("fEtapa").value = "";
+      } else {
+        FILTRO_ETAPA_ACTIVA = id;
+        document.getElementById("fEtapa").value = id;
+      }
+      renderizarTodo();
+    };
+  });
+}
+
+function renderizarBloquesEtapas(items) {
+  const cont = document.getElementById("listaEtapas");
+  if (!items.length) {
+    cont.innerHTML = `
+      <div class="estado-caja">
+        <h3>No hay líneas en este criterio</h3>
+        <p>No se encontraron registros con los filtros o la búsqueda seleccionada.</p>
+      </div>`;
+    return;
+  }
+
+  // Agrupar por etapa
+  const porEtapa = {};
+  ETAPAS.forEach(e => (porEtapa[e.id] = []));
+  items.forEach(it => porEtapa[it.etapaId].push(it));
+
+  let html = "";
+  ETAPAS.forEach(e => {
+    const grupo = porEtapa[e.id] || [];
+    if (!grupo.length) return;
+
+    html += `
+      <section class="bloque-etapa" aria-labelledby="cab-et-${e.id}">
+        <div class="cab-etapa">
+          <h3 id="cab-et-${e.id}">
+            <span>${e.id}. ${esc(e.nombre)}</span>
+            <span class="chip c-neu tabular">${grupo.length}</span>
+          </h3>
+          <span class="sub-etapa">${esc(e.desc)}</span>
+        </div>
+        <div class="tw">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:48px;text-align:center">Hecho</th>
+                <th>Línea / Pedido</th>
+                <th>Finca</th>
+                <th>Producto</th>
+                <th class="tabular">Cantidad</th>
+                <th>Proveedor</th>
+                <th class="tabular">Días etapa</th>
+                <th>Alerta</th>
+                <th>Nota del día</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${grupo.map(it => `
+                <tr class="fila-linea${it.chk.hecho ? " fila-hecha" : ""}" data-linea="${esc(it.linea)}">
+                  <td class="chk-hecho" data-l="Hecho">
+                    <input type="checkbox" data-chk="${esc(it.linea)}" data-etapa="${esc(it.etapaNombre)}"${it.chk.hecho ? " checked" : ""} title="Marcar como hecho hoy">
+                  </td>
+                  <td data-l="Línea / Pedido">
+                    <b>${esc(it.linea)}</b>
+                    <small class="muted" style="display:block">${esc(it.pedido)}</small>
+                  </td>
+                  <td data-l="Finca">${esc(it.finca)}</td>
+                  <td data-l="Producto">
+                    <b>${esc(it.producto)}</b>
+                    ${it.categoria ? `<small class="muted" style="display:block">${esc(it.categoria)}</small>` : ""}
+                    ${it.avisoDif ? `<div class="aviso-diferencia">${esc(it.avisoDif)}</div>` : ""}
+                  </td>
+                  <td class="tabular" data-l="Cantidad">
+                    <b>${it.cantidad}</b> <small class="muted">${esc(it.unidad)}</small>
+                  </td>
+                  <td data-l="Proveedor">${esc(it.proveedor)}</td>
+                  <td class="tabular" data-l="Días etapa">
+                    <b>${it.diasH} d</b>
+                    <small class="muted" style="display:block">desde ${fechaCorta(it.fechaInicio)}</small>
+                  </td>
+                  <td data-l="Alerta">
+                    <span class="chip ${it.alerta.cls}">${esc(it.alerta.label)}</span>
+                  </td>
+                  <td data-l="Nota">
+                    <input type="text" class="nota-input" data-nota="${esc(it.linea)}" data-etapa="${esc(it.etapaNombre)}" placeholder="Nota corta…" value="${esc(it.chk.nota || "")}">
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </section>`;
+  });
+
+  cont.innerHTML = html;
+
+  // Eventos de checkboxes y notas
+  cont.querySelectorAll('input[type="checkbox"][data-chk]').forEach(chk => {
+    chk.onchange = async () => {
+      const lin = chk.dataset.chk;
+      const etapa = chk.dataset.etapa;
+      const hecho = chk.checked;
+      const inputNota = cont.querySelector(`input[data-nota="${lin}"]`);
+      const nota = (inputNota && inputNota.value) || "";
+
+      if (window.AgdNube) {
+        await AgdNube.guardarChecklist(lin, { hecho, nota, etapa_marcada: etapa });
+      }
+      CHECKLIST_MAPA[lin] = Object.assign({}, CHECKLIST_MAPA[lin] || {}, { hecho, nota, etapa_marcada: etapa });
+      renderizarTodo();
+    };
+  });
+
+  cont.querySelectorAll('input[type="text"][data-nota]').forEach(inp => {
+    inp.onblur = async () => {
+      const lin = inp.dataset.nota;
+      const etapa = inp.dataset.etapa;
+      const nota = inp.value.trim();
+      const chkBox = cont.querySelector(`input[data-chk="${lin}"]`);
+      const hecho = chkBox ? chkBox.checked : false;
+
+      if (window.AgdNube) {
+        await AgdNube.guardarChecklist(lin, { hecho, nota, etapa_marcada: etapa });
+      }
+      CHECKLIST_MAPA[lin] = Object.assign({}, CHECKLIST_MAPA[lin] || {}, { hecho, nota, etapa_marcada: etapa });
+    };
+  });
+}
+
+/* ---- Excel del día (Descargar y Subir con SheetJS) ---- */
+function descargarExcelChecklist() {
+  if (!window.XLSX) {
+    alert("No se encontró la librería SheetJS para generar el Excel.");
+    return;
+  }
+  if (!SNAP_FILAS.length) {
+    alert("Todavía no se han cargado las líneas de AgroControl.");
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+  const hoy = hoyISO();
+
+  // Clasificar todas las filas
+  const clasificadas = SNAP_FILAS.map(r => {
+    const lin = r["Línea"] || "";
+    const info = clasificarLinea(r);
+    const dHab = diasHabiles(info.fechaInicio);
+    const al = alertaWilo(dHab);
+    const chk = CHECKLIST_MAPA[lin] || { hecho: false, nota: "" };
+    const etapaObj = ETAPAS.find(e => e.id === info.etapaId);
+    return {
+      linea: lin,
+      pedido: r["Pedido"] || "",
+      finca: r["Finca"] || "",
+      producto: r["Producto"] || "",
+      cantidad: r["Cantidad"] || 0,
+      unidad: r["Unidad"] || "",
+      proveedor: r["Proveedor"] || "",
+      etapaId: info.etapaId,
+      etapaNombre: etapaObj.nombre,
+      diasH: dHab,
+      alertaLabel: al.label,
+      fechaInicio: info.fechaInicio || "",
+      hecho: chk.hecho ? "SI" : "",
+      nota: chk.nota || ""
+    };
+  });
+
+  // 1. Hoja de Resumen
+  const resumenRows = [
+    { "Compras AgroDávila": "CHECKLIST DIARIO DE COMPRAS Y LOGÍSTICA", "Fecha": hoy, "": "", "Total líneas": SNAP_FILAS.length },
+    {},
+    { "Etapa": "ID", "Nombre de etapa": "Descripción", "Líneas totales": "Total", "Alertas (≥1 d)": "Alertas", "Estancadas (≥3 d)": "Estancadas", "Marcadas hechas": "Hechas" }
+  ];
+
+  ETAPAS.forEach(e => {
+    const grupo = clasificadas.filter(x => x.etapaId === e.id);
+    const als = grupo.filter(x => x.diasH >= 1).length;
+    const ests = grupo.filter(x => x.diasH >= 3).length;
+    const hechas = grupo.filter(x => x.hecho === "SI").length;
+    resumenRows.push({
+      "Etapa": e.id,
+      "Nombre de etapa": e.nombre,
+      "Líneas totales": grupo.length,
+      "Alertas (≥1 d)": als,
+      "Estancadas (≥3 d)": ests,
+      "Marcadas hechas": hechas
+    });
+  });
+
+  const wsRes = XLSX.utils.json_to_sheet(resumenRows, { skipHeader: true });
+  XLSX.utils.book_append_sheet(wb, wsRes, "Resumen");
+
+  // 2. Una hoja por cada una de las 7 etapas
+  ETAPAS.forEach(e => {
+    const grupo = clasificadas.filter(x => x.etapaId === e.id);
+    const datosEtapa = grupo.map(it => ({
+      "Hecho": it.hecho,
+      "Nota": it.nota,
+      "Alerta": it.alertaLabel,
+      "Días en etapa": it.diasH,
+      "Línea": it.linea,
+      "Pedido": it.pedido,
+      "Finca": it.finca,
+      "Producto": it.producto,
+      "Cantidad": it.cantidad,
+      "Unidad": it.unidad,
+      "Proveedor": it.proveedor,
+      "Fecha inicio etapa": it.fechaInicio
+    }));
+
+    const wsEtapa = XLSX.utils.json_to_sheet(datosEtapa);
+    // Limitar nombre de hoja a 31 chars según spec de Excel
+    const nomHoja = e.nombre.slice(0, 31);
+    XLSX.utils.book_append_sheet(wb, wsEtapa, nomHoja);
+  });
+
+  XLSX.writeFile(wb, `checklist_compras_agrodavila_${hoy}.xlsx`);
+  toast_("Checklist descargado en Excel con 7 hojas de etapa y hoja de Resumen.");
+}
+
+function procesarExcelSubido(archivo) {
+  if (!archivo || !window.XLSX) return;
+  const reader = new FileReader();
+
+  reader.onload = async function (e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: "array" });
+      let totalActualizadas = 0;
+
+      for (const sheetName of wb.SheetNames) {
+        if (sheetName === "Resumen") continue;
+        const sheet = wb.Sheets[sheetName];
+        const filas = XLSX.utils.sheet_to_json(sheet);
+
+        for (const fila of filas) {
+          const linea = String(fila["Línea"] || fila["Linea"] || fila["linea"] || "").trim();
+          if (!linea) continue;
+
+          const hechoTxt = String(fila["Hecho"] || fila["hecho"] || "").trim().toUpperCase();
+          const esHecho = ["SI", "SÍ", "X", "1", "TRUE", "OK"].includes(hechoTxt);
+          const nota = String(fila["Nota"] || fila["nota"] || "").trim();
+
+          if (esHecho || nota) {
+            const etapaObj = ETAPAS.find(x => x.nombre.slice(0, 31) === sheetName) || { nombre: sheetName };
+            CHECKLIST_MAPA[linea] = Object.assign({}, CHECKLIST_MAPA[linea] || {}, {
+              linea,
+              hecho: esHecho,
+              nota,
+              etapa_marcada: etapaObj.nombre
+            });
+            if (window.AgdNube) {
+              await AgdNube.guardarChecklist(linea, CHECKLIST_MAPA[linea]);
+            }
+            totalActualizadas++;
+          }
+        }
+      }
+
+      toast_(`Checklist actualizado: se aplicaron ${totalActualizadas} marcas desde el Excel.`);
+      renderizarTodo();
+    } catch (err) {
+      alert("Error al procesar el archivo Excel: " + err.message);
+    }
+  };
+
+  reader.readAsArrayBuffer(archivo);
+}
+
+/* ---- Inicialización de eventos ---- */
+document.getElementById("refrescar").onclick = () => cargarDatos(false);
+document.getElementById("btnDescargarExcel").onclick = descargarExcelChecklist;
+document.getElementById("btnSubirExcel").onclick = () => document.getElementById("archExcel").click();
+document.getElementById("archExcel").onchange = e => {
+  if (e.target.files && e.target.files[0]) {
+    procesarExcelSubido(e.target.files[0]);
+    e.target.value = "";
+  }
+};
+
+document.getElementById("fBusq").oninput = renderizarTodo;
+document.getElementById("fEtapa").onchange = e => {
+  FILTRO_ETAPA_ACTIVA = e.target.value;
+  renderizarTodo();
+};
+document.getElementById("fFinca").onchange = renderizarTodo;
+document.getElementById("fEstadoChk").onchange = renderizarTodo;
+
+// Recarga periódica cada 5 min si la pestaña está activa
+setInterval(() => {
+  if (document.visibilityState === "visible") cargarDatos(true);
+}, 5 * 60 * 1000);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && Date.now() - ULTIMO_CORTE_MIN > 2 * 60 * 1000) {
+    cargarDatos(true);
+  }
+});
+window.addEventListener("online", () => cargarDatos(true));
+
+// Sincronización en vivo con Google Firestore
+if (window.AgdNube) {
+  AgdNube.alCambiarEstado(est => {
+    if (est && est.conectado) {
+      AgdNube.sincronizarChecklist(mapa => {
+        CHECKLIST_MAPA = mapa || {};
+        renderizarTodo();
+      });
+    }
+  });
+}
+
+// Carga inicial
+cargarDatos(false);
+</script>
+</body>
+</html>

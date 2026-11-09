@@ -23,6 +23,7 @@
     alerta: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
     flecha: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
+    checklist: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
     camion: '<path d="M10 17h4V5H2v12h3"/><path d="M14 9h4l4 4v4h-3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/>'
   };
   const ico = (n, cls) => `<svg class="ico${cls ? " " + cls : ""}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ""}</svg>`;
@@ -56,6 +57,12 @@
     },
     "proveedores.html": {
       matriz: ["Matriz oficial de proveedores", "Aquí se registran los datos que cada proveedor envía por correo: RUC, razón social, contacto, crédito, fichas técnicas y lista de precios. Toque una fila para abrir su ficha y guardar."]
+    },
+    "checklist.html": {
+      resumen: ["Resumen del día", "Muestra cuántas líneas avanzaron hoy frente a ayer en cada etapa del proceso de compras."],
+      etapas: ["Etapas del flujo", "Cada línea de AgroControl cae en una sola etapa: por cotizar, cotizando, por aprobar, por generar OC, por entregar, por pagar o cerrado."],
+      marca: ["Checklist que retroalimenta", "Marque «Hecho hoy» y agregue notas. Si AgroControl no se ha actualizado, le avisa en ladrillo lo que falta registrar."],
+      excel: ["Excel y sincronización", "Descargue el checklist a Excel para trabajar sin conexión y suba el archivo marcado para actualizar el sistema."]
     }
   };
 
@@ -66,6 +73,12 @@
       ["#urgente", "Lo urgente hoy", "Un vistazo a lo que espera por usted en AgroControl, actualizado en vivo."],
       ["#accesos", "Accesos rápidos", "Las tareas de todos los días a un toque: ver pendientes, enviar mensajes y bajar el Excel."],
       [".ayuda", "Ayuda cuando la necesite", "Toque «¿Cómo uso esto?» en cualquier pantalla para volver a ver este recorrido."]
+    ],
+    "checklist.html": [
+      ["#resumenDia", "Avance del día", "Vea de un vistazo cuántas líneas avanzaron hoy en cotizaciones, órdenes de compra y entregas registradas."],
+      ["#tarjetasEtapas", "Contador por etapa", "Las 7 etapas del flujo de compras. Toque una tarjeta para ver solo las líneas de esa etapa."],
+      ["#btnExcelGrp", "Excel del día", "Descargue el checklist completo a Excel o suba el archivo con las casillas marcadas para retroalimentar la app."],
+      ["#listaEtapas", "Líneas de compra", "Marque «Hecho hoy», añada una nota corta y revise las alertas de líneas estancadas (más de 1 o 3 días hábiles)."]
     ],
     "control.html": [
       ["#refrescar", "Se actualiza solo", "La app lee AgroControl cada 5 minutos. Este botón es por si quiere ver lo último ya."],
@@ -89,7 +102,7 @@
   function ponerMarco() {
     if (document.querySelector(".marco")) return;
     const p = pag();
-    const items = [["index.html", "inicio", "Inicio"], ["control.html", "control", "Control"], ["whatsapp.html", "whatsapp", "WhatsApp"], ["proveedores.html", "proveedores", "Proveedores"]];
+    const items = [["index.html", "inicio", "Inicio"], ["checklist.html", "checklist", "Checklist"], ["control.html", "control", "Control"], ["whatsapp.html", "whatsapp", "WhatsApp"], ["proveedores.html", "proveedores", "Proveedores"]];
     const n = document.createElement("nav"); n.className = "marco"; n.setAttribute("aria-label", "Secciones de la app");
     n.innerHTML = `<a class="marca" href="index.html"><span class="sello">${ico("hoja")}</span>Compras AgroDávila</a>` +
       items.map(([h, i, t]) => `<a class="sec" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}<span>${t}</span></a>`).join("") +
@@ -99,7 +112,7 @@
   }
 
   /* Íconos en los botones conocidos de cada pantalla */
-  const BOTONES = [["#refrescar", "refrescar"], ["#xlsMatriz", "excel"], ["#csv", "bajar"], ["#bTema", "tema"], ["[data-benv]", "enviar"], ["[data-copiar]", "enviar"], ["#revOk", "enviar"]];
+  const BOTONES = [["#refrescar", "refrescar"], ["#xlsMatriz", "excel"], ["#btnDescargarExcel", "excel"], ["#btnSubirExcel", "bajar"], ["#csv", "bajar"], ["#bTema", "tema"], ["[data-benv]", "enviar"], ["[data-copiar]", "enviar"], ["#revOk", "enviar"]];
   function iconosBotones() {
     BOTONES.forEach(([sel, i]) => document.querySelectorAll(sel).forEach(b => {
       if (b.dataset.ico) return; b.dataset.ico = "1"; b.insertAdjacentHTML("afterbegin", ico(i));

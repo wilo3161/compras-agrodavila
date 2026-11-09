@@ -10,6 +10,8 @@
   const LS_TEL = "agd_tel_proveedores";
   const LS_KRALJIC = "agd_kraljic";
   const LS_PASOS = "agd_pasos";
+  const LS_CHECKLIST = "agd_checklist_v1";
+  const LS_HISTORIAL = "agd_checklist_hist_v1";
 
   let modApp = null, modAuth = null, modFs = null;
   let app = null, auth = null, db = null;
@@ -518,6 +520,176 @@
     return true;
   }
 
+  /* ── Checklist diario: espacios/agrodavila/checklist/{linea} ─────────────── */
+  function leerChecklistLocal() {
+    try { return JSON.parse(localStorage.getItem(LS_CHECKLIST) || "{}"); } catch (e) { return {}; }
+  }
+  function escribirChecklistLocal(mapa) {
+    try { localStorage.setItem(LS_CHECKLIST, JSON.stringify(mapa)); } catch (e) {}
+  }
+
+  function idLineaSegura(linea) {
+    return encodeURIComponent(String(linea || "").trim()).replace(/\./g, "_");
+  }
+
+  async function guardarChecklist(linea, datosChk) {
+    if (!linea) return;
+    const ahora = (datosChk && datosChk.actualizado_en) || new Date().toISOString();
+    const loc = leerChecklistLocal();
+    loc[linea] = Object.assign({}, loc[linea] || {}, {
+      linea: String(linea),
+      hecho: !!(datosChk && datosChk.hecho),
+      nota: String((datosChk && datosChk.nota) || "").trim(),
+      etapa_marcada: String((datosChk && datosChk.etapa_marcada) || "").trim(),
+      actualizado_en: ahora,
+      actualizado_por: (usuarioActual && usuarioActual.email) || (datosChk && datosChk.actualizado_por) || "local"
+    });
+    escribirChecklistLocal(loc);
+
+    await inicializar();
+    if (!db || !usuarioActual) return;
+    const docRef = modFs.doc(db, `${RAIZ}/checklist/${idLineaSegura(linea)}`);
+    const carga = {
+      linea: String(linea),
+      hecho: loc[linea].hecho,
+      nota: loc[linea].nota,
+      etapa_marcada: loc[linea].etapa_marcada,
+      actualizado_en: ahora,
+      actualizado_por: usuarioActual.email || "local"
+    };
+    try { await modFs.setDoc(docRef, carga, { merge: true }); } catch (e) {}
+  }
+
+  let unsubChecklist = null;
+  async function sincronizarChecklist(alActualizar, alError) {
+    const emitirLocal = () => {
+      const m = leerChecklistLocal();
+      if (typeof alActualizar === "function") alActualizar(m, { fuente: "local" });
+    };
+
+    await inicializar();
+    if (!db || !usuarioActual) {
+      emitirLocal();
+      return () => {};
+    }
+
+    if (unsubChecklist) { try { unsubChecklist(); } catch (e) {} }
+    const colRef = modFs.collection(db, `${RAIZ}/checklist`);
+    unsubChecklist = modFs.onSnapshot(colRef, snap => {
+      const loc = leerChecklistLocal();
+      const remotos = {};
+      snap.forEach(d => {
+        const data = d.data() || {};
+        const lin = data.linea || d.id;
+        remotos[lin] = data;
+      });
+
+      let huboCambio = false;
+      const todasLineas = new Set([...Object.keys(loc), ...Object.keys(remotos)]);
+      todasLineas.forEach(lin => {
+        const l = loc[lin];
+        const r = remotos[lin];
+        const tLoc = l ? msFecha(l.actualizado_en) : -1;
+        const tRem = r ? msFecha(r.actualizado_en) : -1;
+        if (r && tRem >= tLoc) {
+          loc[lin] = {
+            linea: lin,
+            hecho: !!r.hecho,
+            nota: String(r.nota || ""),
+            etapa_marcada: String(r.etapa_marcada || ""),
+            actualizado_en: r.actualizado_en || new Date().toISOString(),
+            actualizado_por: r.actualizado_por || ""
+          };
+          huboCambio = true;
+        } else if (l && tLoc > tRem) {
+          guardarChecklist(lin, l);
+        }
+      });
+      escribirChecklistLocal(loc);
+      if (typeof alActualizar === "function") alActualizar(loc, { fuente: "nube" });
+    }, err => {
+      emitirLocal();
+      if (typeof alError === "function") alError(err);
+    });
+    return unsubChecklist;
+  }
+
+  /* ── Historial: espacios/agrodavila/checklist_historial/{fecha} ───────────── */
+  function leerHistorialLocal(fecha) {
+    try {
+      const h = JSON.parse(localStorage.getItem(LS_HISTORIAL) || "{}");
+      return h[fecha] || null;
+    } catch (e) { return null; }
+  }
+  function escribirHistorialLocal(fecha, data) {
+    try {
+      const h = JSON.parse(localStorage.getItem(LS_HISTORIAL) || "{}");
+      h[fecha] = Object.assign({}, h[fecha] || {}, data);
+      localStorage.setItem(LS_HISTORIAL, JSON.stringify(h));
+    } catch (e) {}
+  }
+
+  async function guardarHistorialDia(fecha, datosHist) {
+    if (!fecha || !datosHist) return;
+    const ahora = new Date().toISOString();
+    const docData = Object.assign({}, datosHist, {
+      fecha,
+      actualizado_en: ahora,
+      actualizado_por: (usuarioActual && usuarioActual.email) || "local"
+    });
+    escribirHistorialLocal(fecha, docData);
+
+    await inicializar();
+    if (!db || !usuarioActual) return;
+    const docRef = modFs.doc(db, `${RAIZ}/checklist_historial/${fecha}`);
+    try { await modFs.setDoc(docRef, docData, { merge: true }); } catch (e) {}
+  }
+
+  async function obtenerHistorialDia(fecha) {
+    const loc = leerHistorialLocal(fecha);
+    await inicializar();
+    if (!db || !usuarioActual) return loc;
+    try {
+      const docRef = modFs.doc(db, `${RAIZ}/checklist_historial/${fecha}`);
+      const snap = await modFs.getDoc(docRef);
+      if (snap.exists()) {
+        const rem = snap.data();
+        escribirHistorialLocal(fecha, rem);
+        return rem;
+      }
+    } catch (e) {}
+    return loc;
+  }
+
+  async function archivarMarcaEnHistorial(linea, fecha, datosAvance) {
+    const hist = (await obtenerHistorialDia(fecha)) || { fecha, lineas: {}, cotizadas: 0, oc: 0, entregas: 0 };
+    if (!hist.lineas) hist.lineas = {};
+    hist.lineas[linea] = Object.assign({}, datosAvance, { linea, cerrado_en: new Date().toISOString() });
+    let cots = 0, ocs = 0, ents = 0;
+    Object.values(hist.lineas).forEach(item => {
+      if (item.tipo_avance === "cotizada" || item.etapa_anterior === "Por cotizar") cots++;
+      if (item.tipo_avance === "oc" || item.etapa_anterior === "Por generar o subir la OC") ocs++;
+      if (item.tipo_avance === "entrega" || item.etapa_anterior === "Por entregar") ents++;
+    });
+    hist.cotizadas = cots;
+    hist.oc = ocs;
+    hist.entregas = ents;
+    hist.total_avanzadas = Object.keys(hist.lineas).length;
+    await guardarHistorialDia(fecha, hist);
+
+    const loc = leerChecklistLocal();
+    if (loc[linea]) {
+      delete loc[linea];
+      escribirChecklistLocal(loc);
+    }
+    await inicializar();
+    if (db && usuarioActual) {
+      try {
+        await modFs.deleteDoc(modFs.doc(db, `${RAIZ}/checklist/${idLineaSegura(linea)}`));
+      } catch (e) {}
+    }
+  }
+
   window.AgdNube = {
     escucharMatrizEnVivo,
     inicializar,
@@ -535,6 +707,12 @@
     cargarProveedoresDesdeWA,
     escucharMatriz,
     normalizarProveedor,
-    chatIdSeguro
+    chatIdSeguro,
+    leerChecklistLocal,
+    guardarChecklist,
+    sincronizarChecklist,
+    guardarHistorialDia,
+    obtenerHistorialDia,
+    archivarMarcaEnHistorial
   };
 })();
