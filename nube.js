@@ -690,7 +690,99 @@
     }
   }
 
+  /* ── Bandeja y conversaciones: espacios/agrodavila/conversaciones y bandeja ─ */
+  let unsubConversaciones = null;
+  async function escucharConversaciones(cb, alError) {
+    await inicializar();
+    if (!db || !usuarioActual || typeof cb !== "function") {
+      if (typeof cb === "function") cb([]);
+      return () => {};
+    }
+    if (unsubConversaciones) { try { unsubConversaciones(); } catch (e) {} }
+    const colRef = modFs.collection(db, `${RAIZ}/conversaciones`);
+    unsubConversaciones = modFs.onSnapshot(colRef, snap => {
+      const lista = [];
+      snap.forEach(d => {
+        lista.push(Object.assign({ id: d.id }, d.data()));
+      });
+      cb(lista);
+    }, err => {
+      if (typeof alError === "function") alError(err);
+    });
+    return unsubConversaciones;
+  }
+
+  async function marcarConversacion(chatSeguro, cambio) {
+    if (!chatSeguro || !cambio) return false;
+    await inicializar();
+    if (!db || !usuarioActual) return false;
+    const docRef = modFs.doc(db, `${RAIZ}/conversaciones/${chatSeguro}`);
+    const ahora = new Date().toISOString();
+    const datos = Object.assign({}, cambio, {
+      actualizado_en: ahora,
+      actualizado_por: (usuarioActual && usuarioActual.email) || "local"
+    });
+    try {
+      await modFs.setDoc(docRef, datos, { merge: true });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  let unsubBandeja = null;
+  async function escucharBandeja(cb, alError) {
+    await inicializar();
+    if (!db || !usuarioActual || typeof cb !== "function") {
+      if (typeof cb === "function") cb([]);
+      return () => {};
+    }
+    if (unsubBandeja) { try { unsubBandeja(); } catch (e) {} }
+    const colRef = modFs.collection(db, `${RAIZ}/bandeja`);
+    unsubBandeja = modFs.onSnapshot(colRef, snap => {
+      const lista = [];
+      snap.forEach(d => {
+        lista.push(Object.assign({ id: d.id }, d.data()));
+      });
+      cb(lista);
+    }, err => {
+      if (typeof alError === "function") alError(err);
+    });
+    return unsubBandeja;
+  }
+
+  async function marcarBorradorBandeja(numeroReq, borradorId, estado, textoFinal) {
+    if (!numeroReq || !borradorId) return false;
+    await inicializar();
+    if (!db || !usuarioActual) return false;
+    const docRef = modFs.doc(db, `${RAIZ}/bandeja/${numeroReq}`);
+    try {
+      const snap = await modFs.getDoc(docRef);
+      if (!snap.exists()) return false;
+      const data = snap.data() || {};
+      const borradores = (data.borradores || []).map(b => {
+        if (String(b.id) === String(borradorId)) {
+          return Object.assign({}, b, {
+            estado: estado,
+            texto: textoFinal || b.texto,
+            enviado_en: estado === "enviado" ? new Date().toISOString() : b.enviado_en,
+            actualizado_en: new Date().toISOString()
+          });
+        }
+        return b;
+      });
+      await modFs.setDoc(docRef, { borradores, actualizado_en: new Date().toISOString() }, { merge: true });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   window.AgdNube = {
+    escucharConversaciones,
+    marcarConversacion,
+    escucharBandeja,
+    marcarBorradorBandeja,
     escucharMatrizEnVivo,
     inicializar,
     conectar,

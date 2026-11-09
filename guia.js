@@ -24,7 +24,8 @@
     flecha: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
     checklist: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
-    camion: '<path d="M10 17h4V5H2v12h3"/><path d="M14 9h4l4 4v4h-3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/>'
+    camion: '<path d="M10 17h4V5H2v12h3"/><path d="M14 9h4l4 4v4h-3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/>',
+    bandeja: '<path d="M22 12h-6l-2 3h-4l-2-3H2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6Z"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>'
   };
   const ico = (n, cls) => `<svg class="ico${cls ? " " + cls : ""}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ""}</svg>`;
 
@@ -63,6 +64,11 @@
       etapas: ["Etapas del flujo", "Cada línea de AgroControl cae en una sola etapa: por cotizar, cotizando, por aprobar, por generar OC, por entregar, por pagar o cerrado."],
       marca: ["Checklist que retroalimenta", "Marque «Hecho hoy» y agregue notas. Si AgroControl no se ha actualizado, le avisa en ladrillo lo que falta registrar."],
       excel: ["Excel y sincronización", "Descargue el checklist a Excel para trabajar sin conexión y suba el archivo marcado para actualizar el sistema."]
+    },
+    "bandeja.html": {
+      conv: ["Conversaciones que esperan respuesta", "Mensajes entrantes con respuestas sugeridas por el asistente. Revise, edite y pulse «Revisar y enviar»."],
+      req: ["Cotizaciones por requerimiento", "Requerimientos abiertos de fincas con borradores por proveedor listos para enviar."],
+      hist: ["Historial de envíos", "Mensajes y cotizaciones enviadas con filtros por proveedor y fecha."]
     }
   };
 
@@ -73,6 +79,12 @@
       ["#urgente", "Lo urgente hoy", "Un vistazo a lo que espera por usted en AgroControl, actualizado en vivo."],
       ["#accesos", "Accesos rápidos", "Las tareas de todos los días a un toque: ver pendientes, enviar mensajes y bajar el Excel."],
       [".ayuda", "Ayuda cuando la necesite", "Toque «¿Cómo uso esto?» en cualquier pantalla para volver a ver este recorrido."]
+    ],
+    "bandeja.html": [
+      ["#tabsBandeja", "Secciones de la bandeja", "Navegue entre conversaciones que esperan respuesta, cotizaciones por requerimiento e historial de lo enviado."],
+      ["#secConversaciones", "Conversaciones urgentes", "Primero lo urgente y lo que lleva más tiempo esperando. En ladrillo si pasa de 1 día hábil."],
+      ["#secRequerimientos", "Cotizaciones por requerimiento", "Cada pedido con sus ítems, proveedores sugeridos y comparativo de precios."],
+      ["#secHistorial", "Historial con filtros", "Filtre por proveedor o fecha para auditar lo que se envió desde el teléfono."]
     ],
     "checklist.html": [
       ["#resumenDia", "Avance del día", "Vea de un vistazo cuántas líneas avanzaron hoy en cotizaciones, órdenes de compra y entregas registradas."],
@@ -102,7 +114,7 @@
   function ponerMarco() {
     if (document.querySelector(".marco")) return;
     const p = pag();
-    const items = [["index.html", "inicio", "Inicio"], ["checklist.html", "checklist", "Checklist"], ["control.html", "control", "Control"], ["whatsapp.html", "whatsapp", "WhatsApp"], ["proveedores.html", "proveedores", "Proveedores"]];
+    const items = [["index.html", "inicio", "Inicio"], ["bandeja.html", "bandeja", "Bandeja"], ["checklist.html", "checklist", "Checklist"], ["control.html", "control", "Control"], ["whatsapp.html", "whatsapp", "WhatsApp"], ["proveedores.html", "proveedores", "Proveedores"]];
     const n = document.createElement("nav"); n.className = "marco"; n.setAttribute("aria-label", "Secciones de la app");
     n.innerHTML = `<a class="marca" href="index.html"><span class="sello">${ico("hoja")}</span>Compras AgroDávila</a>` +
       items.map(([h, i, t]) => `<a class="sec" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}<span>${t}</span></a>`).join("") +

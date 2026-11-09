@@ -202,25 +202,39 @@ function pintarPasos(){ const h=hechos(); if(window.matchMedia("(display-mode: s
   $("#pasos").innerHTML=PASOS.map(([k,t])=>`<li class="${h[k]?"hecho":""}"><span class="c">${I("check")}</span><span>${t}</span></li>`).join(""); }
 document.addEventListener("click",e=>{ const a=e.target.closest("[data-paso]"); if(a&&a.dataset.paso!=="excel"&&a.dataset.paso!=="instalar") marcar(a.dataset.paso); });
 
-/* Lo urgente hoy (AgroControl en vivo) */
-let SNAP=null;
+/* Lo urgente hoy (AgroControl en vivo y Bandeja) */
+let SNAP=null, CONV_PENDIENTES=0, FILAS_AC=[];
+function renderUrgente(){
+  const filas = [
+    ["tierra","bandeja",`${CONV_PENDIENTES} conversaciones esperan respuesta`,"Mensajes con respuesta sugerida lista en la nube",CONV_PENDIENTES,"bandeja.html"],
+    ...FILAS_AC
+  ];
+  $("#listaUrg").innerHTML=filas.map(([c,i,t,s,n,h])=>`<li><a href="${h||'control.html'}"><span class="punto ${c}">${I(i)}</span><span class="t"><b>${t}</b><span>${s}</span></span><span class="n">${n}</span>${I("flecha").replace('class="ico"','class="ico fl"')}</a></li>`).join("");
+  const total=filas.reduce((a,f)=>a+f[4],0);
+  $("#estado").textContent=total?`Hay ${total} asuntos esperando por usted. Empiece por los de arriba.`:"Todo al día.";
+}
 async function urgente(){
   try{
     SNAP=await ComprasApp.snapAgro(); const F=SNAP.filas, hoy=new Date(); hoy.setHours(0,0,0,0);
     const est=e=>F.filter(r=>r["Estado (código)"]===e);
     const porCot=F.filter(r=>r["Estado (código)"]==="aprobado_campo"&&!(+r["N° cotizaciones"]>0)).length;
     const vencidos=new Set(F.filter(r=>r["F. pago programada"]&&!r["F. pago realizado"]&&new Date(r["F. pago programada"]+"T00:00")<hoy&&!["anulado","rechazado","entregado"].includes(r["Estado (código)"])).map(r=>r["OC (código)"])).size;
-    const filas=[
-      ["rojo","alerta","Pagos vencidos o sin registrar","Órdenes con fecha de pago pasada",vencidos],
-      ["maiz","control","Por cotizar","Productos aprobados que esperan cotización",porCot],
-      ["tierra","llave","Por autorizar","Esperan el OK de Contabilidad",est("seleccionado").length],
-      ["verde","hoja","Por revisar en campo","Pedidos nuevos de las fincas",est("pendiente").length]];
-    $("#listaUrg").innerHTML=filas.map(([c,i,t,s,n])=>`<li><a href="control.html"><span class="punto ${c}">${I(i)}</span><span class="t"><b>${t}</b><span>${s}</span></span><span class="n">${n}</span>${I("flecha").replace('class="ico"','class="ico fl"')}</a></li>`).join("");
-    const total=filas.reduce((a,f)=>a+f[4],0);
-    $("#estado").textContent=total?`Hay ${total} asuntos esperando por usted. Empiece por los de arriba.`:"Todo al día en AgroControl.";
+    FILAS_AC=[
+      ["rojo","alerta","Pagos vencidos o sin registrar","Órdenes con fecha de pago pasada",vencidos,"control.html"],
+      ["maiz","control","Por cotizar","Productos aprobados que esperan cotización",porCot,"control.html"],
+      ["tierra","llave","Por autorizar","Esperan el OK de Contabilidad",est("seleccionado").length,"control.html"],
+      ["verde","hoja","Por revisar en campo","Pedidos nuevos de las fincas",est("pendiente").length,"control.html"]];
+    renderUrgente();
   }catch(e){
-    $("#listaUrg").innerHTML=`<li style="padding:12px 10px" class="muted">No se pudo leer AgroControl (${esc(e.message)}). Revise la conexión y vuelva a abrir.</li>`;
+    FILAS_AC=[];
+    renderUrgente();
   }
+}
+if(window.AgdNube && AgdNube.escucharConversaciones){
+  AgdNube.escucharConversaciones(convs=>{
+    CONV_PENDIENTES=(convs||[]).filter(c=>c.estado==="pendiente"||!c.estado).length;
+    renderUrgente();
+  });
 }
 $("#bExcel").onclick=async()=>{ const b=$("#bExcel"); b.classList.add("cargando");
   try{ if(!SNAP) SNAP=await ComprasApp.snapAgro(); ComprasApp.excelMatriz(SNAP.filas); marcar("excel"); }catch(e){ alert(e.message); }

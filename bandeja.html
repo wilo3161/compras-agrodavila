@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#23262B">
+<title>Bandeja · Compras AgroDávila</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconos/icono-192.png">
+<link rel="apple-touch-icon" href="iconos/icono-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script>
+<link rel="stylesheet" href="marco.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--tx);font-family:var(--letra);font-size:15px;line-height:1.5}
+main{max-width:1120px;margin:0 auto;padding:24px 18px 48px}
+.hide{display:none !important}
+.muted{color:var(--t2)}
+.small{font-size:13px}
+.bold{font-weight:700}
+
+/* Encabezado */
+.cab-bandeja{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:20px}
+.cab-bandeja h1{margin:0 0 4px;font-size:clamp(24px,3.5vw,32px);line-height:1.15;color:var(--tx)}
+.cab-bandeja p{margin:0;color:var(--t2);font-size:14px}
+
+/* Navegación de pestañas */
+.tabs-bandeja{display:flex;gap:8px;border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:24px;overflow-x:auto;scrollbar-width:none}
+.tab-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:12px;border:1px solid transparent;background:none;color:var(--t2);font:600 14px var(--letra);cursor:pointer;white-space:nowrap;transition:all .15s}
+.tab-btn:hover{color:var(--tx);background:var(--card)}
+.tab-btn.activo{background:var(--pri2);color:var(--pri);border-color:color-mix(in srgb,var(--pri) 30%,transparent)}
+.tab-badge{display:inline-flex;align-items:center;justify-content:center;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:700;background:var(--card);color:var(--tx);border:1px solid var(--bd)}
+.tab-btn.activo .tab-badge{background:var(--pri);color:#fff;border-color:var(--pri)}
+:root[data-theme="dark"] .tab-btn.activo .tab-badge{color:#0F1722}
+
+/* Tarjetas de conversación */
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.card-conv{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:18px;box-shadow:var(--sombra);display:flex;flex-direction:column;gap:14px;transition:box-shadow .2s}
+.card-conv:hover{box-shadow:var(--sombra-alta)}
+.card-conv.alerta-ladrillo{border-color:var(--tierra);background:color-mix(in srgb,var(--tierra2) 20%,var(--card))}
+
+/* Cabecera de la tarjeta */
+.conv-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.conv-tit{font-size:17px;font-weight:700;margin:0 0 3px;color:var(--tx);font-family:var(--titulo)}
+.conv-sub{font-size:13px;color:var(--t2);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.conv-tel{color:var(--pri);text-decoration:none;font-weight:600}
+.conv-tel:hover{text-decoration:underline}
+
+/* Chips y tiempos */
+.chips-fila{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip-urg{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700}
+.chip-urg.alta{background:var(--crbg);color:var(--cr)}
+.chip-urg.media{background:var(--maiz2);color:var(--md)}
+.chip-urg.baja{background:var(--pri2);color:var(--pri)}
+.chip-espera{font-size:12px;padding:3px 8px;border-radius:8px;font-weight:600;background:var(--bg);color:var(--t2)}
+.chip-espera.ladrillo{background:var(--tierra2);color:var(--tierra);font-weight:700}
+
+/* Burbujas de mensajes recientes */
+.conv-mensajes{background:var(--bg);border:1px solid var(--bd);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;max-height:190px;overflow-y:auto}
+.burbuja{font-size:13px;padding:7px 10px;border-radius:12px;max-width:88%;line-height:1.38;word-break:break-word}
+.burbuja.saliente{align-self:flex-end;background:var(--pri2);color:var(--tx);border-bottom-right-radius:2px}
+.burbuja.entrante{align-self:flex-start;background:var(--card);border:1px solid var(--bd);color:var(--tx);border-bottom-left-radius:2px}
+.burbuja-meta{font-size:10px;color:var(--t2);margin-top:2px;display:block}
+
+/* Caja de respuesta editable */
+.conv-sugerencia{display:flex;flex-direction:column;gap:6px}
+.conv-sugerencia label{font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.03em}
+.conv-sugerencia textarea{width:100%;min-height:92px;padding:10px 12px;font-size:14px;line-height:1.45;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);resize:vertical}
+.conv-sugerencia textarea:focus{border-color:var(--pri);outline:none}
+
+/* Botones de acción */
+.conv-acciones{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:auto;padding-top:4px}
+.conv-acciones .btn{flex:1;min-width:130px;justify-content:center}
+.btn-mano{color:var(--t2) !important;background:none !important;border-color:var(--bd) !important}
+.btn-mano:hover{color:var(--tx) !important;border-color:var(--pri) !important}
+.btn-descarte{color:var(--t2) !important;background:none !important;border:0 !important;min-width:auto !important;padding:6px 10px !important}
+.btn-descarte:hover{color:var(--cr) !important}
+
+/* Requerimientos y comparativo */
+.req-item{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:var(--sombra)}
+.req-cab{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;border-bottom:1px solid var(--bd);padding-bottom:10px}
+.req-lista-items{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px}
+.req-lista-items li{font-size:13px;padding:6px 10px;background:var(--bg);border-radius:8px;display:flex;justify-content:space-between;align-items:center}
+.req-borradores{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:10px}
+.req-borrador-card{border:1px solid var(--bd);border-radius:12px;padding:12px;background:var(--bg);display:flex;flex-direction:column;gap:8px}
+
+/* Historial y filtros */
+.filtros-hist{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px;background:var(--card);padding:12px 16px;border-radius:14px;border:1px solid var(--bd)}
+.filtros-hist input{padding:8px 12px;min-height:38px !important;border-radius:10px !important}
+
+/* Estado vacío */
+.vacio-box{background:var(--card);border:1px dashed var(--bd);border-radius:20px;padding:40px 24px;text-align:center;color:var(--t2);margin:20px 0}
+.vacio-box h3{margin:8px 0 4px;font-size:18px;color:var(--tx)}
+.vacio-box p{margin:0;font-size:14px}
+.vacio-box .ico{width:36px;height:36px;color:var(--t2);margin-bottom:8px}
+
+/* Modal comparativo */
+dialog#dlgComp{border:0;border-radius:20px;padding:24px;max-width:760px;width:95vw;background:var(--card);color:var(--tx);box-shadow:var(--sombra-alta)}
+dialog#dlgComp::backdrop{background:rgba(14,20,30,.65);backdrop-filter:blur(4px)}
+.dlg-cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.dlg-cab h2{margin:0;font-size:20px;font-family:var(--titulo)}
+
+@media (max-width:760px){
+  main{padding:14px 12px 64px}
+  .grid-cards{grid-template-columns:1fr}
+  .conv-acciones .btn{width:100%;min-width:100%}
+  .filtros-hist{flex-direction:column;align-items:stretch}
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="cab-bandeja">
+    <div>
+      <h1>Bandeja de Compras</h1>
+      <p id="subBandeja">Revisión y envío de mensajes a proveedores desde el teléfono o la PC.</p>
+    </div>
+    <div id="badgeConexion" class="small muted">Verificando conexión…</div>
+  </div>
+
+  <nav class="tabs-bandeja" id="tabsBandeja" role="tablist" aria-label="Vistas de la bandeja">
+    <button class="tab-btn activo" type="button" data-tab="conv" role="tab" aria-selected="true" id="tabBtnConv">
+      <span data-i="bandeja"></span><span>Conversaciones</span>
+      <span class="tab-badge" id="badgeCountConv">0</span>
+    </button>
+    <button class="tab-btn" type="button" data-tab="req" role="tab" aria-selected="false" id="tabBtnReq">
+      <span data-i="checklist"></span><span>Requerimientos</span>
+      <span class="tab-badge" id="badgeCountReq">0</span>
+    </button>
+    <button class="tab-btn" type="button" data-tab="hist" role="tab" aria-selected="false" id="tabBtnHist">
+      <span data-i="control"></span><span>Historial de envíos</span>
+      <span class="tab-badge" id="badgeCountHist">0</span>
+    </button>
+  </nav>
+
+  <!-- SECCIÓN 1: CONVERSACIONES -->
+  <section id="secConversaciones" role="tabpanel" aria-labelledby="tabBtnConv">
+    <div id="listaConversaciones" class="grid-cards">
+      <div class="vacio-box">
+        <span data-i="refrescar"></span>
+        <h3>Cargando conversaciones…</h3>
+        <p>Buscando mensajes pendientes en la nube.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 2: REQUERIMIENTOS -->
+  <section id="secRequerimientos" class="hide" role="tabpanel" aria-labelledby="tabBtnReq">
+    <div id="listaRequerimientos">
+      <div class="vacio-box">
+        <span data-i="refrescar"></span>
+        <h3>Cargando requerimientos…</h3>
+        <p>Leyendo cotizaciones y pedidos abiertos.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 3: HISTORIAL -->
+  <section id="secHistorial" class="hide" role="tabpanel" aria-labelledby="tabBtnHist">
+    <div class="filtros-hist">
+      <div style="flex:1;min-width:200px">
+        <label for="filtroProv" class="small bold muted" style="display:block;margin-bottom:4px">Buscar por proveedor</label>
+        <input type="text" id="filtroProv" placeholder="Ej.: Willian, Solve, Fertilizantes…" style="width:100%">
+      </div>
+      <div>
+        <label for="filtroFecha" class="small bold muted" style="display:block;margin-bottom:4px">Fecha</label>
+        <input type="date" id="filtroFecha">
+      </div>
+      <button class="btn sm" type="button" id="btnLimpiarFiltros" style="align-self:flex-end">Limpiar</button>
+    </div>
+    <div id="listaHistorial" class="grid-cards">
+      <div class="vacio-box">
+        <span data-i="control"></span>
+        <h3>No hay envíos registrados todavía</h3>
+        <p>Los mensajes enviados desde esta bandeja aparecerán aquí.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- DIÁLOGO COMPARATIVO DE PRECIOS -->
+<dialog id="dlgComp">
+  <div class="dlg-cab">
+    <h2 id="dlgCompTitulo">Comparativo de cotizaciones</h2>
+    <button class="btn sm" type="button" onclick="document.getElementById('dlgComp').close()">Cerrar</button>
+  </div>
+  <div id="dlgCompContenido" style="overflow-x:auto"></div>
+</dialog>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const I = n => window.AgdGuia ? AgdGuia.ico(n) : "";
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+let CONVERSACIONES = [];
+let REQUERIMIENTOS = [];
+let HISTORIAL = [];
+let TAB_ACTIVA = "conv";
+
+function ponerIconos() {
+  document.querySelectorAll("[data-i]").forEach(e => {
+    if (!e.dataset.puesto && window.AgdGuia) {
+      e.innerHTML = I(e.dataset.i);
+      e.dataset.puesto = "1";
+    }
+  });
+}
+
+function cambiarTab(tab) {
+  TAB_ACTIVA = tab;
+  $("#secConversaciones").classList.toggle("hide", tab !== "conv");
+  $("#secRequerimientos").classList.toggle("hide", tab !== "req");
+  $("#secHistorial").classList.toggle("hide", tab !== "hist");
+
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    const act = b.dataset.tab === tab;
+    b.classList.toggle("activo", act);
+    b.setAttribute("aria-selected", act ? "true" : "false");
+  });
+  if (window.TAB !== tab) {
+    window.TAB = tab;
+  }
+}
+
+document.querySelectorAll(".tab-btn").forEach(b => {
+  b.onclick = () => cambiarTab(b.dataset.tab);
+});
+
+function numEc(n) {
+  let d = String(n || "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.startsWith("0")) d = "593" + d.slice(1);
+  else if (d.length === 9) d = "593" + d;
+  return d;
+}
+
+async function enviarWhatsApp(texto, telefono, chatNombre) {
+  const num = numEc(telefono);
+  if (num) {
+    const url = "https://wa.me/" + num + "?text=" + encodeURIComponent(texto);
+    if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+      location.href = url;
+    } else {
+      window.open(url, "_blank");
+    }
+    return true;
+  }
+  if (navigator.share) {
+    try {
+      await navigator.share({ text: texto });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  location.href = "whatsapp://send?text=" + encodeURIComponent(texto);
+  return true;
+}
+
+function formatearTiempoEspera(iso) {
+  if (!iso) return { texto: "sin fecha", esLadrillo: false };
+  const t = Date.parse(iso);
+  if (isNaN(t)) return { texto: iso, esLadrillo: false };
+  const ms = Date.now() - t;
+  const horas = Math.floor(ms / (1000 * 60 * 60));
+  const dias = Math.floor(horas / 24);
+  const esLadrillo = horas >= 24; // Pasa de 1 día hábil
+  if (horas < 1) return { texto: "hace menos de 1 h", esLadrillo: false };
+  if (horas < 24) return { texto: `esperando ${horas} h`, esLadrillo: false };
+  return { texto: `esperando ${dias} d (${horas} h)`, esLadrillo: true };
+}
+
+function pintarConversaciones() {
+  const cont = $("#listaConversaciones");
+  const pend = CONVERSACIONES.filter(c => c.estado === "pendiente" || !c.estado);
+  $("#badgeCountConv").textContent = pend.length;
+
+  if (!pend.length) {
+    cont.innerHTML = `
+      <div class="vacio-box">
+        <span data-i="check"></span>
+        <h3>Bandeja al día</h3>
+        <p>El asistente en la nube aún no ha subido conversaciones o ya respondió todas las pendientes.</p>
+      </div>`;
+    ponerIconos();
+    return;
+  }
+
+  // Ordenar: urgente primero, y luego la que lleva más tiempo esperando (menor timestamp)
+  const ordenadas = [...pend].sort((a, b) => {
+    const urgScore = x => x.urgencia === "alta" ? 0 : x.urgencia === "media" ? 1 : 2;
+    const diffUrg = urgScore(a) - urgScore(b);
+    if (diffUrg !== 0) return diffUrg;
+    const tA = Date.parse(a.espera_desde || a.actualizado_en || 0) || 0;
+    const tB = Date.parse(b.espera_desde || b.actualizado_en || 0) || 0;
+    return tA - tB; // ascendente = más antigua primero
+  });
+
+  cont.innerHTML = ordenadas.map(c => {
+    const esp = formatearTiempoEspera(c.espera_desde);
+    const msgs = (c.ultimos_mensajes || []).slice(-6);
+    const sug = (c.sugerencia && c.sugerencia.texto) || "";
+    const cid = c.id || AgdNube.chatIdSeguro(c.chat);
+
+    return `
+      <article class="card-conv ${esp.esLadrillo ? 'alerta-ladrillo' : ''}" data-cid="${esc(cid)}">
+        <div class="conv-top">
+          <div>
+            <h2 class="conv-tit">${esc(c.contacto || c.chat)}</h2>
+            <div class="conv-sub">
+              <span>${esc(c.chat)}</span>
+              ${c.telefono ? `· <a class="conv-tel" href="tel:${esc(c.telefono)}">${esc(c.telefono)}</a>` : '<span class="muted">· Sin teléfono</span>'}
+            </div>
+          </div>
+          <div class="chips-fila">
+            <span class="chip-urg ${esc(c.urgencia || 'media')}">${esc((c.urgencia || 'media').toUpperCase())}</span>
+          </div>
+        </div>
+
+        <div class="chips-fila">
+          ${c.finca ? `<span class="chip-espera">Finca: ${esc(c.finca)}</span>` : ''}
+          <span class="chip-espera ${esp.esLadrillo ? 'ladrillo' : ''}">${esc(esp.texto)}</span>
+          <span class="chip-espera">Tipo: ${esc(c.tipo || 'respuesta')}</span>
+        </div>
+
+        <div class="conv-mensajes">
+          ${msgs.length ? msgs.map(m => `
+            <div class="burbuja ${m.autor === 'YO' ? 'saliente' : 'entrante'}">
+              <span class="burbuja-meta">${esc(m.autor)} · ${esc(m.hora || '')}</span>
+              <div>${esc(m.texto)}</div>
+            </div>
+          `).join('') : '<div class="small muted">Sin historial de mensajes previos.</div>'}
+        </div>
+
+        <div class="conv-sugerencia">
+          <label for="txt_${esc(cid)}">Respuesta sugerida (editable):</label>
+          <textarea id="txt_${esc(cid)}" aria-label="Texto de respuesta">${esc(sug)}</textarea>
+        </div>
+
+        <div class="conv-acciones">
+          <button class="btn p btn-enviar-accion" type="button" data-act="enviar" data-cid="${esc(cid)}" data-tel="${esc(c.telefono || '')}" data-chat="${esc(c.chat)}">
+            <span data-i="enviar"></span><span>Revisar y enviar</span>
+          </button>
+          <button class="btn btn-mano" type="button" data-act="mano" data-cid="${esc(cid)}">
+            <span>Ya respondí</span>
+          </button>
+          <button class="btn btn-descarte" type="button" data-act="descartar" data-cid="${esc(cid)}">
+            <span>Descartar</span>
+          </button>
+        </div>
+      </article>`;
+  }).join('');
+
+  ponerIconos();
+  asignarEventosConversaciones();
+}
+
+function asignarEventosConversaciones() {
+  document.querySelectorAll("#listaConversaciones .card-conv").forEach(card => {
+    const cid = card.dataset.cid;
+    const txtArea = card.querySelector("textarea");
+
+    // Revisar y enviar
+    const bEnv = card.querySelector('[data-act="enviar"]');
+    if (bEnv) {
+      bEnv.onclick = async () => {
+        const texto = txtArea.value.trim();
+        if (!texto) {
+          alert("El mensaje no puede estar vacío.");
+          return;
+        }
+        bEnv.disabled = true;
+        await enviarWhatsApp(texto, bEnv.dataset.tel, bEnv.dataset.chat);
+        if (window.AgdNube) {
+          await AgdNube.marcarConversacion(cid, {
+            estado: "enviado",
+            texto_final: texto
+          });
+        }
+      };
+    }
+
+    // Ya respondí a mano
+    const bMano = card.querySelector('[data-act="mano"]');
+    if (bMano) {
+      bMano.onclick = async () => {
+        if (!confirm("¿Marcar como respondido a mano? Esto cerrará la sugerencia.")) return;
+        bMano.disabled = true;
+        if (window.AgdNube) {
+          await AgdNube.marcarConversacion(cid, {
+            estado: "respondido_a_mano",
+            texto_final: txtArea.value.trim()
+          });
+        }
+      };
+    }
+
+    // Descartar
+    const bDesc = card.querySelector('[data-act="descartar"]');
+    if (bDesc) {
+      bDesc.onclick = async () => {
+        if (!confirm("¿Descartar esta sugerencia? El asistente aprenderá de este descarte.")) return;
+        bDesc.disabled = true;
+        if (window.AgdNube) {
+          await AgdNube.marcarConversacion(cid, {
+            estado: "descartado"
+          });
+        }
+      };
+    }
+  });
+}
+
+function pintarRequerimientos() {
+  const cont = $("#listaRequerimientos");
+  $("#badgeCountReq").textContent = REQUERIMIENTOS.length;
+
+  if (!REQUERIMIENTOS.length) {
+    cont.innerHTML = `
+      <div class="vacio-box">
+        <span data-i="checklist"></span>
+        <h3>No hay cotizaciones pendientes</h3>
+        <p>No se encontraron requerimientos abiertos con borradores por enviar.</p>
+      </div>`;
+    ponerIconos();
+    return;
+  }
+
+  cont.innerHTML = REQUERIMIENTOS.map(rq => {
+    const items = rq.items || [];
+    const borradores = rq.borradores || [];
+    const comp = rq.comparativo || null;
+
+    return `
+      <article class="req-item" data-req="${esc(rq.numero)}">
+        <div class="req-cab">
+          <div>
+            <h2 style="margin:0 0 4px;font-size:18px;font-family:var(--titulo)">Requerimiento ${esc(rq.numero)}</h2>
+            <div class="small muted">
+              <span>Finca: <b>${esc(rq.finca || 'General')}</b></span> · 
+              <span>Solicita: <b>${esc(rq.solicitante || 'Campo')}</b></span> · 
+              <span>Urgencia: <b>${esc(rq.urgencia || 'Media')}</b></span>
+            </div>
+          </div>
+          <div>
+            ${comp ? `<button class="btn sm p btn-ver-comp" type="button" data-req="${esc(rq.numero)}"><span data-i="control"></span><span>Ver comparativo</span></button>` : ''}
+          </div>
+        </div>
+
+        <div class="small bold muted" style="margin-bottom:6px">ÍTEMS A COTIZAR (${items.length}):</div>
+        <ul class="req-lista-items">
+          ${items.map(it => `
+            <li>
+              <span><b>${esc(it.cantidad || '')} ${esc(it.unidad || '')}</b> ${esc(it.descripcion || '')}</span>
+              <span class="muted">${esc(it.categoria || '')}</span>
+            </li>
+          `).join('')}
+        </ul>
+
+        <div class="small bold muted" style="margin:12px 0 6px">BORRADORES POR PROVEEDOR (${borradores.length}):</div>
+        <div class="req-borradores">
+          ${borradores.map(b => {
+            const yaEnviado = b.estado === "enviado";
+            return `
+              <div class="req-borrador-card" style="${yaEnviado ? 'opacity:.65' : ''}">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <b>${esc(b.proveedor || b.chat)}</b>
+                  <span class="chip-urg ${yaEnviado ? 'baja' : 'media'}">${esc(b.estado || 'propuesto')}</span>
+                </div>
+                ${b.razones ? `<div class="small muted" style="font-style:italic">${esc(Array.isArray(b.razones) ? b.razones.join(' · ') : b.razones)}</div>` : ''}
+                <textarea class="req-txt-b" style="width:100%;min-height:70px;font-size:13px;border-radius:8px;border:1px solid var(--bd)" ${yaEnviado ? 'disabled' : ''}>${esc(b.texto || '')}</textarea>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <button class="btn sm p btn-enviar-req" type="button" data-num="${esc(rq.numero)}" data-bid="${esc(b.id)}" data-chat="${esc(b.chat)}" ${yaEnviado ? 'disabled' : ''}>
+                    <span data-i="enviar"></span><span>${yaEnviado ? 'Enviado' : 'Revisar y enviar'}</span>
+                  </button>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      </article>`;
+  }).join('');
+
+  ponerIconos();
+  asignarEventosRequerimientos();
+}
+
+function asignarEventosRequerimientos() {
+  document.querySelectorAll(".btn-ver-comp").forEach(b => {
+    b.onclick = () => {
+      const num = b.dataset.req;
+      const rq = REQUERIMIENTOS.find(r => r.numero === num);
+      if (!rq || !rq.comparativo) return;
+      mostrarModalComparativo(rq);
+    };
+  });
+
+  document.querySelectorAll(".btn-enviar-req").forEach(b => {
+    b.onclick = async () => {
+      const card = b.closest(".req-borrador-card");
+      const txt = card.querySelector("textarea").value.trim();
+      if (!txt) return;
+      b.disabled = true;
+      await enviarWhatsApp(txt, "", b.dataset.chat);
+      if (window.AgdNube) {
+        await AgdNube.marcarBorradorBandeja(b.dataset.num, b.dataset.bid, "enviado", txt);
+      }
+    };
+  });
+}
+
+function mostrarModalComparativo(rq) {
+  const dlg = $("#dlgComp");
+  $("#dlgCompTitulo").textContent = `Comparativo de cotizaciones · ${rq.numero}`;
+  const comp = rq.comparativo || {};
+  const filas = comp.filas || comp.items || [];
+
+  if (!filas.length) {
+    $("#dlgCompContenido").innerHTML = `<p class="muted">No hay datos estructurados de comparación todavía.</p>`;
+  } else {
+    $("#dlgCompContenido").innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <thead>
+          <tr style="border-bottom:2px solid var(--bd);text-align:left">
+            <th style="padding:8px">Ítem</th>
+            <th style="padding:8px">Proveedor</th>
+            <th style="padding:8px">Precio unit.</th>
+            <th style="padding:8px">Total</th>
+            <th style="padding:8px">Entrega</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filas.map(f => `
+            <tr style="border-bottom:1px solid var(--bd)">
+              <td style="padding:8px"><b>${esc(f.item || f.descripcion || '')}</b></td>
+              <td style="padding:8px">${esc(f.proveedor || '')}</td>
+              <td style="padding:8px">$${esc(f.precio || f.unitario || '—')}</td>
+              <td style="padding:8px"><b>$${esc(f.total || '—')}</b></td>
+              <td style="padding:8px">${esc(f.entrega || '—')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+  dlg.showModal();
+}
+
+function pintarHistorial() {
+  const cont = $("#listaHistorial");
+  const filtroProv = ($("#filtroProv").value || "").toLowerCase().trim();
+  const filtroFecha = $("#filtroFecha").value;
+
+  // Recopilar items de historial de conversaciones y de requerimientos
+  const items = [];
+  CONVERSACIONES.forEach(c => {
+    if (c.estado === "enviado" || c.estado === "respondido_a_mano") {
+      items.push({
+        origen: "Conversación",
+        chat: c.chat,
+        contacto: c.contacto,
+        telefono: c.telefono,
+        fecha: c.actualizado_en || c.enviado_en || "",
+        texto: c.texto_final || (c.sugerencia && c.sugerencia.texto) || "",
+        estado: c.estado
+      });
+    }
+  });
+
+  REQUERIMIENTOS.forEach(rq => {
+    (rq.borradores || []).forEach(b => {
+      if (b.estado === "enviado") {
+        items.push({
+          origen: `Requerimiento ${rq.numero}`,
+          chat: b.chat,
+          contacto: b.proveedor,
+          telefono: "",
+          fecha: b.enviado_en || b.actualizado_en || rq.actualizado_en || "",
+          texto: b.texto || "",
+          estado: "enviado"
+        });
+      }
+    });
+  });
+
+  const filtrados = items.filter(it => {
+    if (filtroProv) {
+      const matchProv = (it.chat || "").toLowerCase().includes(filtroProv) ||
+                        (it.contacto || "").toLowerCase().includes(filtroProv);
+      if (!matchProv) return false;
+    }
+    if (filtroFecha) {
+      if (!it.fecha || !it.fecha.startsWith(filtroFecha)) return false;
+    }
+    return true;
+  });
+
+  $("#badgeCountHist").textContent = filtrados.length;
+
+  if (!filtrados.length) {
+    cont.innerHTML = `
+      <div class="vacio-box">
+        <span data-i="control"></span>
+        <h3>No hay resultados</h3>
+        <p>No se encontraron mensajes enviados con los filtros seleccionados.</p>
+      </div>`;
+    ponerIconos();
+    return;
+  }
+
+  // Ordenar los más recientes primero
+  filtrados.sort((a, b) => (Date.parse(b.fecha) || 0) - (Date.parse(a.fecha) || 0));
+
+  cont.innerHTML = filtrados.map(it => `
+    <article class="card-conv" style="border-left:4px solid var(--pri)">
+      <div class="conv-top">
+        <div>
+          <h2 class="conv-tit">${esc(it.contacto || it.chat)}</h2>
+          <div class="conv-sub">
+            <span>${esc(it.chat)}</span> · <span>${esc(it.origen)}</span>
+          </div>
+        </div>
+        <span class="chip-urg baja">${esc(it.estado)}</span>
+      </div>
+      <div class="small muted">Enviado: ${esc(it.fecha ? new Date(it.fecha).toLocaleString("es-EC") : 'Reciente')}</div>
+      <div style="background:var(--bg);padding:10px;border-radius:10px;font-size:13px;white-space:pre-wrap;border:1px solid var(--bd)">${esc(it.texto)}</div>
+    </article>
+  `).join('');
+
+  ponerIconos();
+}
+
+$("#filtroProv").oninput = pintarHistorial;
+$("#filtroFecha").onchange = pintarHistorial;
+$("#btnLimpiarFiltros").onclick = () => {
+  $("#filtroProv").value = "";
+  $("#filtroFecha").value = "";
+  pintarHistorial();
+};
+
+async function iniciarBandeja() {
+  ponerIconos();
+  if (!window.AgdNube) {
+    $("#badgeConexion").textContent = "Sin módulo de nube.";
+    return;
+  }
+
+  const ok = await AgdNube.inicializar();
+  const est = AgdNube.estado();
+
+  if (!est.conectado) {
+    $("#badgeConexion").innerHTML = `
+      <span style="color:var(--cr)">Sin sesión de Google.</span>
+      <a href="index.html" style="margin-left:6px">Conectar en Inicio</a>`;
+    $("#listaConversaciones").innerHTML = `
+      <div class="vacio-box">
+        <span data-i="llave"></span>
+        <h3>Conecte su cuenta de Google</h3>
+        <p>Vaya a <a href="index.html">Inicio → Su cuenta</a> para sincronizar la bandeja en la nube.</p>
+      </div>`;
+    $("#listaRequerimientos").innerHTML = `
+      <div class="vacio-box">
+        <span data-i="llave"></span>
+        <h3>Conecte su cuenta de Google</h3>
+        <p>Se requiere autorización para ver los requerimientos de AgroDávila.</p>
+      </div>`;
+    ponerIconos();
+    return;
+  }
+
+  $("#badgeConexion").innerHTML = `<span style="color:var(--ok)">● Conectado a la nube</span>`;
+
+  // Escuchar conversaciones en tiempo real
+  AgdNube.escucharConversaciones(convs => {
+    CONVERSACIONES = convs || [];
+    pintarConversaciones();
+    pintarHistorial();
+  }, err => {
+    console.warn("Error al escuchar conversaciones:", err);
+    $("#listaConversaciones").innerHTML = `<div class="vacio-box"><h3>Error de lectura</h3><p>${esc(err.message)}</p></div>`;
+  });
+
+  // Escuchar bandeja de requerimientos en tiempo real
+  AgdNube.escucharBandeja(reqs => {
+    REQUERIMIENTOS = reqs || [];
+    pintarRequerimientos();
+    pintarHistorial();
+  }, err => {
+    console.warn("Error al escuchar bandeja:", err);
+    $("#listaRequerimientos").innerHTML = `<div class="vacio-box"><h3>Error de lectura</h3><p>${esc(err.message)}</p></div>`;
+  });
+}
+
+document.addEventListener("DOMContentLoaded", iniciarBandeja);
+</script>
+</body>
+</html>
