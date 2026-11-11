@@ -3,20 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#23262B">
 <title>Matriz de proveedores · Compras AgroDávila</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="iconos/icono-192.png">
-<link rel="apple-touch-icon" href="iconos/icono-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="comun.js"></script>
-<script src="guia.js"></script>
-<script src="firebase_config.js"></script>
-<script src="nube.js"></script>
-<link rel="stylesheet" href="marco.css">
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;font-size:15px;line-height:1.45}
@@ -543,7 +531,7 @@ $("#bExcelProv").onclick = () => {
   const ws = XLSX.utils.json_to_sheet(filas);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Proveedores");
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = AgdReglas.hoyEcuador();
   XLSX.writeFile(wb, `matriz_proveedores_agrodavila_${hoy}.xlsx`);
   toast("Excel de la matriz descargado ✔");
 };
@@ -574,13 +562,13 @@ async function iniciarEscucha() {
   }, err => {
     $("#contenedorTabla").innerHTML = `<div class="card estado-caja">
       <h3>No se pudo leer la nube</h3>
-      <p>${esc(err && err.message ? err.message : "Error de conexión o permisos en Firestore.")}</p>
+      <p>${esc(err && err.message ? err.message : "Error de conexión o permisos en la nube.")}</p>
     </div>`;
   });
 }
 
 (async () => {
-  try { await ComprasApp.exigirSesion(); } catch (e) { return; }
+  try { await ComprasApp.exigirSesion({ permitirNube: true }); } catch (e) { return; }
   try {
     const d = await ComprasApp.datosWA();
     if (d && Array.isArray(d.proveedores) && d.proveedores.length) {

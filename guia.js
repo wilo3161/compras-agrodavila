@@ -26,7 +26,8 @@
     checklist: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
     camion: '<path d="M10 17h4V5H2v12h3"/><path d="M14 9h4l4 4v4h-3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/>',
     bandeja: '<path d="M22 12h-6l-2 3h-4l-2-3H2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6Z"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
-    gerencia: '<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10Z"/>'
+    gerencia: '<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10Z"/>',
+    mas: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>'
   };
   const ico = (n, cls) => `<svg class="ico${cls ? " " + cls : ""}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ""}</svg>`;
 
@@ -120,20 +121,78 @@
       ["#filtrosGerencia", "Filtros ejecutivos", "Filtre todo el tablero en vivo por finca, semana ISO o mes."],
       ["#kpisGerencia", "Indicadores clave", "Resumen instantáneo de gasto semanal/mensual, % recibido, OC abiertas, pagos vencidos, mantenimiento y km."],
       ["#tabsGerencia", "Tres módulos gerenciales", "Cambie entre Gasto por finca, Mantenimiento y Vehículos."],
-      ["#formRegistrarMant", "Registrar mantenimiento", "Cree una orden o reserva de mantenimiento directamente en Firestore para gerencia y campo."]
+      ["#formRegistrarMant", "Registrar mantenimiento", "Cree una orden o reserva de mantenimiento sincronizada para gerencia y campo."]
     ]
   };
 
   function ponerMarco() {
     if (document.querySelector(".marco")) return;
     const p = pag();
-    const items = [["index.html", "inicio", "Inicio"], ["gerencia.html", "gerencia", "Gerencia"], ["bandeja.html", "bandeja", "Bandeja"], ["checklist.html", "checklist", "Checklist"], ["control.html", "control", "Control"], ["whatsapp.html", "whatsapp", "WhatsApp"], ["proveedores.html", "proveedores", "Proveedores"]];
+    const primarios = [
+      ["index.html", "inicio", "Inicio"],
+      ["gerencia.html", "gerencia", "Gerencia"],
+      ["bandeja.html", "bandeja", "Bandeja"],
+      ["checklist.html", "checklist", "Checklist"],
+      ["control.html", "control", "Control"]
+    ];
+    const secundarios = [
+      ["whatsapp.html", "whatsapp", "WhatsApp"],
+      ["proveedores.html", "proveedores", "Proveedores"]
+    ];
+    const esSecundario = secundarios.some(([h]) => h === p);
     const n = document.createElement("nav"); n.className = "marco"; n.setAttribute("aria-label", "Secciones de la app");
     n.innerHTML = `<a class="marca" href="index.html"><span class="sello">${ico("hoja")}</span>Compras AgroDávila</a>` +
-      items.map(([h, i, t]) => `<a class="sec" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}<span>${t}</span></a>`).join("") +
+      primarios.map(([h, i, t]) => `<a class="sec" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}<span>${t}</span></a>`).join("") +
+      secundarios.map(([h, i, t]) => `<a class="sec sec-extra" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}<span>${t}</span></a>`).join("") +
+      `<div class="mas-wrap"><button class="sec mas-btn" type="button" aria-expanded="false" aria-haspopup="menu"${esSecundario ? ' aria-current="page"' : ""}>${ico("mas")}<span>Más</span></button><div class="marco-mas hide" role="menu">${secundarios.map(([h, i, t]) => `<a class="mas-item" role="menuitem" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}<span>${t}</span></a>`).join("")}<button class="mas-item mas-ayuda" type="button" role="menuitem">${ico("ayuda")}<span>¿Cómo uso esto?</span></button></div></div>` +
       `<button class="ayuda" type="button" aria-label="Cómo uso esta pantalla">${ico("ayuda")}<span>¿Cómo uso esto?</span></button>`;
     document.body.insertBefore(n, document.body.firstChild);
+    const fresc = document.createElement("aside");
+    fresc.id = "barraFrescura";
+    fresc.className = "frescura";
+    fresc.setAttribute("aria-label", "Actualización de fuentes");
+    document.body.insertBefore(fresc, n.nextSibling);
+
+    const masBtn = n.querySelector(".mas-btn");
+    const masMenu = n.querySelector(".marco-mas");
+    const cerrarMas = () => { if (masMenu) { masMenu.classList.add("hide"); masBtn.setAttribute("aria-expanded", "false"); } };
+    if (masBtn && masMenu) {
+      masBtn.onclick = ev => {
+        ev.stopPropagation();
+        const abrir = masMenu.classList.contains("hide");
+        masMenu.classList.toggle("hide", !abrir);
+        masBtn.setAttribute("aria-expanded", abrir ? "true" : "false");
+      };
+      document.addEventListener("click", e => { if (!n.contains(e.target)) cerrarMas(); });
+      document.addEventListener("keydown", e => { if (e.key === "Escape") cerrarMas(); });
+    }
     n.querySelector(".ayuda").onclick = () => recorrido(true);
+    const masAyuda = n.querySelector(".mas-ayuda");
+    if (masAyuda) masAyuda.onclick = () => { cerrarMas(); recorrido(true); };
+  }
+
+  function textoEdad(item) {
+    if (!item || !item.fecha || item.edadHoras === null) return "Sin registro";
+    const f = new Date(item.fecha);
+    const hora = !isNaN(f) ? f.toLocaleString("es-EC", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Guayaquil" }) : String(item.fecha).slice(0, 16);
+    if (item.edadHoras < 1) return `${hora} (hace <1 h)`;
+    if (item.edadHoras < 24) return `${hora} (hace ${Math.round(item.edadHoras)} h)`;
+    return `${hora} (hace ${Math.round(item.edadHoras / 24)} d)`;
+  }
+
+  async function renderizarFrescura() {
+    const caja = document.getElementById("barraFrescura");
+    if (!caja || !window.ComprasApp || !ComprasApp.frescuraFuentes) return;
+    try {
+      const datos = await ComprasApp.frescuraFuentes();
+      const orden = [datos.agrocontrol, datos.whatsapp, datos.recepciones, datos.vehiculos].filter(Boolean);
+      const html = orden.map(it => {
+        const cls = it.atrasada ? "frescura-item atraso" : "frescura-item";
+        const av = it.atrasada ? "⚠ >6 h · " : "";
+        return `<span class="${cls}" title="${it.atrasada ? "Más de 6 horas sin actualizar" : "Actualizado"}"><b>${it.etiqueta}:</b> ${av}${textoEdad(it)}</span>`;
+      }).join("");
+      caja.innerHTML = `<span class="frescura-tit">Sincronización:</span>${html}`;
+    } catch (e) {}
   }
 
   /* Íconos en los botones conocidos de cada pantalla */
@@ -210,11 +269,14 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    ponerMarco(); etiquetarTablas(); iconosBotones();
+    ponerMarco(); renderizarFrescura(); etiquetarTablas(); iconosBotones();
     let pend = false;
     new MutationObserver(() => { if (pend) return; pend = true; requestAnimationFrame(() => { pend = false; etiquetarTablas(); iconosBotones(); guiaPestana(); }); })
       .observe(document.body, { childList: true, subtree: true });
+    if (window.AgdNube && AgdNube.alCambiarEstado) {
+      AgdNube.alCambiarEstado(() => { renderizarFrescura(); });
+    }
     setTimeout(() => recorrido(false), 1600);   // primera visita: después de que la pantalla cargó datos
   });
-  window.AgdGuia = { ico, recorrido };
+  window.AgdGuia = { ico, recorrido, renderizarFrescura };
 })();

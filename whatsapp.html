@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Compras WhatsApp · AgroDávila</title><meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Compras WhatsApp · AgroDávila</title>
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F4F6F3;--card:#FFFFFF;--tx:#1D2A22;--t2:#5E6B63;--bd:#DDE3DE;--ok:#2E7D4F;--okbg:#E5F3EA;--md:#B7791F;--mdbg:#FDF3DC;--al:#C2591B;--albg:#FCE9DC;--cr:#B42318;--crbg:#FBE4E2;--pri:#1F5E3B;--pri2:#E3EFE7;--az:#0F4C81;--azbg:#E4EEF8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121815;--card:#1B231F;--tx:#E6ECE8;--t2:#9AA9A0;--bd:#2C3832;--ok:#6CC08E;--okbg:#1E3A2A;--md:#E2B25A;--mdbg:#3A2F17;--al:#EE9A63;--albg:#3D2618;--cr:#F0857A;--crbg:#43201D;--pri:#5FB386;--pri2:#21342A;--az:#7FB2E5;--azbg:#1A2A3A}}
@@ -79,7 +80,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 @media (max-width:600px){main{padding:12px}.kq{grid-template-columns:1fr}.rk{grid-template-columns:110px 1fr 56px}.tarea{grid-template-columns:1fr}.kpi .v{font-size:22px}}
 @media print{header nav,.top .acc,.filtros,.btn{display:none!important}body{background:#fff}}
 </style>
-<link rel="stylesheet" href="marco.css"></head>
+</head>
 <body>
 <header>
   <div class="top">
@@ -178,7 +179,7 @@ const itemsTxt=p=>(p.items||[]).map(i=>[i.cantidad!=null?i.cantidad:"",i.unidad|
 /* ====== Mensajes ====== */
 function saludo(p){const c=p&&p.contacto?p.contacto:"";return c?`Estimado/a ${c}, buenos días.`:"Buenos días, estimado/a.";}
 function msgCotizacion(prov,items,lugar,finca){const f=finca&&D.finca[finca];const ent=f?f.entrega+" ("+f.ubicacion+")":(lugar||"finca AgroDávila (por confirmar)");
-  return `${saludo(prov)} Le saluda ${AJ.firma||"el Ing. Wilson Pérez, encargado de compras de AgroDávila"}.\n\nPor favor, ¿nos ayuda con una cotización formal${f?" para la finca "+f.nombre:""} de:\n${items.map(i=>"• "+i).join("\n")}\n\nPor favor incluya:\n1. Precio unitario y total, sin IVA y con IVA\n2. Stock disponible hoy; si no hay, en cuántos días lo tendrían\n3. Tiempo de entrega en días desde la orden de compra, en ${ent}\n4. ¿El precio incluye la entrega en la finca? Si el transporte se cobra aparte, ¿cuánto cuesta?\n5. Forma de pago: contado o crédito. ¿A cuántos días? ¿Qué necesitan para abrirnos crédito?\n6. Descuento por volumen o pronto pago\n7. Validez de la cotización\n8. Marca y especificaciones; garantía, o registro de Agrocalidad y vencimiento si es agroquímico\n${f?"\nFacturar a: "+f.facturar_a.replace(" (confirmar con Contabilidad)","")+". Correo: compras@agrodavila.com.\n":""}\nMuchas gracias.`;}
+  return `${saludo(prov)} Le saluda ${AJ.firma||"el Ing. Wilson Pérez, encargado de compras de AgroDávila"}.\n\nPor favor, ¿nos ayuda con una cotización formal${f?" para la finca "+f.nombre:""} de:\n${items.map(i=>"• "+i).join("\n")}\n\nPor favor incluya:\n1. Precio unitario y total, sin IVA y con IVA\n2. Stock disponible hoy; si no hay, en cuántos días lo tendrían\n3. Tiempo de entrega en días desde la orden de compra, en ${ent}\n4. ¿El precio incluye la entrega en la finca? Si el transporte se cobra aparte, ¿cuánto cuesta?\n5. Forma de pago: contado o crédito. ¿A cuántos días? ¿Qué necesitan para abrirnos crédito?\n6. Descuento por volumen o pronto pago\n7. Validez de la cotización\n8. Marca y especificaciones; garantía, o registro de Agrocalidad y vencimiento si es agroquímico\n${f?"\nFacturar a: "+f.facturar_a.replace(" (confirmar con Lola)","")+". Correo: compras@agrodavila.com.\n":""}\nMuchas gracias.`;}
 function msgSeguimiento(p){const prov=D.byId[p.proveedor_id];const it=itemsTxt(p);
   if(p.estado==="cotizacion_pedida")return `${saludo(prov)} Le escribo para dar seguimiento a la cotización que le pedimos el ${fecha(p.fecha)}: ${it}.\n¿Nos ayuda con el precio y el tiempo de entrega, por favor? Gracias.`;
   if(p.estado==="facturado"||/factura/i.test(p.proxima_accion||""))return `${saludo(prov)} Por favor, ¿nos ayuda con la factura de ${it}${p.odc?" (ODC "+p.odc+")":""}? Contabilidad la necesita para procesar el pago. Gracias.`;
@@ -191,13 +192,13 @@ function guardarTra(id,cambio){CAPA.tra=CAPA.tra||{};CAPA.tra[id]=Object.assign(
 function guardarProv(id,cambio){CAPA.prov[id]=Object.assign({},CAPA.prov[id]||{},cambio);lsSet(LS,CAPA);fusion();pintar();}
 
 /* ====== Pestañas ====== */
-const TABS=[["asis","Asistente"],["hoy","Hoy"],["listos","Mensajes listos"],["pedidos","Pedidos y cotizaciones"],["tramites","Facturas y pagos"],["prov","Proveedores"],["aquien","¿A quién le pido?"],["precios","Precios"],["rapidez","Rapidez"],["kraljic","Segmentación"],["msgs","Plantillas"],["proc","Cómo trabajar"],["ajustes","Ajustes"]];
+const TABS=[["asis","Asistente"],["hoy","Hoy"],["listos","Mensajes listos"],["pedidos","Pedidos y cotizaciones"],["tramites","Facturas y pagos"],["prov","Proveedores"],["aquien","¿A quién le pido?"],["precios","Precios"],["rapidez","Rapidez"],["kraljic","Segmentación"],["msgs","Plantillas"],["historial","Historial"],["proc","Cómo trabajar"],["ajustes","Ajustes"]];
 function pintarNav(){$("#nav").innerHTML=TABS.map(([k,t])=>`<button role="tab" type="button" aria-selected="${k===TAB}" data-tab="${k}">${t}</button>`).join("");}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-tab]");if(t){TAB=t.dataset.tab;pintar();window.scrollTo(0,0);}});
 
 function pintar(){pintarNav();
   $("#sub").textContent=`Corte: ${fecha(D.corte)} · ${D.proveedores.length} proveedores · ${D.pedidos.filter(p=>p.pendiente).length} pendientes${D.fuente?" · "+D.fuente:""}`;
-  ({asis:vAsistente,hoy:vHoy,listos:vListos,pedidos:vPedidos,tramites:vTramites,prov:vProv,aquien:vAquien,precios:vPrecios,rapidez:vRapidez,kraljic:vKraljic,msgs:vMsgs,proc:vProc,ajustes:vAjustes})[TAB]();}
+  ({asis:vAsistente,hoy:vHoy,listos:vListos,pedidos:vPedidos,tramites:vTramites,prov:vProv,aquien:vAquien,precios:vPrecios,rapidez:vRapidez,kraljic:vKraljic,msgs:vMsgs,historial:vHistorial,proc:vProc,ajustes:vAjustes})[TAB]();}
 
 /* --- Hoy --- */
 function tareas(){
@@ -512,16 +513,18 @@ const SIN_AGENTE=location.port!=="5517";
 const fAg=(u,o)=>SIN_AGENTE?Promise.reject(new Error("sin servicio")):fetch(u,o);
 const AGENTE=(window.AGENTE_COMPRAS_URL||(location.protocol.startsWith("http")?location.origin:"http://127.0.0.1:5517")+"/api/compras-agd");
 let AGENTE_OK=null, TEL={}, WA_LISTO=false, FL={tipo:"",finca:"",estado:"propuesto"};
+const hdrAgente=extra=>Object.assign({"X-Compras-Token":window.__COMPRAS_TOKEN__||""},extra||{});
+const getAgente=ruta=>fAg(AGENTE+ruta,{cache:"no-store",headers:hdrAgente()});
 const PUEDE_ENVIAR=()=>AGENTE_OK&&(WA_LISTO||TEL.conectado);
 function probarAgente(forzar){if(AGENTE_OK!==null&&!forzar)return;if(AGENTE_OK===null)AGENTE_OK=false;
-  fAg(AGENTE+"/estado",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{const antes=JSON.stringify([AGENTE_OK,TEL]);AGENTE_OK=!!(j&&j.ok);TEL=(j&&j.telefono)||{};
+  getAgente("/estado").then(r=>r.ok?r.json():null).then(j=>{const antes=JSON.stringify([AGENTE_OK,TEL]);AGENTE_OK=!!(j&&j.ok);TEL=(j&&j.telefono)||{};
     if(JSON.stringify([AGENTE_OK,TEL])!==antes&&TAB==="listos")pintar();}).catch(()=>{});
-  fAg(AGENTE+"/wa/estado",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{const antes=WA_LISTO;WA_LISTO=!!(j&&j.estado==="listo");
+  getAgente("/wa/estado").then(r=>r.ok?r.json():null).then(j=>{const antes=WA_LISTO;WA_LISTO=!!(j&&j.estado==="listo");
     if(antes!==WA_LISTO&&TAB==="listos")pintar();}).catch(()=>{});
-  fAg(AGENTE+"/envios",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{if(!j||!j.envios)return;let cambio=false;
+  getAgente("/envios").then(r=>r.ok?r.json():null).then(j=>{if(!j||!j.envios)return;let cambio=false;
     j.envios.forEach(e=>{if(e.resultado==="enviado"&&e.id&&(CAPA.bor[e.id]||{}).estado!=="enviado"){CAPA.bor[e.id]=Object.assign({},CAPA.bor[e.id]||{},{estado:"enviado",enviado_en:e.fecha});cambio=true;}});
     if(cambio){lsSet(LS,CAPA);fusion();pintar();}}).catch(()=>{});}
-function postAgente(ruta,cuerpo){return fAg(AGENTE+ruta,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(cuerpo)}).then(r=>r.json()).catch(()=>({ok:false,error:"Sin servicio de envío automático: se usa WhatsApp del teléfono."}));}
+function postAgente(ruta,cuerpo){return fAg(AGENTE+ruta,{method:"POST",headers:hdrAgente({"Content-Type":"application/json"}),body:JSON.stringify(cuerpo)}).then(r=>r.json()).catch(()=>({ok:false,error:"Sin servicio de envío automático: se usa WhatsApp del teléfono."}));}
 function panelTelefono(){
   if(!AGENTE_OK)return `<p class="small"><span class="chip c-ok">Envío desde el teléfono</span> «Revisar y enviar» abre WhatsApp con el mensaje listo; tú pulsas Enviar.</p>`;
   if(WA_LISTO)return `<p class="small"><span class="chip c-ok">Envío por WhatsApp Web listo</span> ${TEL.conectado?"· teléfono también conectado (respaldo)":""}</p>`;
@@ -537,7 +540,7 @@ function activarPanelTelefono(){
   const re=$("#telRe");if(re)re.onclick=()=>probarAgente(true);
   const c=$("#telCon");if(c)c.onclick=()=>{toast("Conectando…");postAgente("/conectar",{ip_puerto:$("#telIp").value.trim()}).then(j=>{toast(j.ok?"Teléfono conectado":(j.error||"No se pudo conectar"));probarAgente(true);});};
   const p=$("#telPar");if(p)p.onclick=()=>{toast("Emparejando…");postAgente("/emparejar",{ip_puerto:$("#parIp").value.trim(),codigo:$("#parCod").value.trim()}).then(j=>{toast(j.ok?"Emparejado. Ahora escribe la IP:puerto principal y pulsa Conectar.":(j.error||"No se pudo emparejar"));});};}
-const EST_BOR={propuesto:["Por revisar","c-al"],enviado:["Enviado","c-ok"],descartado:["Descartado","c-gr"],enviando:["Enviando…","c-az"],fallo_envio:["Falló el envío","c-cr"]};
+const EST_BOR={propuesto:["Por revisar","c-al"],enviado:["Enviado","c-ok"],descartado:["Descartado","c-gr"],enviando:["Enviando…","c-az"],por_verificar:["Por verificar","c-al"],declarado_movil:["Declarado móvil","c-az"],fallo_envio:["Falló el envío","c-cr"]};
 function vListos(){probarAgente();
   const L=D.borradores.filter(b=>(!FL.tipo||b.tipo===FL.tipo)&&(!FL.finca||b.finca===FL.finca||(b.fincas||[]).includes(FL.finca))&&(!FL.estado||b.estado===FL.estado));
   const fincas=[...new Set(D.borradores.flatMap(b=>b.fincas||[b.finca]).filter(Boolean))];
@@ -568,7 +571,7 @@ function vListos(){probarAgente();
   document.querySelectorAll("[data-benv]").forEach(b=>b.onclick=()=>revisarYEnviar(b.dataset.benv,txt(b.dataset.benv)));
 }
 function revisarYEnviar(id,texto){const bor=D.borradores.find(x=>x.id===id);if(bor)abrirEnvio(bor,texto,true);}
-/* Envío genérico: obj = {id, chat, proveedor_id, finca}. esBorrador=true actualiza el estado del borrador. */
+/* Envío genérico: obj = {id, chat, proveedor_id, finca, canal, asunto}. esBorrador=true actualiza el estado del borrador. */
 const LS_TEL="agd_tel_proveedores";
 function telProv(chat){ let n=""; try{ n=(JSON.parse(localStorage.getItem(LS_TEL)||"{}"))[chat]||""; }catch(e){} if(!n){ const p=(D.proveedores||[]).find(x=>x.chat===chat); n=(p&&p.telefono)||""; } return n; }
 function guardarTel(chat,num){ try{ const m=JSON.parse(localStorage.getItem(LS_TEL)||"{}"); if(num) m[chat]=num; else delete m[chat]; localStorage.setItem(LS_TEL,JSON.stringify(m)); }catch(e){} if(window.AgdNube) AgdNube.guardarTelefono(chat,num); }
@@ -583,79 +586,327 @@ async function enviarMovil(t,bor,id,esBorrador){
   marcar(); location.href="whatsapp://send?text="+encodeURIComponent(t);
 }
 function abrirEnvio(bor,texto,esBorrador){const p=D.byId[bor.proveedor_id]||{nombre:bor.nombre||bor.chat};const id=bor.id;
-  if(!bor.chat){toast("Este proveedor no tiene chat en el WhatsApp de compras.");return;}
+  if(!bor.chat){toast("Este proveedor no tiene chat ni correo registrado.");return;}
   probarAgente(true);
-  abrirDlg("Revisar y enviar",`<p><b>Para:</b> ${esc(p.nombre||"")} <span class="small muted">(chat «${esc(bor.chat||"—")}» en WhatsApp Business)</span></p>
+  const esCorreo = bor.canal === "correo";
+  abrirDlg("Revisar y enviar",`<p>${esCorreo?`<b>Para (correo):</b> ${esc(bor.chat||"")}`:`<b>Para:</b> ${esc(p.nombre||"")} <span class="small muted">(chat «${esc(bor.chat||"—")}» en WhatsApp Business)</span>`}</p>
+  ${bor.asunto?`<p class="small"><b>Asunto:</b> ${esc(bor.asunto)}</p>`:""}
   ${bor.finca?`<p class="small"><b>Finca:</b> ${esc(nomFinca(bor.finca))} · ${esc((D.finca[bor.finca]||{}).ubicacion||"")}</p>`:""}
-  <label for="revTxt" class="small muted">Mensaje (puedes corregirlo aquí)</label>
+  <label for="revTxt" class="small muted">${esCorreo?"Cuerpo del correo":"Mensaje (puedes corregirlo aquí)"}</label>
   <textarea id="revTxt" style="min-height:300px">${esc(texto)}</textarea>
-  <p class="small muted">Al pulsar «Enviar ahora» el teléfono abre WhatsApp Business, busca ese chat exacto, comprueba el destinatario y el texto, y envía. Si algo no coincide, no envía nada.</p>
+  <p class="small muted">${esCorreo?"Al pulsar «Enviar ahora» se enviará el correo con asunto y cuerpo por separado mediante compras@agrodavila.com.":"Al pulsar «Enviar ahora» el teléfono abre WhatsApp Business, busca ese chat exacto, comprueba el destinatario y el texto, y envía. Si algo no coincide, no envía nada."}</p>
   <div id="revAviso"></div>
   <div class="filtros"><button class="btn pri" type="button" id="revOk">Enviar ahora</button><button class="btn" type="button" id="revNo">Cancelar</button></div>`);
-  if(!PUEDE_ENVIAR()){ const tel=telProv(bor.chat);
+  if(!esCorreo && !PUEDE_ENVIAR()){ const tel=telProv(bor.chat);
     $("#revAviso").innerHTML=`<p class="small"><b>${tel?"Se abrirá WhatsApp en el chat del proveedor ("+esc(tel)+") con el mensaje listo; usted solo pulsa Enviar.":"Este proveedor aún no tiene número: escríbalo una vez y queda guardado."}</b></p>
     <label for="revTel" class="small muted">Número del proveedor (opcional, se guarda en este teléfono)</label>
     <input id="revTel" inputmode="tel" placeholder="Ej.: 0991234567" value="${esc(tel)}" style="width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;font:inherit">`;
     $("#revOk").textContent="Abrir en WhatsApp"; }
   $("#revNo").onclick=()=>$("#dlg").close();
   $("#revOk").onclick=()=>{const t=$("#revTxt").value.trim();if(!t){toast("El mensaje está vacío");return;}
-    if(!PUEDE_ENVIAR()){enviarMovil(t,bor,id,esBorrador);return;}
-    $("#revOk").disabled=true;$("#revOk").textContent="Enviando… (no toques el teléfono)";
+    if(!esCorreo && !PUEDE_ENVIAR()){enviarMovil(t,bor,id,esBorrador);return;}
+    $("#revOk").disabled=true;$("#revOk").textContent="Enviando…";
     if(esBorrador){CAPA.bor[id]=Object.assign({},CAPA.bor[id]||{},{texto:t,estado:"enviando"});lsSet(LS,CAPA);}
-    postAgente("/enviar",{id,chat:bor.chat,texto:t,original:bor.original||texto,tipo:bor.tipo||"",aprobado_por:"Wilson Pérez"}).then(j=>{$("#dlg").close();
-      if(j.ok){if(esBorrador)guardarBor(id,{texto:t,estado:"enviado",enviado_en:new Date().toISOString(),error:null});toast("Enviado ✔");}
-      else{if(esBorrador)guardarBor(id,{texto:t,estado:"fallo_envio",error:j.error||"No se pudo enviar"});toast("No se envió: "+(j.error||""));}
+    postAgente("/enviar",{id,chat:bor.chat,texto:t,original:bor.original||texto,tipo:bor.tipo||"",canal:bor.canal||"whatsapp",asunto:bor.asunto||"",aprobado_por:"Wilson Pérez"}).then(j=>{$("#dlg").close();
+      if(j.ok){if(esBorrador)guardarBor(id,{texto:t,estado:"enviado",enviado_en:new Date().toISOString(),error:null});toast(esCorreo?"Correo enviado ✔":"Enviado ✔");}
+      else{if(esBorrador)guardarBor(id,{texto:t,estado:j.estado||"fallo_envio",error:j.error||"No se pudo enviar"});toast("No se envió: "+(j.error||""));}
       probarAgente(true);if(TAB==="asis")cargarAsistente();});};}
 
-/* --- Asistente: lo que detecta el vigía en WhatsApp --- */
-let ASIS={tareas:[],wa:{},vig:{},cargado:false,qrT:null};
+/* --- Asistente: lo que detecta el vigía en WhatsApp y Requerimientos --- */
+let ASIS={tareas:[],requerimientos:[],conversaciones:[],wa:{},vig:{},correo:{},apr:{},cargado:false,qrT:null};
 function cargarAsistente(){Promise.all([
-  fAg(AGENTE+"/tareas",{cache:"no-store"}).then(r=>r.json()).catch(()=>({})),
-  fAg(AGENTE+"/wa/estado",{cache:"no-store"}).then(r=>r.json()).catch(()=>({estado:"sin_servicio"})),
-  fAg(AGENTE+"/asistente/estado",{cache:"no-store"}).then(r=>r.json()).catch(()=>({})),
-  fAg(AGENTE+"/correo/estado",{cache:"no-store"}).then(r=>r.json()).catch(()=>({})),
-  fAg(AGENTE+"/aprendizaje",{cache:"no-store"}).then(r=>r.json()).catch(()=>({}))]).then(([t,w,v,c,a])=>{
-    ASIS={...ASIS,tareas:(t&&t.tareas)||[],wa:w||{},vig:v||{},correo:c||{},apr:a||{},cargado:true};if(TAB==="asis")vAsistente();});}
+  getAgente("/tareas").then(r=>r.json()).catch(()=>({})),
+  getAgente("/requerimientos").then(r=>r.json()).catch(()=>({})),
+  getAgente("/conversaciones").then(r=>r.json()).catch(()=>({})),
+  getAgente("/wa/estado").then(r=>r.json()).catch(()=>({estado:"sin_servicio"})),
+  getAgente("/asistente/estado").then(r=>r.json()).catch(()=>({})),
+  getAgente("/correo/estado").then(r=>r.json()).catch(()=>({})),
+  getAgente("/aprendizaje").then(r=>r.json()).catch(()=>({}))]).then(([t,rq,cv,w,v,c,a])=>{
+    ASIS={...ASIS,tareas:(t&&t.tareas)||[],requerimientos:(rq&&rq.requerimientos)||[],conversaciones:(cv&&cv.conversaciones)||[],wa:w||{},vig:v||{},correo:c||{},apr:a||{},cargado:true};if(TAB==="asis")vAsistente();});}
 function panelAprendizaje(){const a=ASIS.apr||{};if(!a.ok)return "";
   return `<details class="card"><summary><b>Lo que he aprendido</b> <span class="small muted">· ${a.enviadas||0} mensajes enviados · ${a.respondidas||0} respuestas medidas · ${a.ediciones||0} correcciones tuyas · ${a.descartes||0} descartes</span></summary>
    <p class="small">Aprendo solo de lo que haces: tus <b>correcciones</b> antes de enviar (escribo como tú), lo que <b>descartas</b> (dejo de proponer cosas parecidas y, si descartas 2 veces un mismo chat, dejo de revisarlo), y <b>quién responde y en cuánto tiempo</b> (los proveedores rápidos suben en las sugerencias; si alguien no responde en un día hábil te preparo el recordatorio).</p>
    ${(a.rapidos||[]).length?`<p class="small"><b>Responden más rápido:</b> ${a.rapidos.map(r=>esc(r.chat)+" ("+dur(r.prom)+")").join(" · ")}</p>`:""}
    ${(a.ignorados||[]).length?`<p class="small"><b>Chats que ya no reviso:</b></p><ul class="small">${a.ignorados.map(i=>`<li>${esc(i.chat)} <span class="muted">(${esc(i.motivo)})</span> <button class="btn sm" type="button" data-trest="${esc(i.chat)}">Volver a revisar</button></li>`).join("")}</ul>`:""}</details>`;}
 const TIPO_T={cotizar:"Cotizar",comprar:"Comprar",mantenimiento:"Mantenimiento",pago:"Pago",factura:"Factura",entrega:"Entrega",logistica:"Logística",informacion:"Información",cotizacion_recibida:"Cotización recibida",otro:"Revisar"};
+
+function abrirComparativo(reqId){
+  abrirDlg("Cargando comparativo...", "<p class='muted'>Consultando cotizaciones recibidas...</p>");
+  getAgente(`/requerimientos/${reqId}/comparativo`).then(r=>r.json()).then(c=>{
+    if(!c.ok){$("#dlgB").innerHTML=`<p style="color:var(--cr)">${esc(c.error||"Error al cargar comparativo")}</p>`;return;}
+    $("#dlgT").textContent=`Comparativo · ${esc(c.requerimiento.numero)} (${esc(c.requerimiento.finca||"")})`;
+    const provs=c.proveedores||[];
+    if(!provs.length){
+      $("#dlgB").innerHTML=`<p class="muted">Aún no se han recibido respuestas de proveedores para este requerimiento.</p>`;
+      return;
+    }
+    let html=`<div style="overflow-x:auto"><table class="tabla" style="width:100%;font-size:13px;border-collapse:collapse">
+      <thead><tr>
+        <th style="text-align:left;padding:6px;border-bottom:2px solid var(--bd)">Ítem</th>
+        <th style="text-align:right;padding:6px;border-bottom:2px solid var(--bd)">Ref.</th>
+        ${provs.map(p=>`<th style="text-align:right;padding:6px;border-bottom:2px solid var(--bd)">${esc(p.chat)}${p.cobertura?`<div class="small muted" style="font-weight:normal">${esc(p.cobertura)}</div>`:""}</th>`).join("")}
+      </tr></thead><tbody>`;
+    for(const fila of (c.matriz||[])){
+      const refP = fila.precio_referencia&&fila.precio_referencia.precio!=null ? `$${fila.precio_referencia.precio}` : '—';
+      html += `<tr>
+        <td style="padding:6px;border-bottom:1px solid var(--bd)"><b>${esc(fila.descripcion)}</b> <span class="muted small">(${fila.cantidad!=null?fila.cantidad:"por confirmar"} ${esc(fila.unidad)})</span>${fila.sin_respuesta?` <span class="chip c-cr">Sin respuesta</span>`:''}</td>
+        <td style="text-align:right;padding:6px;border-bottom:1px solid var(--bd);color:var(--tx-sec)">${esc(refP)}</td>`;
+      for(const p of provs){
+        const cot = fila.cotizaciones[p.chat];
+        if(!cot){
+          html += `<td style="text-align:right;padding:6px;border-bottom:1px solid var(--bd);color:var(--tx-sec)">—</td>`;
+        } else {
+          const esMejor = fila.mejor_precio != null && cot.precio_unitario === fila.mejor_precio;
+          const varTxt = cot.alerta_variacion ? ` <span class="chip c-cr" title="Variación > 10%">${cot.variacion_ref_pct>0?'+':''}${cot.variacion_ref_pct}%</span>` : '';
+          html += `<td style="text-align:right;padding:6px;border-bottom:1px solid var(--bd)">
+            ${esMejor ? `<b>` : ``}$${cot.precio_unitario}${esMejor ? ` ★</b>` : ``}${varTxt}
+          </td>`;
+        }
+      }
+      html += `</tr>`;
+    }
+    html += `<tr style="font-weight:bold;background:var(--bg-card)">
+      <td style="padding:8px">TOTAL</td><td style="padding:8px"></td>`;
+    for(const p of provs){
+      const tot = (c.totales&&c.totales[p.chat]) || 0;
+      const esMejorTot = c.mejor_proveedor_global && c.mejor_proveedor_global === p.chat;
+      html += `<td style="text-align:right;padding:8px">${esMejorTot?'★ ':''}$${tot.toFixed(2)}</td>`;
+    }
+    html += `</tr></tbody></table></div>`;
+    if(!c.mejor_proveedor_global && provs.length > 1){
+      html += `<p class="small muted" style="margin-top:6px">Ningún proveedor cotizó todos los ítems con respuesta: se indica el mejor precio por cada ítem individual.</p>`;
+    }
+    html += `<div style="margin-top:14px"><p class="small"><b>Seleccionar proveedor ganador:</b></p><div class="filtros">`;
+    for(const p of provs){
+      html += `<button class="btn sm pri" type="button" data-ganador="${esc(p.chat)}" data-req="${reqId}">Elegir ${esc(p.chat)}</button>`;
+    }
+    html += `</div></div>`;
+    $("#dlgB").innerHTML = html;
+    document.querySelectorAll("[data-ganador]").forEach(btn=>{
+      btn.onclick=()=>{
+        btn.disabled = true;
+        postAgente(`/requerimientos/${btn.dataset.req}/comparativo/ganador`,{proveedor_chat:btn.dataset.ganador}).then(res=>{
+          if(res.ok){
+            toast(`Proveedor ganador registrado: ${btn.dataset.ganador}`);
+            $("#dlg").close();
+            cargarAsistente();
+          } else {
+            toast(res.error || "No se pudo registrar ganador");
+            btn.disabled = false;
+          }
+        });
+      };
+    });
+  }).catch(e=>{
+    $("#dlgB").innerHTML=`<p style="color:var(--cr)">Error: ${esc(e.message)}</p>`;
+  });
+}
+
 function vAsistente(){
   if(!ASIS.cargado){cargarAsistente();$("#main").innerHTML=`<div class="card"><p class="muted">Cargando el asistente…</p></div>`;return;}
   const w=ASIS.wa.estado;
   let panel="";
   if(w==="sin_servicio")panel=`<div class="card"><b>El vigía de WhatsApp corre en la PC de la casa (MAIA).</b> Desde el teléfono, usa «Hoy» y «Mensajes listos»: traen lo que el vigía preparó en el último paquete de datos.</div>`;
   else if(w==="sin_vincular"){panel=`<div class="card" style="border-color:var(--al)"><h2>Vincula WhatsApp Business (una sola vez)</h2>
-    <p class="small">En el teléfono de compras: <b>WhatsApp Business → ⋮ → Dispositivos vinculados → Vincular un dispositivo</b> y escanea este código. Se renueva solo.</p>
-    <img alt="Código QR de WhatsApp Web" src="${AGENTE}/wa/qr.png?t=${Date.now()}" style="width:264px;height:264px;image-rendering:pixelated;background:#fff;border-radius:8px;padding:8px"></div>`;
+    <p class="small">En el teléfono de compras: <b>Escanee con el WhatsApp Business de compras → Dispositivos vinculados</b> y escanee este código. Se renueva solo.</p>
+    <img id="waQrImg" alt="Código QR de WhatsApp Web" style="width:264px;height:264px;image-rendering:pixelated;background:#fff;border-radius:8px;padding:8px"></div>`;
+    getAgente("/wa/qr.png?t="+Date.now()).then(r=>r.ok?r.blob():null).then(b=>{const im=$("#waQrImg");if(im&&b){if(im.dataset.url)URL.revokeObjectURL(im.dataset.url);const u=URL.createObjectURL(b);im.dataset.url=u;im.src=u;}}).catch(()=>{});
     clearTimeout(ASIS.qrT);ASIS.qrT=setTimeout(()=>{if(TAB==="asis")cargarAsistente();},15000);}
   else if(w==="listo")panel=`<p class="small"><span class="chip c-ok">WhatsApp Web vinculado</span> Revisa tus chats cada ${ASIS.vig.intervalo_min||10} min (L-S 7:00-19:00)${ASIS.vig.ultimo_ciclo?" · última revisión "+esc(new Date(ASIS.vig.ultimo_ciclo).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})):""}${ASIS.vig.error?` · <span style="color:var(--cr)">${esc(ASIS.vig.error)}</span>`:""}
     <button class="btn sm" type="button" id="asRev">Revisar ahora</button></p>`;
   else panel=`<p class="small"><span class="chip c-md">WhatsApp Web: ${esc(w||"cargando")}</span> ${esc(ASIS.wa.error||"")} <button class="btn sm" type="button" id="asRe">Actualizar</button></p>`;
-  const T=ASIS.tareas.slice().sort((a,b)=>({alta:0,media:1,baja:2}[a.urgencia]??1)-({alta:0,media:1,baja:2}[b.urgencia]??1)||b.id-a.id);
+  const CONVS=(ASIS.conversaciones||[]).slice().sort((a,b)=>({alta:0,media:1,baja:2}[a.urgencia]??1)-({alta:0,media:1,baja:2}[b.urgencia]??1)||(b.espera_horas||0)-(a.espera_horas||0));
+  const convsHtml = CONVS.length ? `
+    <div class="card">
+      <div class="filtros" style="justify-content:space-between;margin:0 0 10px">
+        <div><h3 style="margin:0">💬 Conversaciones (${CONVS.length})</h3>
+        <p class="small muted" style="margin:2px 0 0">Mensajes entrantes que requieren respuesta. Prioridad por urgencia y tiempo de espera.</p></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tabla" style="width:100%;font-size:13px;border-collapse:collapse">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:6px;border-bottom:2px solid var(--bd)">Proveedor / Persona</th>
+              <th style="text-align:left;padding:6px;border-bottom:2px solid var(--bd)">Último mensaje</th>
+              <th style="text-align:center;padding:6px;border-bottom:2px solid var(--bd)">Espera</th>
+              <th style="text-align:center;padding:6px;border-bottom:2px solid var(--bd)">Tipo</th>
+              <th style="text-align:center;padding:6px;border-bottom:2px solid var(--bd)">Finca</th>
+              <th style="text-align:left;padding:6px;border-bottom:2px solid var(--bd);min-width:260px">Respuesta sugerida</th>
+              <th style="text-align:right;padding:6px;border-bottom:2px solid var(--bd);min-width:160px">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${CONVS.map(c=>`
+              <tr style="border-bottom:1px solid var(--bd);vertical-align:top">
+                <td style="padding:8px 6px">
+                  <b>${esc(c.persona||c.chat)}</b>
+                  <div class="small muted">chat «${esc(c.chat)}»</div>
+                </td>
+                <td style="padding:8px 6px;max-width:240px">
+                  <div class="small" style="max-height:80px;overflow-y:auto;white-space:pre-wrap">«${esc(c.ultimo_mensaje)}»</div>
+                  <div class="small muted">${c.momento?esc(new Date(c.momento).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"}))+" · "+esc(new Date(c.momento).toLocaleDateString("es-EC")):""}</div>
+                </td>
+                <td style="padding:8px 6px;text-align:center;white-space:nowrap">
+                  ${c.mas_de_un_dia_habil?`<span class="chip" style="background:#b23b23;color:#fff" title="Más de 1 día hábil sin respuesta">⚠️ ${esc(c.espera)}</span>`:`<span class="chip c-gr">${esc(c.espera)}</span>`}
+                </td>
+                <td style="padding:8px 6px;text-align:center;white-space:nowrap">
+                  <span class="chip c-az">${esc(TIPO_T[c.tipo]||c.tipo)}</span>
+                </td>
+                <td style="padding:8px 6px;text-align:center;white-space:nowrap">
+                  ${c.finca?`<span class="chip c-gr">${esc(c.finca)}</span>`:"—"}
+                </td>
+                <td style="padding:8px 6px">
+                  ${c.borrador?`
+                    <textarea data-cvtxt="${esc(c.borrador.id)}" style="width:100%;min-height:90px;font-size:12px;padding:6px;box-sizing:border-box">${esc(c.borrador.texto)}</textarea>
+                  `:`<span class="muted small">Sin borrador generado</span>`}
+                </td>
+                <td style="padding:8px 6px;text-align:right;white-space:nowrap">
+                  ${c.borrador?`
+                    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+                      <button class="btn sm pri" type="button" data-cvenv="${esc(c.borrador.id)}" data-chat="${esc(c.chat)}" data-pers="${esc(c.persona)}" data-tipo="${esc(c.tipo)}" data-canal="${esc(c.borrador.canal||'whatsapp')}">Revisar y enviar</button>
+                      <button class="btn sm" type="button" data-cvedit="${esc(c.borrador.id)}">Editar</button>
+                      <button class="btn sm" type="button" data-cvok="${esc(c.borrador.id)}" data-chat="${esc(c.chat)}" title="Marcar como atendido sin enviar mensaje">Ya respondí</button>
+                    </div>
+                  `:""}
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  ` : "";
+  const REQS=(ASIS.requerimientos||[]).slice().sort((a,b)=>({alta:0,media:1,baja:2}[a.urgencia]??1)-({alta:0,media:1,baja:2}[b.urgencia]??1)||b.id-a.id);
+  const T=ASIS.tareas.slice().filter(t=>!REQS.some(r=>r.tarea_id===t.id)).sort((a,b)=>({alta:0,media:1,baja:2}[a.urgencia]??1)-({alta:0,media:1,baja:2}[b.urgencia]??1)||b.id-a.id);
+
+  const reqHtml = REQS.map(rq=>`
+    <div class="card">
+      <div class="filtros" style="justify-content:space-between;margin:0 0 6px">
+        <div>
+          <span class="chip ${rq.urgencia==="alta"?"c-cr":rq.urgencia==="baja"?"c-gr":"c-al"}">${esc(rq.urgencia||"media")}</span>
+          <span class="chip c-az">${esc(rq.numero)}</span>
+          ${rq.finca?`<span class="chip c-az">${esc(rq.finca)}</span>`:""}
+          <span class="chip c-gr">${esc(rq.origen||"whatsapp")}</span>
+          <span class="chip ${rq.estado==="cotizado"?"c-ok":rq.estado==="enviado"?"c-az":"c-al"}">${esc(rq.estado)}</span>
+          <b style="margin-left:4px">${esc(rq.solicitante||rq.chat||"Pedido")}</b>
+          <div class="small muted">${rq.plazo?"Para: "+esc(rq.plazo)+" · ":""}Creado: ${esc(new Date(rq.creado).toLocaleString("es-EC"))}</div>
+        </div>
+        <div>
+          ${rq.cotizaciones_count>0?`<button class="btn sm pri" type="button" data-vcomp="${esc(rq.id)}">Ver comparativo (${rq.cotizaciones_count})</button>`:""}
+          <button class="btn sm" type="button" data-rqdes="${esc(rq.id)}">Descartar</button>
+        </div>
+      </div>
+      ${rq.evidencia?`<p class="ev">«${esc(rq.evidencia)}»</p>`:""}
+      ${(rq.items||[]).length?`
+        <div class="small" style="margin:8px 0;background:var(--bg-card);padding:6px 10px;border-radius:6px">
+          <b>Ítems solicitados (con precio histórico de referencia):</b>
+          <ul style="margin:4px 0 0 16px;padding:0">
+            ${rq.items.map(i=>`
+              <li style="margin-bottom:2px">
+                <b>${esc([(i.cantidad!=null?i.cantidad:"cantidad por confirmar"),i.unidad,i.descripcion].filter(Boolean).join(" "))}</b>
+                <span class="muted">(${esc(i.categoria||"")})</span>
+                ${i.precio_ref?` · <span style="color:var(--tx-sec)">Ref: $${esc(i.precio_ref.precio)}/${esc(i.precio_ref.unidad||"")} (${esc(i.precio_ref.proveedor||"historial")})</span>`:""}
+                ${i.sin_proveedor?` <span class="chip c-cr">${esc(i.sugerencia||"sin proveedor conocido - clasificar o buscar proveedor")}</span>`:""}
+                ${i.pocos_proveedores?` <span class="chip c-al">Solo 1 proveedor conocido: conviene buscar otro</span>`:""}
+              </li>`).join("")}
+          </ul>
+        </div>`:""}
+      <div style="margin-top:10px">
+        <b>Borradores listos por proveedor:</b>
+        ${(rq.borradores||[]).length?(rq.borradores||[]).map(b=>`
+          <div style="border-top:1px solid var(--bd);padding-top:8px;margin-top:8px">
+            <div class="small">
+              <b>${b.tipo==="acuse"?"Respuesta a "+esc(b.proveedor):"Cotización a "+esc(b.proveedor)}</b>
+              · chat «${esc(b.chat)}»
+              <span class="chip ${b.estado==="enviado"?"c-ok":b.estado==="descartado"?"c-gr":b.estado==="fallo_envio"?"c-cr":"c-al"}">${esc(b.estado)}</span>
+              ${b.confianza?`<span class="chip ${b.confianza==='alta'?'c-ok':b.confianza==='media'?'c-az':'c-gr'}">Confianza ${esc(b.confianza)}</span>`:""}
+              ${b.canal==="correo"?`<span class="chip c-az">Correo</span>`:""}
+              ${b.error?` <span style="color:var(--cr)">${esc(b.error)}</span>`:""}
+            </div>
+            ${(b.razones||[]).length?`<div class="small muted" style="margin:2px 0 4px">💡 ${esc(b.razones.join(" · "))}</div>`:""}
+            <textarea data-abtxt="${esc(b.id)}" style="min-height:${b.tipo==="acuse"?80:200}px" ${b.estado==="enviado"?"readonly":""}>${esc(b.texto)}</textarea>
+            ${b.estado==="propuesto"||b.estado==="fallo_envio"?`<div class="filtros" style="margin:6px 0 0"><button class="btn sm pri" type="button" data-aenv="${esc(b.id)}">${b.canal==="correo"?"Revisar y enviar por correo":"Revisar y enviar"}</button>${b.correo_alterno?`<button class="btn sm" type="button" data-aenv-correo="${esc(b.id)}" title="Enviar por correo electrónico">Enviar por correo</button>`:""}<button class="btn sm" type="button" data-ades="${esc(b.id)}">Descartar</button></div>`:""}
+          </div>`).join(""):`<p class="small muted">Sin borradores propuestos.</p>`}
+      </div>
+    </div>`).join("");
+
+  const tareasHtml = T.length?T.map(t=>`
+    <div class="card"><div class="filtros" style="justify-content:space-between;margin:0">
+      <div><span class="chip ${t.urgencia==="alta"?"c-cr":t.urgencia==="baja"?"c-gr":"c-al"}">${esc(t.urgencia||"media")}</span> <span class="chip c-az">${esc(TIPO_T[t.tipo]||t.tipo)}</span> <b>${esc(t.resumen)}</b>
+      <div class="small muted">${esc(t.solicitante||"")} · chat «${esc(t.chat||"")}»${t.finca?" · "+esc(t.finca):""}${t.plazo?" · para "+esc(t.plazo):""} · ${esc(new Date(t.creada).toLocaleString("es-EC"))}</div></div>
+      <div><button class="btn sm" type="button" data-tok="${esc(t.id)}">Hecha</button> <button class="btn sm" type="button" data-tdes="${esc(t.id)}">Descartar</button> <button class="btn sm" type="button" data-tign="${esc(t.chat||"")}" title="Dejar de revisar este chat">No revisar este chat</button></div></div>
+      ${t.accion?`<p class="small"><b>Qué hacer:</b> ${esc(t.accion)}</p>`:""}
+      ${t.evidencia?`<p class="ev">«${esc(t.evidencia)}»</p>`:""}
+      ${(t.items||[]).length?`<p class="small">${t.items.map(i=>esc([i.cantidad,i.unidad,i.descripcion].filter(Boolean).join(" "))).join(" · ")}</p>`:""}
+      ${(t.borradores||[]).map(b=>`<div style="border-top:1px solid var(--bd);padding-top:8px;margin-top:8px"><div class="small"><b>${b.tipo==="acuse"?"Respuesta a "+esc(b.proveedor):"Cotización a "+esc(b.proveedor)}</b> · chat «${esc(b.chat)}» <span class="chip ${b.estado==="enviado"?"c-ok":b.estado==="descartado"?"c-gr":b.estado==="fallo_envio"?"c-cr":"c-al"}">${esc(b.estado)}</span>${b.confianza?`<span class="chip ${b.confianza==='alta'?'c-ok':b.confianza==='media'?'c-az':'c-gr'}">Confianza ${esc(b.confianza)}</span>`:""}${b.error?` <span style="color:var(--cr)">${esc(b.error)}</span>`:""}</div>
+        <textarea data-abtxt="${esc(b.id)}" style="min-height:${b.tipo==="acuse"?80:200}px" ${b.estado==="enviado"?"readonly":""}>${esc(b.texto)}</textarea>
+        ${b.estado==="propuesto"||b.estado==="fallo_envio"?`<div class="filtros" style="margin:6px 0 0"><button class="btn sm pri" type="button" data-aenv="${esc(b.id)}">Revisar y enviar</button><button class="btn sm" type="button" data-ades="${esc(b.id)}">Descartar</button></div>`:""}</div>`).join("")}
+    </div>`).join(""):``;
+
   $("#main").innerHTML=`<div class="card"><h2>Asistente de compras</h2>
-   <p class="small">${ASIS.correo&&ASIS.correo.configurado?`<span class="chip c-ok">Correo ${esc(ASIS.correo.cuenta||"")} conectado</span>`:`<span class="chip c-md">Correo sin configurar</span> <span class="muted">Ejecuta <code>scripts\\correo_compras_configurar.py</code> y escribe ahí la clave de compras@agrodavila.com.</span>`}</p>
-   <p class="small">Lee tus chats de WhatsApp Business y el correo de compras, detecta lo que te piden (compras, cotizaciones, mantenimiento, pagos, facturas), prepara las cotizaciones a 3 proveedores de la zona y una respuesta al que pidió, y te avisa por Telegram y WhatsApp con la voz de Maya. <b>Nada se envía sin tu «Revisar y enviar».</b></p>${panel}</div>${panelAprendizaje()}
-   ${T.length?T.map(t=>`<div class="card"><div class="filtros" style="justify-content:space-between;margin:0">
-     <div><span class="chip ${t.urgencia==="alta"?"c-cr":t.urgencia==="baja"?"c-gr":"c-al"}">${esc(t.urgencia||"media")}</span> <span class="chip c-az">${esc(TIPO_T[t.tipo]||t.tipo)}</span> <b>${esc(t.resumen)}</b>
-     <div class="small muted">${esc(t.solicitante||"")} · chat «${esc(t.chat||"")}»${t.finca?" · "+esc(t.finca):""}${t.plazo?" · para "+esc(t.plazo):""} · ${esc(new Date(t.creada).toLocaleString("es-EC"))}</div></div>
-     <div><button class="btn sm" type="button" data-tok="${t.id}">Hecha</button> <button class="btn sm" type="button" data-tdes="${t.id}">Descartar</button> <button class="btn sm" type="button" data-tign="${esc(t.chat||"")}" title="Dejar de revisar este chat">No revisar este chat</button></div></div>
-     ${t.accion?`<p class="small"><b>Qué hacer:</b> ${esc(t.accion)}</p>`:""}
-     ${t.evidencia?`<p class="ev">«${esc(t.evidencia)}»</p>`:""}
-     ${(t.items||[]).length?`<p class="small">${t.items.map(i=>esc([i.cantidad,i.unidad,i.descripcion].filter(Boolean).join(" "))).join(" · ")}</p>`:""}
-     ${(t.borradores||[]).map(b=>`<div style="border-top:1px solid var(--bd);padding-top:8px;margin-top:8px"><div class="small"><b>${b.tipo==="acuse"?"Respuesta a "+esc(b.proveedor):"Cotización a "+esc(b.proveedor)}</b> · chat «${esc(b.chat)}» <span class="chip ${b.estado==="enviado"?"c-ok":b.estado==="descartado"?"c-gr":b.estado==="fallo_envio"?"c-cr":"c-al"}">${esc(b.estado)}</span>${b.error?` <span style="color:var(--cr)">${esc(b.error)}</span>`:""}</div>
-       <textarea data-abtxt="${b.id}" style="min-height:${b.tipo==="acuse"?80:200}px" ${b.estado==="enviado"?"readonly":""}>${esc(b.texto)}</textarea>
-       ${b.estado==="propuesto"||b.estado==="fallo_envio"?`<div class="filtros" style="margin:6px 0 0"><button class="btn sm pri" type="button" data-aenv="${b.id}">Revisar y enviar</button><button class="btn sm" type="button" data-ades="${b.id}">Descartar</button></div>`:""}</div>`).join("")}
-   </div>`).join(""):`<div class="card"><p class="muted">${w==="listo"?"Sin pedidos nuevos por ahora. Te aviso apenas llegue uno.":"Cuando WhatsApp Web esté vinculado, aquí aparecerá lo que te pidan."}</p></div>`}`;
+    <p class="small">${ASIS.correo&&ASIS.correo.configurado?`<span class="chip c-ok">Correo ${esc(ASIS.correo.cuenta||"")} conectado</span>`:`<span class="chip c-md">Correo sin configurar</span> <span class="muted">Ejecuta <code>scripts\\correo_compras_configurar.py</code> y escribe ahí la clave de compras@agrodavila.com.</span>`}</p>
+    <p class="small">Lee tus chats de WhatsApp Business y el correo de compras, detecta lo que te piden (compras, cotizaciones, mantenimiento, pagos, facturas), prepara las cotizaciones a proveedores de la zona y una respuesta al que pidió, y te avisa por Telegram y WhatsApp con la voz de Maya. <b>Nada se envía sin tu «Revisar y enviar».</b></p>${panel}</div>${panelAprendizaje()}
+    ${convsHtml}
+    ${reqHtml || tareasHtml || `<div class="card"><p class="muted">${w==="listo"?"Sin pedidos nuevos por ahora. Te aviso apenas llegue uno.":"Cuando WhatsApp Web esté vinculado, aquí aparecerá lo que te pidan."}</p></div>`}`;
+
   const rev=$("#asRev");if(rev)rev.onclick=()=>{rev.disabled=true;rev.textContent="Revisando…";postAgente("/asistente/revisar",{}).then(j=>{toast(j.ok?`Listo: ${j.nuevas||0} pedido(s) nuevo(s)`:(j.error||"No se pudo revisar"));cargarAsistente();});};
   const re=$("#asRe");if(re)re.onclick=cargarAsistente;
+  document.querySelectorAll("[data-cvenv]").forEach(b=>b.onclick=()=>{
+    const bid=+b.dataset.cvenv;
+    const chat=b.dataset.chat;
+    const pers=b.dataset.pers;
+    const tipo=b.dataset.tipo;
+    const canal=b.dataset.canal||"whatsapp";
+    const txtEl=document.querySelector(`[data-cvtxt="${CSS.escape(String(bid))}"]`);
+    const txt=txtEl?txtEl.value.trim():"";
+    abrirEnvio({id:"b"+bid,chat:chat,nombre:pers,finca:null,tipo:tipo,original:txt,canal:canal},txt,false);
+  });
+  document.querySelectorAll("[data-cvedit]").forEach(b=>b.onclick=()=>{
+    const bid=b.dataset.cvedit;
+    const txtEl=document.querySelector(`[data-cvtxt="${CSS.escape(String(bid))}"]`);
+    if(txtEl){txtEl.focus();toast("Puedes editar el texto directamente en el cuadro");}
+  });
+  document.querySelectorAll("[data-cvok]").forEach(b=>b.onclick=()=>{
+    const bid=+b.dataset.cvok;
+    const chat=b.dataset.chat;
+    postAgente("/conversaciones/atender",{chat,borrador_id:bid}).then(j=>{
+      if(j.ok){toast("Conversación marcada como atendida");cargarAsistente();}
+      else toast("Error: "+(j.error||"no se pudo marcar"));
+    });
+  });
   document.querySelectorAll("[data-tok]").forEach(b=>b.onclick=()=>postAgente(`/tareas/${b.dataset.tok}/estado`,{estado:"hecha"}).then(cargarAsistente));
   document.querySelectorAll("[data-tdes]").forEach(b=>b.onclick=()=>postAgente(`/tareas/${b.dataset.tdes}/estado`,{estado:"descartada"}).then(cargarAsistente));
+  document.querySelectorAll("[data-rqdes]").forEach(b=>b.onclick=()=>postAgente(`/requerimientos/${b.dataset.rqdes}/estado`,{estado:"descartado"}).then(cargarAsistente));
+  document.querySelectorAll("[data-vcomp]").forEach(b=>b.onclick=()=>abrirComparativo(+b.dataset.vcomp));
   document.querySelectorAll("[data-ades]").forEach(b=>b.onclick=()=>postAgente("/borradores/descartar",{id:+b.dataset.ades}).then(cargarAsistente));
-  document.querySelectorAll("[data-aenv]").forEach(b=>b.onclick=()=>{const bid=+b.dataset.aenv;const t=ASIS.tareas.find(x=>x.borradores.some(y=>y.id===bid));const bo=t.borradores.find(y=>y.id===bid);
-    const txt=document.querySelector(`[data-abtxt="${bid}"]`).value;abrirEnvio({id:"b"+bid,chat:bo.chat,nombre:bo.proveedor,finca:null,tipo:bo.tipo,original:bo.texto},txt,false);});
+  document.querySelectorAll("[data-aenv]").forEach(b=>b.onclick=()=>{
+    const bid=+b.dataset.aenv;
+    let bo = null;
+    for(const rq of (ASIS.requerimientos||[])){
+      bo = (rq.borradores||[]).find(y=>y.id===bid);
+      if(bo) break;
+    }
+    if(!bo){
+      for(const t of (ASIS.tareas||[])){
+        bo = (t.borradores||[]).find(y=>y.id===bid);
+        if(bo) break;
+      }
+    }
+    if(!bo) return;
+    const txt=document.querySelector(`[data-abtxt="${CSS.escape(String(bid))}"]`).value;
+    abrirEnvio({id:"b"+bid,chat:bo.chat,nombre:bo.proveedor,finca:null,tipo:bo.tipo,original:bo.texto,canal:bo.canal||"whatsapp",asunto:bo.asunto||""},txt,false);
+  });
+  document.querySelectorAll("[data-aenv-correo]").forEach(b=>b.onclick=()=>{
+    const bid=+b.dataset.aenvCorreo;
+    let bo = null;
+    for(const rq of (ASIS.requerimientos||[])){
+      bo = (rq.borradores||[]).find(y=>y.id===bid);
+      if(bo) break;
+    }
+    if(!bo || !bo.correo_alterno) return;
+    const alt = bo.correo_alterno;
+    abrirEnvio({id:"b"+bid,chat:alt.destinatario||bo.chat,nombre:bo.proveedor,finca:null,tipo:"cotizacion",original:alt.cuerpo,canal:"correo",asunto:alt.asunto},alt.cuerpo,false);
+  });
   document.querySelectorAll("[data-tign]").forEach(b=>b.onclick=()=>{if(!confirm(`¿Dejar de revisar el chat «${b.dataset.tign}»? Puedes restaurarlo luego.`))return;postAgente("/aprendizaje/ignorar",{chat:b.dataset.tign}).then(()=>{toast("Aprendido: ese chat ya no se revisa");cargarAsistente();});});
   document.querySelectorAll("[data-trest]").forEach(b=>b.onclick=()=>postAgente("/aprendizaje/restaurar",{chat:b.dataset.trest}).then(()=>{toast("Chat restaurado");cargarAsistente();}));
 }
@@ -709,6 +960,76 @@ function vProc(){
    <li>11:00 y 15:00 · Registra en AgroControl las cotizaciones que llegaron; las que faltan, recuérdalas.</li>
    <li>16:00 · Pide autorizaciones a Contabilidad y Gerencia en un solo mensaje con el resumen.</li>
    <li>Viernes · «Facturas y pagos»: cierra facturas y reclamos de la semana con la contadora.</li></ol></div>`;
+}
+
+/* --- Historial de envíos --- */
+let FHIST = { prov: "", desde: "", hasta: "" };
+let HIST_ITEMS = [];
+let HIST_CARGADO = false;
+
+function vHistorial(){
+  const cargarHist = ()=>{
+    let ruta = "/historial?";
+    const params = [];
+    if(FHIST.prov) params.push("proveedor="+encodeURIComponent(FHIST.prov));
+    if(FHIST.desde) params.push("desde="+encodeURIComponent(FHIST.desde));
+    if(FHIST.hasta) params.push("hasta="+encodeURIComponent(FHIST.hasta));
+    ruta += params.join("&");
+    getAgente(ruta).then(r=>r.json()).then(j=>{
+      HIST_ITEMS = (j && j.historial) || [];
+      HIST_CARGADO = true;
+      if(TAB==="historial") vHistorial();
+    }).catch(()=>{
+      HIST_ITEMS = [];
+      HIST_CARGADO = true;
+      if(TAB==="historial") vHistorial();
+    });
+  };
+
+  if(!HIST_CARGADO){
+    cargarHist();
+    $("#main").innerHTML=`<div class="card"><h2>Historial de envíos</h2><p class="muted">Cargando envíos registrados...</p></div>`;
+    return;
+  }
+
+  const cols = [
+    {t:"Fecha",v:h=>h.fecha,h:h=>fecha(h.fecha)+" "+(h.fecha?new Date(h.fecha).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"}):"")},
+    {t:"Destinatario / Chat",v:h=>h.chat,h:h=>`<b>${esc(h.chat)}</b>`},
+    {t:"Tipo",v:h=>h.tipo,h:h=>`<span class="chip c-az">${esc(TIPO_T[h.tipo]||h.tipo||"mensaje")}</span>`},
+    {t:"Mensaje enviado",v:h=>h.texto,h:h=>`<div class="small" style="max-height:100px;overflow-y:auto;white-space:pre-wrap">«${esc(h.texto)}»</div>`},
+    {t:"Aprobado por",v:h=>h.aprobado_por,h:h=>esc(h.aprobado_por||"Wilson Pérez")},
+    {t:"Respuesta",v:h=>h.minutos_respuesta,h:h=>h.respondida_en?`<span class="chip c-ok" title="Respondido en ${dur(h.minutos_respuesta)}">✔ ${dur(h.minutos_respuesta)}</span>`:`<span class="muted small">—</span>`}
+  ];
+
+  $("#main").innerHTML = `<div class="card">
+    <h2>Historial de envíos aprobados</h2>
+    <p class="small muted">Registro de cada mensaje o cotización enviado con la fecha exacta, el texto final y quién lo aprobó.</p>
+    <div class="filtros" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+      <div class="campo" style="margin:0"><label for="hfProv">Proveedor / Chat</label><input id="hfProv" value="${esc(FHIST.prov)}" placeholder="Buscar proveedor o número..."></div>
+      <div class="campo" style="margin:0"><label for="hfDesde">Desde</label><input id="hfDesde" type="date" value="${esc(FHIST.desde)}"></div>
+      <div class="campo" style="margin:0"><label for="hfHasta">Hasta</label><input id="hfHasta" type="date" value="${esc(FHIST.hasta)}"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn pri sm" type="button" id="hfFiltrar">Filtrar</button></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn sm" type="button" id="hfLimpiar">Limpiar</button></div>
+    </div>
+  </div>
+  <div class="card">
+    ${tabla("tHist", cols, HIST_ITEMS)}
+  </div>`;
+
+  const btnF = $("#hfFiltrar");
+  if(btnF) btnF.onclick = ()=>{
+    FHIST.prov = $("#hfProv").value.trim();
+    FHIST.desde = $("#hfDesde").value;
+    FHIST.hasta = $("#hfHasta").value;
+    HIST_CARGADO = false;
+    vHistorial();
+  };
+  const btnL = $("#hfLimpiar");
+  if(btnL) btnL.onclick = ()=>{
+    FHIST = { prov: "", desde: "", hasta: "" };
+    HIST_CARGADO = false;
+    vHistorial();
+  };
 }
 
 /* --- Ajustes --- */

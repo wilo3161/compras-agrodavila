@@ -3,17 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#23262B">
 <title>Gerencia · Compras AgroDávila</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="iconos/icono-192.png">
-<link rel="apple-touch-icon" href="iconos/icono-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script>
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="marco.css">
 <style>
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;background:var(--bg);color:var(--tx);font-family:var(--letra);font-size:15px;line-height:1.5}
@@ -33,12 +25,14 @@ main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
 .filtro-grp label{font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.03em}
 .filtro-grp select,.filtro-grp input{width:100%;padding:8px 10px}
 
-/* Tarjetas KPI */
-.grid-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
-.kpi-card{background:var(--card);border:1px solid var(--bd);border-top:4px solid var(--pri);border-radius:16px;padding:14px 16px;box-shadow:var(--sombra);display:flex;flex-direction:column;gap:4px}
+/* Tarjetas KPI (6 tarjetas aprobadas con semántica de color) */
+.grid-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.grid-ctrl{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.kpi-card{background:var(--card);border:1px solid var(--bd);border-top:4px solid #8A8F98;border-radius:16px;padding:14px 16px;box-shadow:var(--sombra);display:flex;flex-direction:column;gap:4px}
 .kpi-card.ac-grafito{border-top-color:#23262B}
-.kpi-card.ac-maiz{border-top-color:var(--maiz)}
-.kpi-card.ac-ladrillo{border-top-color:var(--tierra)}
+.kpi-card.ac-azul{border-top-color:#2E5E8E}
+.kpi-card.ac-maiz{border-top-color:#C7901A}
+.kpi-card.ac-ladrillo{border-top-color:#B5452F}
 .kpi-card.ac-gris{border-top-color:#8A8F98}
 .kpi-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--t2)}
 .kpi-val{font-family:var(--titulo);font-size:clamp(20px,2.4vw,26px);font-weight:700;color:var(--tx);font-variant-numeric:tabular-nums}
@@ -85,6 +79,7 @@ main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
 
 @media (max-width:980px){
   .grid-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid-ctrl{grid-template-columns:repeat(2,minmax(0,1fr))}
   .grid-charts{grid-template-columns:1fr}
   .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -113,7 +108,7 @@ main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
 
   <div id="bannerError" class="aviso-box error hide" role="alert"></div>
   <div id="bannerCargando" class="aviso-box" role="status">
-    <span data-i="refrescar"></span> Cargando datos en vivo de AgroControl y Firestore…
+    <span data-i="refrescar"></span> Cargando datos en vivo de AgroControl y la nube…
   </div>
 
   <!-- FILTROS -->
@@ -135,16 +130,14 @@ main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
     </div>
   </section>
 
-  <!-- KPI CARDS -->
+  <!-- 6 TARJETAS KPI APROBADAS -->
   <section id="kpisGerencia" class="grid-kpis" aria-label="Indicadores clave">
-    <div class="kpi-card"><span class="kpi-lbl">Gasto semana</span><span class="kpi-val" id="kSem">$0</span><span class="kpi-sub" id="kSemSub">—</span></div>
-    <div class="kpi-card ac-grafito"><span class="kpi-lbl">Gasto mes</span><span class="kpi-val" id="kMes">$0</span><span class="kpi-sub" id="kMesSub">—</span></div>
-    <div class="kpi-card"><span class="kpi-lbl">% Recibido en finca</span><span class="kpi-val" id="kRec">0%</span><span class="kpi-sub" id="kRecSub">Sobre ordenado + recibido</span></div>
-    <div class="kpi-card ac-maiz"><span class="kpi-lbl">OC abiertas</span><span class="kpi-val" id="kOc">0</span><span class="kpi-sub">Órdenes activas</span></div>
-    <div class="kpi-card ac-ladrillo"><span class="kpi-lbl">Pagos vencidos</span><span class="kpi-val" id="kVen">0</span><span class="kpi-sub" id="kVenSub">$0.00</span></div>
-    <div class="kpi-card ac-maiz"><span class="kpi-lbl">Mant. prog. / atrasados</span><span class="kpi-val" id="kMnt">0</span><span class="kpi-sub" id="kMntSub">Atraso prom: 0 d</span></div>
-    <div class="kpi-card ac-grafito"><span class="kpi-lbl">Km recorridos (filt.)</span><span class="kpi-val" id="kKm">0 km</span><span class="kpi-sub" id="kKmSub">Viajes registrados</span></div>
-    <div class="kpi-card ac-gris"><span class="kpi-lbl">Rendimiento vehículo</span><span class="kpi-val" id="kRend">—</span><span class="kpi-sub" id="kRendSub">km/tanque · $/km</span></div>
+    <div class="kpi-card ac-gris"><span class="kpi-lbl">Gasto comprometido + ejecutado</span><span class="kpi-val" id="kGasto">$0</span><span class="kpi-sub" id="kGastoSub">—</span></div>
+    <div class="kpi-card ac-maiz"><span class="kpi-lbl">Con OC $</span><span class="kpi-val" id="kConOc">$0</span><span class="kpi-sub" id="kConOcSub">—</span></div>
+    <div class="kpi-card ac-azul"><span class="kpi-lbl">Recibido $</span><span class="kpi-val" id="kRecibido">$0</span><span class="kpi-sub" id="kRecibidoSub">—</span></div>
+    <div class="kpi-card ac-maiz"><span class="kpi-lbl">Pendiente de cotizar</span><span class="kpi-val" id="kPendCot">0</span><span class="kpi-sub" id="kPendCotSub">Aprobado campo &lt; cotiz. exigidas</span></div>
+    <div class="kpi-card ac-ladrillo"><span class="kpi-lbl">Pagos por confirmar</span><span class="kpi-val" id="kPagosConf">$0</span><span class="kpi-sub" id="kPagosConfSub">0 OCs vencidas</span></div>
+    <div class="kpi-card ac-grafito"><span class="kpi-lbl">Km de la semana</span><span class="kpi-val" id="kKmSem">0 km</span><span class="kpi-sub" id="kKmSemSub">Semana en curso</span></div>
   </section>
 
   <!-- NAVEGACIÓN INTERNA -->
@@ -182,12 +175,42 @@ main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
 
     <div class="panel-card">
       <h2>Detalle semanal (Semana ISO × Finca) por etapa</h2>
-      <p class="sub-panel">Si AgroControl ya registra <code>f_entrega</code>, prevalece sobre la fecha del grupo.</p>
+      <p class="sub-panel">Semana y mes fijados por la fecha de autorización en AgroControl.</p>
       <div class="tw">
         <table>
           <thead><tr><th>Semana</th><th>Finca</th><th class="n">Comprometido</th><th class="n">Ordenado</th><th class="n">Recibido finca</th><th class="n">Pagado</th><th class="n">Total $</th></tr></thead>
           <tbody id="tbSemanalFinca"></tbody>
         </table>
+      </div>
+    </div>
+
+    <div class="grid-ctrl" id="kpisControl">
+      <div class="kpi-card ac-azul"><span class="kpi-lbl">Cumplimiento entrega</span><span class="kpi-val" id="cEnt">—</span><span class="kpi-sub" id="cEntSub">Meta 90%</span></div>
+      <div class="kpi-card ac-maiz"><span class="kpi-lbl">Pedido → N° OC</span><span class="kpi-val" id="cPedOc">—</span><span class="kpi-sub" id="cPedOcSub">Meta ≤ 4 días</span></div>
+      <div class="kpi-card ac-gris"><span class="kpi-lbl">% USD cotiz. suficientes</span><span class="kpi-val" id="cCotUsd">—</span><span class="kpi-sub" id="cCotUsdSub">3 si ≥$300 · 2 si menor</span></div>
+      <div class="kpi-card ac-azul"><span class="kpi-lbl">Ahorro documentado</span><span class="kpi-val" id="cAhorro">$0</span><span class="kpi-sub">(Prom. − elegido) × cant. autoriz.</span></div>
+      <div class="kpi-card ac-ladrillo"><span class="kpi-lbl">Variación precio &gt;10%</span><span class="kpi-val" id="cVarPrecio">0</span><span class="kpi-sub">Vs última compra prod./prov.</span></div>
+    </div>
+
+    <div class="panel-card">
+      <h2>Costo por hectárea y gasto por finca</h2>
+      <p class="sub-panel">Hectáreas tomadas de AgroControl · Zona Costa e Imbabura.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Finca</th><th>Zona</th><th>Cultivo(s)</th><th class="n">Ha</th><th class="n">Líneas</th><th class="n">Gasto $</th><th class="n">$/ha</th></tr></thead>
+          <tbody id="tbFincaHa"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid-charts">
+      <div class="panel-card">
+        <h2>Gasto por cultivo</h2>
+        <div class="tw"><table><thead><tr><th>Cultivo</th><th class="n">Líneas</th><th class="n">Gasto $</th></tr></thead><tbody id="tbCultivo"></tbody></table></div>
+      </div>
+      <div class="panel-card">
+        <h2>Cuentas por pagar por vencimiento (OCs)</h2>
+        <div class="tw"><table><thead><tr><th>Tramo de vencimiento</th><th class="n">OCs</th><th class="n">Monto $</th></tr></thead><tbody id="tbCxP"></tbody></table></div>
       </div>
     </div>
 
@@ -205,6 +228,7 @@ main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
 
   <!-- SECCIÓN 2: MANTENIMIENTO Y ACTIVOS -->
   <section id="secMantenimiento" class="hide" role="tabpanel">
+    <div class="panel-card" style="padding:12px 16px"><span class="kpi-lbl">Mantenimientos prog. / atrasados:</span> <b id="kMnt">0</b> · <span class="small muted" id="kMntSub">Atraso prom: 0.0 d</span></div>
     <div class="grid-charts">
       <div class="panel-card">
         <h2>Mantenimientos por estado</h2>
@@ -220,7 +244,7 @@ main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
 
     <div class="panel-card">
       <h2>Registrar mantenimiento</h2>
-      <p class="sub-panel">Guarda directamente en la colección única <code>mantenimientos</code> de Firestore.</p>
+      <p class="sub-panel">Registra la orden de mantenimiento y la sincroniza entre equipos.</p>
       <form id="formRegistrarMant" class="form-grid">
         <div class="form-grp">
           <label for="mActivo">Activo / equipo *</label>
@@ -230,12 +254,12 @@ main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
         <div class="form-grp">
           <label for="mFinca">Finca *</label>
           <select id="mFinca" required>
-            <option value="Imbabura">Imbabura</option>
-            <option value="Eliana">Eliana</option>
-            <option value="Otoburo">Otoburo</option>
+            <option value="El Carmen">El Carmen</option>
             <option value="Puerto Cayo">Puerto Cayo</option>
-            <option value="Andrés López">Andrés López</option>
             <option value="Coñaqui">Coñaqui</option>
+            <option value="Eliana">Eliana</option>
+            <option value="Andrés López">Andrés López</option>
+            <option value="Otoburo">Otoburo</option>
             <option value="General">General</option>
           </select>
         </div>
@@ -314,7 +338,8 @@ main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
 
   <!-- SECCIÓN 3: VEHÍCULOS Y COMBUSTIBLE -->
   <section id="secVehiculos" class="hide" role="tabpanel">
-    <div id="vacioVeh" class="aviso-box hide">Aún no hay viajes registrados en la colección <code>vehiculos</code> de Firestore.</div>
+    <div class="panel-card" style="padding:12px 16px"><span class="kpi-lbl">Km recorridos (filt.):</span> <b id="kKm">0 km</b> (<span class="small muted" id="kKmSub">0 viajes</span>) · <span class="kpi-lbl">Rendimiento:</span> <b id="kRend">—</b> <span class="small muted" id="kRendSub">km/tanque · $/km</span></div>
+    <div id="vacioVeh" class="aviso-box hide">Aún no hay viajes de vehículos registrados.</div>
     <div class="grid-charts">
       <div class="panel-card">
         <h2>Kilometraje semanal por vehículo</h2>
@@ -344,7 +369,9 @@ main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
 "use strict";
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const PAL = { grafito: "#23262B", azul: "#2E5E8E", ladrillo: "#B5452F", maiz: "#C7901A", gris: "#8A8F98" };
+const R = window.AgdReglas;
+if (!R) throw new Error("Falta etapas.js");
+const PAL = R.PALETA;
 const PAL_ARR = [PAL.azul, PAL.ladrillo, PAL.maiz, PAL.grafito, PAL.gris];
 
 let AGRO_FILAS = [];
@@ -380,39 +407,27 @@ function normOc(v) {
 }
 
 function normFinca(f) {
-  const s = String(f || "").trim();
-  if (!s) return "Sin finca";
-  const u = s.toUpperCase();
-  if (u === "PCAYO" || u.includes("CAYO")) return "Puerto Cayo";
-  if (u === "CONAQUI" || u.includes("ÑAQUI") || u.includes("NAQUI")) return "Coñaqui";
-  if (u === "ALOPEZ" || u.includes("LOPEZ") || u.includes("LÓPEZ")) return "Andrés López";
-  if (u.includes("ELIANA")) return "Eliana";
-  if (u.includes("OTOBURO")) return "Otoburo";
-  if (u.includes("CARMEN")) return "El Carmen";
-  if (u.includes("IMBABURA")) return "Imbabura";
-  return s;
+  const fn = R.normFinca(f);
+  return fn || "Sin finca";
 }
 
 function parseFecha(s) {
-  if (!s) return null;
-  const txt = String(s).trim();
-  const m = txt.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  const d = new Date(txt);
-  return isNaN(d.getTime()) ? null : d;
+  const ymd = R.fechaLocal(s);
+  if (!ymd) return null;
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12));
+}
+
+function ymLocal(s) {
+  const ymd = R.fechaLocal(s);
+  return ymd ? ymd.slice(0, 7) : "";
 }
 
 function semanaIso(dt, semTxt) {
-  if (dt) {
-    const tmp = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()));
-    const day = tmp.getUTCDay() || 7;
-    tmp.setUTCDate(tmp.getUTCDate() + 4 - day);
-    const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
-    const weekNo = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
-    return `${tmp.getUTCFullYear()}-S${String(weekNo).padStart(2, "0")}`;
-  }
+  if (dt instanceof Date && !isNaN(dt)) return R.semanaIso(R.fechaLocal(dt));
+  if (typeof dt === "string" && dt.trim()) return R.semanaIso(dt);
   const m = String(semTxt || "").match(/(\d{1,2})/);
-  if (m) return `${new Date().getFullYear()}-S${String(Number(m[1])).padStart(2, "0")}`;
+  if (m) return `${R.hoyEcuador().slice(0, 4)}-S${String(Number(m[1])).padStart(2, "0")}`;
   return "Sin fecha";
 }
 
@@ -466,27 +481,28 @@ function drawChart(id, config) {
 }
 
 function poblarFiltros(lineas, mantenimientos, viajes) {
-  const fincas = new Set();
+  const fincas = new Set(R.NOMBRES_FINCAS);
   const meses = new Set();
   const semanas = new Set();
   lineas.forEach(l => {
-    if (l.finca) fincas.add(l.finca);
+    if (l.finca && l.finca !== "Sin finca") fincas.add(l.finca);
     if (l.mes) meses.add(l.mes);
-    if (l.semana) semanas.add(l.semana);
+    if (l.semana && l.semana !== "Sin fecha") semanas.add(l.semana);
   });
   mantenimientos.forEach(m => {
-    if (m.finca) fincas.add(normFinca(m.finca));
-    const dt = parseFecha(m.fecha_programada || m.fecha_reporte);
-    if (dt) {
-      meses.add(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`);
-      semanas.add(semanaIso(dt));
+    const fn = normFinca(m.finca);
+    if (fn && fn !== "Sin finca") fincas.add(fn);
+    const ym = ymLocal(m.fecha_programada || m.fecha_reporte);
+    if (ym) {
+      meses.add(ym);
+      semanas.add(semanaIso(m.fecha_programada || m.fecha_reporte));
     }
   });
   viajes.forEach(v => {
-    const dt = parseFecha(v.fecha_actividad);
-    if (dt) {
-      meses.add(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`);
-      semanas.add(semanaIso(dt));
+    const ym = ymLocal(v.fecha_actividad);
+    if (ym) {
+      meses.add(ym);
+      semanas.add(semanaIso(v.fecha_actividad));
     }
   });
 
@@ -504,8 +520,10 @@ function poblarFiltros(lineas, mantenimientos, viajes) {
 function procesarLineasGasto() {
   const recPorOc = new Map();
   const recPorPedLin = new Map();
+  const recMapa = {};
   RECEPCIONES.forEach(rec => {
     if (!["emparejada", "conciliada_manual"].includes(rec.estado_conciliacion)) return;
+    if (rec.linea) recMapa[String(rec.linea)] = rec;
     [rec.oc_codigo, rec.numero_oc].forEach(c => {
       const nc = normOc(c);
       if (nc && !recPorOc.has(nc)) recPorOc.set(nc, rec);
@@ -513,67 +531,42 @@ function procesarLineasGasto() {
     if (rec.pedido && rec.linea) recPorPedLin.set(`${rec.pedido}|${rec.linea}`, rec);
   });
 
-  const hoy = new Date();
-  let ocAbiertas = new Set();
-  let vencN = 0, vencM = 0;
   const lineas = [];
-
   AGRO_FILAS.forEach(r => {
-    const est = String(col(r, "Estado (código)", "estado")).toLowerCase();
-    if (est === "anulado" || est === "rechazado") return;
-    const monto = Math.round(num(col(r, "Cantidad", "cantidad")) * num(col(r, "Precio unit. elegido", "precio_sel")) * 100) / 100;
-    const finca = normFinca(col(r, "Finca", "finca"));
-    const ocCod = col(r, "OC (código)", "oc_codigo");
-    const ocNum = col(r, "N° OC", "numero_oc");
-    const ocCreada = col(r, "F. OC creada", "oc_creada");
     const ped = String(col(r, "Pedido", "pedido"));
     const lin = String(col(r, "Línea", "linea"));
+    const ocCod = col(r, "OC (código)", "oc_codigo");
+    const ocNum = col(r, "N° OC", "numero_oc");
     const rec = recPorPedLin.get(`${ped}|${lin}`) || recPorOc.get(normOc(ocCod)) || recPorOc.get(normOc(ocNum));
-    const tieneOc = Boolean(ocNum || ocCreada || ocCod);
+    if (lin && rec && !recMapa[lin]) recMapa[lin] = rec;
 
-    const fEntAg = parseFecha(col(r, "F. entrega", "f_entrega"));
-    const fPago = parseFecha(col(r, "F. pago realizado", "f_pago_real"));
-    const fOc = parseFecha(ocCreada) || parseFecha(col(r, "F. registro N° OC", "f_registro_oc"));
-    const fAut = parseFecha(col(r, "F. autorización", "f_autorizacion")) || parseFecha(col(r, "F. revisión campo", "f_rev_campo"));
-    const fCr = parseFecha(col(r, "F. pedido", "creado"));
-    const fProgPago = parseFecha(col(r, "F. pago programada", "f_pago_programada"));
-    const estOc = String(col(r, "Estado OC", "estado_oc")).toLowerCase();
-
-    if (tieneOc && (estOc === "abierta" || (!fPago && !fEntAg && estOc !== "cerrada" && estOc !== "anulada"))) {
-      ocAbiertas.add(String(ocCod || ocNum));
-    }
-    if (fProgPago && fProgPago < hoy && !fPago && monto > 0) {
-      vencN += 1;
-      vencM += monto;
-    }
+    const et = R.clasificarEtapa(r, rec);
+    if (et.aparte || !et.autorizado) return;
+    const monto = Math.round(R.montoLinea(r) * 100) / 100;
     if (monto <= 0) return;
 
-    let etapa = null, dtRef = null;
-    if (fPago || col(r, "F. pago realizado", "f_pago_real")) {
-      etapa = "Pagado";
-      dtRef = fPago || fEntAg || fOc || fCr;
-    } else if (fEntAg || est === "entregado" || rec) {
-      etapa = "Recibido en finca";
-      dtRef = fEntAg || (rec ? parseFecha(rec.fecha) : null) || fOc || fAut || fCr;
-    } else if (tieneOc) {
-      etapa = "Ordenado";
-      dtRef = fOc || fAut || fCr;
-    } else if (["aprobado", "aprobado_campo"].includes(est) || (est === "seleccionado" && col(r, "F. autorización", "f_autorizacion"))) {
-      etapa = "Comprometido";
-      dtRef = fAut || fCr;
-    }
-    if (!etapa) return;
-
-    const sem = semanaIso(dtRef, col(r, "Semana", "semana"));
-    const mes = dtRef ? `${dtRef.getFullYear()}-${String(dtRef.getMonth() + 1).padStart(2, "0")}` : "";
+    const fRefYmd = R.fechaLocal(
+      col(r, "F. autorización", "f_autorizacion") ||
+      col(r, "F. OC creada", "oc_creada") ||
+      col(r, "F. pedido", "creado")
+    );
+    const finca = normFinca(col(r, "Finca", "finca"));
+    const etapa = et.grupo_gasto || "Comprometido";
+    const sem = fRefYmd ? R.semanaIso(fRefYmd) : semanaIso(null, col(r, "Semana", "semana"));
+    const mes = fRefYmd ? fRefYmd.slice(0, 7) : "";
     lineas.push({
-      finca, etapa, monto, semana: sem, mes,
+      raw: r,
+      finca,
+      etapa,
+      monto,
+      semana: sem,
+      mes,
       categoria: String(col(r, "Categoría", "categoria") || "Sin categoría"),
       proveedor: String(col(r, "Proveedor", "proveedor") || "Sin proveedor")
     });
   });
 
-  return { lineas, ocAbiertas: ocAbiertas.size, vencN, vencM };
+  return { lineas, recMapa };
 }
 
 function renderTodo() {
@@ -586,46 +579,81 @@ function renderTodo() {
   poblarFiltros(todasLineas, MANTENIMIENTOS, VEHICULOS);
 
   const lFilt = todasLineas.filter(l => (!fFinca || l.finca === fFinca) && (!fMes || l.mes === fMes) && (!fSemana || l.semana === fSemana));
+  const agroFilt = AGRO_FILAS.filter(r => {
+    const fn = normFinca(col(r, "Finca", "finca"));
+    if (fFinca && fn !== fFinca) return false;
+    const ymd = R.fechaLocal(col(r, "F. autorización", "f_autorizacion") || col(r, "F. OC creada", "oc_creada") || col(r, "F. pedido", "creado"));
+    if (fMes && (!ymd || ymd.slice(0, 7) !== fMes)) return false;
+    if (fSemana && ((ymd ? R.semanaIso(ymd) : semanaIso(null, col(r, "Semana", "semana"))) !== fSemana)) return false;
+    return true;
+  });
   const mFilt = MANTENIMIENTOS.filter(m => {
     if (fFinca && normFinca(m.finca) !== fFinca) return false;
-    const dt = parseFecha(m.fecha_programada || m.fecha_reporte);
-    if (fMes && (!dt || `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}` !== fMes)) return false;
-    if (fSemana && (!dt || semanaIso(dt) !== fSemana)) return false;
+    const ymd = R.fechaLocal(m.fecha_programada || m.fecha_reporte);
+    if (fMes && (!ymd || ymd.slice(0, 7) !== fMes)) return false;
+    if (fSemana && (!ymd || semanaIso(ymd) !== fSemana)) return false;
     return true;
   });
   const vFilt = VEHICULOS.filter(v => {
-    const dt = parseFecha(v.fecha_actividad);
-    if (fMes && (!dt || `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}` !== fMes)) return false;
-    if (fSemana && (!dt || semanaIso(dt) !== fSemana)) return false;
+    const ymd = R.fechaLocal(v.fecha_actividad);
+    if (fMes && (!ymd || ymd.slice(0, 7) !== fMes)) return false;
+    if (fSemana && (!ymd || semanaIso(ymd) !== fSemana)) return false;
     return true;
   });
 
-  // KPIs superiores
-  const ahora = new Date();
-  const semHoy = fSemana || semanaIso(ahora);
-  const mesHoy = fMes || `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}`;
-  const sumSem = lFilt.filter(l => fSemana ? true : l.semana === semHoy).reduce((s, l) => s + l.monto, 0);
-  const sumMes = lFilt.filter(l => fMes ? true : l.mes === mesHoy).reduce((s, l) => s + l.monto, 0);
+  // 6 Tarjetas Gerenciales + Indicadores de Gestión desde AgdReglas
+  const hoyEc = R.hoyEcuador();
+  const ind = R.resumirIndicadores(agroFilt, gastoInfo.recMapa, vFilt, hoyEc);
+  const T = ind.tarjetas;
   const sumRecPag = lFilt.filter(l => l.etapa === "Recibido en finca" || l.etapa === "Pagado").reduce((s, l) => s + l.monto, 0);
   const sumOrdMas = lFilt.filter(l => l.etapa !== "Comprometido").reduce((s, l) => s + l.monto, 0);
   const pctRec = sumOrdMas > 0 ? Math.round((sumRecPag / sumOrdMas) * 1000) / 10 : 0;
 
-  $("#kSem").textContent = fmtUsd(sumSem);
-  $("#kSemSub").textContent = semHoy;
-  $("#kMes").textContent = fmtUsd(sumMes);
-  $("#kMesSub").textContent = mesHoy;
-  $("#kRec").textContent = pctRec + "%";
-  $("#kOc").textContent = gastoInfo.ocAbiertas;
-  $("#kVen").textContent = gastoInfo.vencN;
-  $("#kVenSub").textContent = fmtUsd(gastoInfo.vencM);
+  $("#kGasto").textContent = fmtUsd(T.gasto_comprometido_ejecutado);
+  $("#kGastoSub").textContent = `Mes: ${fmtUsd(ind.gasto_mes)} · Sem: ${fmtUsd(ind.gasto_semana)}`;
+  $("#kConOc").textContent = fmtUsd(T.con_oc_monto);
+  $("#kConOcSub").textContent = `${ind.ocs_abiertas.cantidad} OC abiertas`;
+  $("#kRecibido").textContent = fmtUsd(T.recibido_monto);
+  $("#kRecibidoSub").textContent = `${pctRec}% de lo ordenado + recibido`;
+  $("#kPendCot").textContent = T.pendiente_cotizar;
+  $("#kPendCotSub").textContent = `≥${R.UMBRALES.cotizaciones_sobre_umbral} cot. si ≥$${R.UMBRALES.monto_tres_cotizaciones} · ≥${R.UMBRALES.cotizaciones_bajo_umbral} si menor`;
+  $("#kPagosConf").textContent = fmtUsd(T.pagos_por_confirmar);
+  $("#kPagosConfSub").textContent = `${T.pagos_por_confirmar_ocs} OCs vencidas`;
+  $("#kKmSem").textContent = `${num(T.km_semana).toLocaleString("es-EC", { maximumFractionDigits: 1 })} km`;
+  $("#kKmSemSub").textContent = `Semana ${R.semanaIso(hoyEc)} · ${vFilt.length} viajes`;
+
+  const ent = ind.cumplimiento_entrega || {};
+  $("#cEnt").textContent = ent.pct_a_tiempo != null ? Math.round(ent.pct_a_tiempo * 100) + "%" : "—";
+  $("#cEntSub").textContent = `${ent.entregadas || 0} entregas / ${ent.total_evaluadas || 0} OC · meta 90%`;
+  const po = ind.dias_pedido_a_oc || {};
+  $("#cPedOc").textContent = po.promedio != null ? po.promedio.toFixed(1) + " d" : "—";
+  $("#cPedOcSub").textContent = `${po.n || 0} OCs medidas · meta ≤ ${po.meta || 4} d`;
+  const pc = ind.pct_gasto_cotizaciones_suficientes || {};
+  $("#cCotUsd").textContent = pc.pct != null ? Math.round(pc.pct * 100) + "%" : "—";
+  $("#cCotUsdSub").textContent = `${fmtUsd(pc.monto_suficiente || 0)} de ${fmtUsd(pc.monto_total || 0)}`;
+  $("#cAhorro").textContent = fmtUsd(ind.ahorro_documentado || 0);
+  $("#cVarPrecio").textContent = ind.alertas_variacion_precio || 0;
+
+  $("#tbFincaHa").innerHTML = R.FINCAS.map(f => {
+    const gf = (ind.gasto_por_finca && ind.gasto_por_finca[f.nombre]) || { monto: 0, lineas: 0, hectareas: f.hectareas_base };
+    const ha = (ind.hectareas_finca && ind.hectareas_finca[f.nombre]) || f.hectareas_base || 0;
+    const cph = ind.costo_por_hectarea && ind.costo_por_hectarea[f.nombre];
+    const cults = (f.cultivos && f.cultivos.length) ? f.cultivos.join(", ") : "General";
+    return `<tr><td data-l="Finca"><b>${esc(f.nombre)}</b></td><td data-l="Zona">${esc(f.zona)}</td><td data-l="Cultivo(s)">${esc(cults)}</td><td class="n" data-l="Ha">${ha}</td><td class="n" data-l="Líneas">${gf.lineas}</td><td class="n" data-l="Gasto $"><b>${fmtUsd(gf.monto)}</b></td><td class="n" data-l="$/ha">${cph != null ? fmtUsd(cph) : "—"}</td></tr>`;
+  }).join("");
+  const cults = ind.gasto_por_cultivo || [];
+  $("#tbCultivo").innerHTML = cults.length ? cults.map(c => `<tr><td data-l="Cultivo"><b>${esc(c.cultivo)}</b></td><td class="n" data-l="Líneas">${c.lineas}</td><td class="n" data-l="Gasto $"><b>${fmtUsd(c.monto)}</b></td></tr>`).join("") : '<tr><td colspan="3" class="muted">Sin datos de cultivo</td></tr>';
+  const cxp = (ind.cuentas_por_pagar && ind.cuentas_por_pagar.tramos) || [];
+  $("#tbCxP").innerHTML = cxp.length ? cxp.map(t => `<tr><td data-l="Tramo de vencimiento">${esc(t.tramo)}</td><td class="n" data-l="OCs">${t.ocs}</td><td class="n" data-l="Monto $"><b>${fmtUsd(t.monto)}</b></td></tr>`).join("") : '<tr><td colspan="3" class="muted">Sin OCs pendientes</td></tr>';
 
   // KPI Mantenimiento
+  const hoyDt = parseFecha(hoyEc);
   let atrasos = [], progAtr = 0;
   mFilt.forEach(m => {
     const dp = parseFecha(m.fecha_programada), de = parseFecha(m.fecha_ejecucion);
     let atr = null;
     if (dp && de) atr = Math.max(0, Math.round((de - dp) / 86400000));
-    else if (dp && m.estado !== "Ejecutado" && m.estado !== "Cancelado") atr = Math.max(0, Math.round((ahora - dp) / 86400000));
+    else if (dp && hoyDt && m.estado !== "Ejecutado" && m.estado !== "Cancelado") atr = Math.max(0, Math.round((hoyDt - dp) / 86400000));
     if (atr != null) atrasos.push(atr);
     if (["Pendiente", "Programado", "En ejecución"].includes(m.estado) || (atr && atr > 0 && m.estado !== "Cancelado")) progAtr += 1;
   });
@@ -646,17 +674,19 @@ function renderTodo() {
 
   // Sección 1: Gráficos y tablas de gasto
   $("#vacioGasto").classList.toggle("hide", lFilt.length > 0);
-  const fincas = [...new Set(lFilt.map(l => l.finca))].sort();
+  const fincas = R.NOMBRES_FINCAS.filter(f => lFilt.some(l => l.finca === f));
+  const fincasExtra = [...new Set(lFilt.map(l => l.finca))].filter(f => !fincas.includes(f)).sort();
+  const fincasGraf = [...fincas, ...fincasExtra];
   const etapas = ["Comprometido", "Ordenado", "Recibido en finca", "Pagado"];
-  const estCols = [PAL.gris, PAL.azul, PAL.maiz, PAL.grafito];
+  const estCols = [PAL.gris, PAL.maiz, PAL.azul, PAL.grafito];
 
   drawChart("chEtapasFinca", {
     type: "bar",
     data: {
-      labels: fincas.length ? fincas : ["Sin datos"],
+      labels: fincasGraf.length ? fincasGraf : ["Sin datos"],
       datasets: etapas.map((et, i) => ({
         label: et,
-        data: fincas.length ? fincas.map(fn => lFilt.filter(l => l.finca === fn && l.etapa === et).reduce((s, x) => s + x.monto, 0)) : [0],
+        data: fincasGraf.length ? fincasGraf.map(fn => lFilt.filter(l => l.finca === fn && l.etapa === et).reduce((s, x) => s + x.monto, 0)) : [0],
         backgroundColor: estCols[i],
         stack: "gasto"
       }))
@@ -669,7 +699,7 @@ function renderTodo() {
     type: "line",
     data: {
       labels: sems12.length ? sems12 : ["Sin datos"],
-      datasets: (fincas.length ? fincas : ["Sin finca"]).map((fn, i) => ({
+      datasets: (fincasGraf.length ? fincasGraf : ["Sin finca"]).map((fn, i) => ({
         label: fn,
         data: sems12.length ? sems12.map(sm => lFilt.filter(l => l.semana === sm && l.finca === fn).reduce((s, x) => s + x.monto, 0)) : [0],
         borderColor: PAL_ARR[i % PAL_ARR.length],
@@ -732,11 +762,11 @@ function renderTodo() {
   const filasSem = [...mapaSem.values()].sort((a, b) => b.semana.localeCompare(a.semana) || a.finca.localeCompare(b.finca));
   $("#tbSemanalFinca").innerHTML = filasSem.length ? filasSem.map(fs => {
     const tot = fs.Comprometido + fs.Ordenado + fs["Recibido en finca"] + fs.Pagado;
-    return `<tr><td>${esc(fs.semana)}</td><td><b>${esc(fs.finca)}</b></td><td class="n">${fmtUsd(fs.Comprometido)}</td><td class="n">${fmtUsd(fs.Ordenado)}</td><td class="n">${fmtUsd(fs["Recibido en finca"])}</td><td class="n">${fmtUsd(fs.Pagado)}</td><td class="n"><b>${fmtUsd(tot)}</b></td></tr>`;
+    return `<tr><td data-l="Semana">${esc(fs.semana)}</td><td data-l="Finca"><b>${esc(fs.finca)}</b></td><td class="n" data-l="Comprometido">${fmtUsd(fs.Comprometido)}</td><td class="n" data-l="Ordenado">${fmtUsd(fs.Ordenado)}</td><td class="n" data-l="Recibido finca">${fmtUsd(fs["Recibido en finca"])}</td><td class="n" data-l="Pagado">${fmtUsd(fs.Pagado)}</td><td class="n" data-l="Total $"><b>${fmtUsd(tot)}</b></td></tr>`;
   }).join("") : '<tr><td colspan="7" class="muted">Sin movimientos en el filtro actual.</td></tr>';
 
-  $("#tbTopCats").innerHTML = topCats.length ? topCats.map(c => `<tr><td>${esc(c.nombre)}</td><td class="n">${c.lineas}</td><td class="n"><b>${fmtUsd(c.monto)}</b></td></tr>`).join("") : '<tr><td colspan="3" class="muted">Sin datos</td></tr>';
-  $("#tbTopProvs").innerHTML = topProvs.length ? topProvs.map(p => `<tr><td>${esc(p.nombre)}</td><td class="n">${p.lineas}</td><td class="n"><b>${fmtUsd(p.monto)}</b></td></tr>`).join("") : '<tr><td colspan="3" class="muted">Sin datos</td></tr>';
+  $("#tbTopCats").innerHTML = topCats.length ? topCats.map(c => `<tr><td data-l="Categoría">${esc(c.nombre)}</td><td class="n" data-l="Líneas">${c.lineas}</td><td class="n" data-l="Gasto $"><b>${fmtUsd(c.monto)}</b></td></tr>`).join("") : '<tr><td colspan="3" class="muted">Sin datos</td></tr>';
+  $("#tbTopProvs").innerHTML = topProvs.length ? topProvs.map(p => `<tr><td data-l="Proveedor">${esc(p.nombre)}</td><td class="n" data-l="Líneas">${p.lineas}</td><td class="n" data-l="Gasto $"><b>${fmtUsd(p.monto)}</b></td></tr>`).join("") : '<tr><td colspan="3" class="muted">Sin datos</td></tr>';
 
   // Sección 2: Mantenimiento
   const estsM = ["Pendiente", "Programado", "En ejecución", "Ejecutado", "Cancelado"];
@@ -770,7 +800,7 @@ function renderTodo() {
   const chipEstado = e => e === "Ejecutado" ? "grafito" : (e === "Programado" ? "azul" : (e === "Pendiente" ? "maiz" : "ladrillo"));
   const mOrd = [...mFilt].sort((a, b) => String(b.fecha_programada || b.fecha_reporte || "").localeCompare(String(a.fecha_programada || a.fecha_reporte || "")));
   $("#tbMantenimientos").innerHTML = mOrd.length ? mOrd.map(m =>
-    `<tr><td>${esc(m.fecha_programada || m.fecha_reporte || "—")} ${esc(m.hora_programada || "")}</td><td><b>${esc(m.activo)}</b></td><td>${esc(normFinca(m.finca))}</td><td>${esc(m.tipo)}</td><td>${esc(m.descripcion)}</td><td><span class="chip-est ${chipEstado(m.estado)}">${esc(m.estado)}</span></td><td>${esc(m.proveedor || "—")}</td><td class="n">${fmtUsd(m.costo)}</td></tr>`
+    `<tr><td data-l="F. prog.">${esc(m.fecha_programada || m.fecha_reporte || "—")} ${esc(m.hora_programada || "")}</td><td data-l="Activo"><b>${esc(m.activo)}</b></td><td data-l="Finca">${esc(normFinca(m.finca))}</td><td data-l="Tipo">${esc(m.tipo)}</td><td data-l="Descripción">${esc(m.descripcion)}</td><td data-l="Estado"><span class="chip-est ${chipEstado(m.estado)}">${esc(m.estado)}</span></td><td data-l="Proveedor">${esc(m.proveedor || "—")}</td><td class="n" data-l="Costo $">${fmtUsd(m.costo)}</td></tr>`
   ).join("") : '<tr><td colspan="8" class="muted">Sin órdenes de mantenimiento registradas todavía.</td></tr>';
 
   const dl = $("#dlActivos");
@@ -778,7 +808,7 @@ function renderTodo() {
   dl.innerHTML = [...actNombres].map(n => `<option value="${esc(n)}">`).join("");
 
   $("#tbActivos").innerHTML = ACTIVOS.length ? ACTIVOS.map(a =>
-    `<tr><td><b>${esc(a.codigo)}</b></td><td>${esc(a.maquina_equipo || "")}</td><td>${esc(a.tipo || "")}</td><td>${esc(a.marca_modelo || "")}</td><td>${esc(normFinca(a.finca))}</td><td class="n">${num(a.horometro_km).toLocaleString("es-EC")}</td><td>${esc(a.proximo_mantenimiento || "—")}</td><td><span class="chip-est azul">${esc(a.estado || "Operativo")}</span></td></tr>`
+    `<tr><td data-l="Código"><b>${esc(a.codigo)}</b></td><td data-l="Máquina / equipo">${esc(a.maquina_equipo || "")}</td><td data-l="Tipo">${esc(a.tipo || "")}</td><td data-l="Marca / Modelo">${esc(a.marca_modelo || "")}</td><td data-l="Finca">${esc(normFinca(a.finca))}</td><td class="n" data-l="Horómetro / Km">${num(a.horometro_km).toLocaleString("es-EC")}</td><td data-l="Próximo mant.">${esc(a.proximo_mantenimiento || "—")}</td><td data-l="Estado"><span class="chip-est azul">${esc(a.estado || "Operativo")}</span></td></tr>`
   ).join("") : '<tr><td colspan="8" class="muted">Sin activos cargados aún (listo para importar Excel).</td></tr>';
 
   // Sección 3: Vehículos
@@ -816,7 +846,7 @@ function renderTodo() {
   $("#tbVehiculos").innerHTML = vOrd.length ? vOrd.map(v => {
     const rango = v.combustible_rango || clasificarCombustible(v.combustible_final || v.combustible_inicial) || "—";
     const chipRng = rango === "Alto" ? "azul" : (rango === "Medio" ? "maiz" : "ladrillo");
-    return `<tr><td>${esc(v.fecha_actividad || "—")}</td><td><b>${esc(v.vehiculo || "Camioneta")}</b></td><td>${esc(v.origen || "")} → ${esc(v.destino || "")}</td><td class="n">${v.km_recorridos != null ? num(v.km_recorridos) : "—"}</td><td><span class="chip-est ${chipRng}">${esc(rango)}</span> <span class="small muted">${esc(v.combustible_final || v.combustible_inicial || "")}</span></td><td class="n">${v.rendimiento_km_tanque ? num(v.rendimiento_km_tanque) + " km" : "—"}</td><td class="n">${v.costo_por_km ? "$" + Number(v.costo_por_km).toFixed(2) : "—"}</td><td>${esc(v.estado || "")}</td></tr>`;
+    return `<tr><td data-l="Fecha">${esc(v.fecha_actividad || "—")}</td><td data-l="Vehículo"><b>${esc(v.vehiculo || "Camioneta")}</b></td><td data-l="Ruta">${esc(v.origen || "")} → ${esc(v.destino || "")}</td><td class="n" data-l="Km rec.">${v.km_recorridos != null ? num(v.km_recorridos) : "—"}</td><td data-l="Nivel comb."><span class="chip-est ${chipRng}">${esc(rango)}</span> <span class="small muted">${esc(v.combustible_final || v.combustible_inicial || "")}</span></td><td class="n" data-l="Rend. km/tanque">${v.rendimiento_km_tanque ? num(v.rendimiento_km_tanque) + " km" : "—"}</td><td class="n" data-l="$/km">${v.costo_por_km ? "$" + Number(v.costo_por_km).toFixed(2) : "—"}</td><td data-l="Estado">${esc(v.estado || "")}</td></tr>`;
   }).join("") : '<tr><td colspan="8" class="muted">Sin recorridos registrados en este rango.</td></tr>';
 }
 
@@ -850,7 +880,7 @@ $("#formRegistrarMant").onsubmit = async (ev) => {
   const msg = $("#msgMantForm");
   btn.disabled = true;
   msg.className = "small muted";
-  msg.textContent = "Guardando en Firestore…";
+  msg.textContent = "Guardando en la nube…";
 
   const payload = {
     activo: $("#mActivo").value.trim(),
@@ -884,19 +914,19 @@ $("#formRegistrarMant").onsubmit = async (ev) => {
   btn.disabled = false;
 };
 
-async function cargarDatos() {
+async function cargarDatos(forzar) {
   $("#bannerError").classList.add("hide");
   $("#bannerCargando").classList.remove("hide");
   $("#badgeEstadoGer").textContent = "Actualizando datos…";
 
   try {
     if (window.ComprasApp) {
-      await ComprasApp.exigirSesion();
-      const s = await ComprasApp.snapAgro();
+      await ComprasApp.exigirSesion({ permitirNube: true });
+      const s = await (ComprasApp.filasAgro ? ComprasApp.filasAgro({ forzar: !!forzar }) : ComprasApp.snapAgro());
       AGRO_FILAS = (s && s.filas) || [];
     }
   } catch (e) {
-    $("#bannerError").textContent = "No se pudo cargar AgroControl en vivo (" + (e.message || e) + "). Mostrando colecciones disponibles.";
+    $("#bannerError").textContent = "No se pudo leer AgroControl (" + (e.message || e) + "). Mostrando la última lectura disponible.";
     $("#bannerError").classList.remove("hide");
   }
 
@@ -904,7 +934,7 @@ async function cargarDatos() {
     await AgdNube.inicializar();
     const est = AgdNube.estado();
     if (est.conectado) {
-      $("#badgeEstadoGer").textContent = "En vivo · Firestore conectado";
+      $("#badgeEstadoGer").textContent = "Conectado · sincronizado";
       AgdNube.escucharRecepciones(d => { RECEPCIONES = d || []; renderTodo(); });
       AgdNube.escucharMantenimientos(d => { MANTENIMIENTOS = d || []; renderTodo(); });
       AgdNube.escucharActivos(d => { ACTIVOS = d || []; renderTodo(); });
@@ -915,9 +945,10 @@ async function cargarDatos() {
   }
   $("#bannerCargando").classList.add("hide");
   renderTodo();
+  if (window.AgdGuia && AgdGuia.renderizarFrescura) AgdGuia.renderizarFrescura();
 }
 
-$("#btnRefrescarGer").onclick = cargarDatos;
+$("#btnRefrescarGer").onclick = () => cargarDatos(true);
 document.addEventListener("DOMContentLoaded", () => {
   if (window.AgdGuia && AgdGuia.ico) {
     document.querySelectorAll("[data-i]").forEach(el => { el.innerHTML = AgdGuia.ico(el.dataset.i); });

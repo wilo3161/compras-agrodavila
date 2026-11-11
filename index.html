@@ -3,17 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#23262B">
 <title>Compras AgroDávila</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="iconos/icono-192.png">
-<link rel="apple-touch-icon" href="iconos/icono-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="comun.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script>
-<script src="guia.js"></script>
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;font-size:16px;line-height:1.5}
@@ -89,7 +80,7 @@ input[type=email],input[type=password]{width:100%;padding:12px 14px;font:inherit
   main{padding:18px 16px 24px}
 }
 </style>
-<link rel="stylesheet" href="marco.css"></head>
+</head>
 <body>
 <section class="entrada hide" id="pLogin" aria-labelledby="tLogin">
   <div class="lema">
@@ -105,6 +96,7 @@ input[type=email],input[type=password]{width:100%;padding:12px 14px;font:inherit
       <label for="clave">Contraseña</label><input id="clave" type="password" autocomplete="current-password" required>
       <button class="btn p ancho" type="submit" id="bEntrar">Entrar</button>
     </form>
+    <button class="btn ancho" type="button" id="bLoginGoogle" style="margin-top:10px">Entrar con Google (Gerencia / equipo)</button>
     <div id="eLogin" class="err hide" role="alert"></div>
     <p class="nota">Es el mismo usuario de agrocontrol-agd.netlify.app. La app solo lee; no cambia nada en AgroControl.</p>
   </div>
@@ -182,7 +174,7 @@ input[type=email],input[type=password]{width:100%;padding:12px 14px;font:inherit
         <a class="btn sm p hide" id="lMatrizXlsx" href="#" rel="noopener"><span data-i="hoja"></span>Descargar el Excel en vivo</a>
         <button class="btn sm hide" type="button" id="bCopiarDatos">Copiar enlace de los datos</button>
       </div>
-      <p class="nota">El Excel se llena solo al abrirlo y cada 30 minutos con lo último de AgroControl. Compártalo solo con Gerencia: el enlace da acceso a los datos.</p>
+      <p class="nota">El Excel se actualiza al abrir el libro y con cada corte publicado por el motor. Compártalo solo con Gerencia: el enlace da acceso a los datos.</p>
     </section>
   </div>
 </main>
@@ -203,29 +195,37 @@ function pintarPasos(){ const h=hechos(); if(window.matchMedia("(display-mode: s
 document.addEventListener("click",e=>{ const a=e.target.closest("[data-paso]"); if(a&&a.dataset.paso!=="excel"&&a.dataset.paso!=="instalar") marcar(a.dataset.paso); });
 
 /* Lo urgente hoy (AgroControl en vivo y Bandeja) */
-let SNAP=null, CONV_PENDIENTES=0, FILAS_AC=[];
+let SNAP=null, CONV_PENDIENTES=0, FILAS_AC=[], AGRO_ERROR=false;
 function renderUrgente(){
   const filas = [
     ["tierra","bandeja",`${CONV_PENDIENTES} conversaciones esperan respuesta`,"Mensajes con respuesta sugerida lista en la nube",CONV_PENDIENTES,"bandeja.html"],
     ...FILAS_AC
   ];
   $("#listaUrg").innerHTML=filas.map(([c,i,t,s,n,h])=>`<li><a href="${h||'control.html'}"><span class="punto ${c}">${I(i)}</span><span class="t"><b>${t}</b><span>${s}</span></span><span class="n">${n}</span>${I("flecha").replace('class="ico"','class="ico fl"')}</a></li>`).join("");
+  if(AGRO_ERROR){
+    $("#estado").textContent="No se pudo leer AgroControl.";
+    return;
+  }
   const total=filas.reduce((a,f)=>a+f[4],0);
   $("#estado").textContent=total?`Hay ${total} asuntos esperando por usted. Empiece por los de arriba.`:"Todo al día.";
 }
 async function urgente(){
   try{
-    SNAP=await ComprasApp.snapAgro(); const F=SNAP.filas, hoy=new Date(); hoy.setHours(0,0,0,0);
-    const est=e=>F.filter(r=>r["Estado (código)"]===e);
-    const porCot=F.filter(r=>r["Estado (código)"]==="aprobado_campo"&&!(+r["N° cotizaciones"]>0)).length;
-    const vencidos=new Set(F.filter(r=>r["F. pago programada"]&&!r["F. pago realizado"]&&new Date(r["F. pago programada"]+"T00:00")<hoy&&!["anulado","rechazado","entregado"].includes(r["Estado (código)"])).map(r=>r["OC (código)"])).size;
+    AGRO_ERROR=false;
+    SNAP=await ComprasApp.filasAgro({forzar:false}); const F=SNAP.filas||[], R=window.AgdReglas;
+    const totRef = R.totalesReferenciaCotizacion(F);
+    const porCot = F.filter(r=>R.esPendienteCotizar(r, totRef)).length;
+    const vencidos = R.pagosVencidosPorOC(F).cantidad_ocs;
+    const porAut = F.filter(r=>R.clasificarEtapa(r).id==="por_autorizar").length;
+    const revCampo = F.filter(r=>R.clasificarEtapa(r).id==="revision_campo").length;
     FILAS_AC=[
       ["rojo","alerta","Pagos vencidos o sin registrar","Órdenes con fecha de pago pasada",vencidos,"control.html"],
-      ["maiz","control","Por cotizar","Productos aprobados que esperan cotización",porCot,"control.html"],
-      ["tierra","llave","Por autorizar","Esperan el OK de Contabilidad",est("seleccionado").length,"control.html"],
-      ["verde","hoja","Por revisar en campo","Pedidos nuevos de las fincas",est("pendiente").length,"control.html"]];
+      ["maiz","control","Por cotizar","Aprobados con menos cotizaciones de las exigidas",porCot,"control.html"],
+      ["tierra","llave","Por autorizar","Esperan autorización",porAut,"control.html"],
+      ["verde","hoja","Revisión de campo","Pedidos nuevos de las fincas",revCampo,"control.html"]];
     renderUrgente();
   }catch(e){
+    AGRO_ERROR=true;
     FILAS_AC=[];
     renderUrgente();
   }
@@ -237,27 +237,33 @@ if(window.AgdNube && AgdNube.escucharConversaciones){
   });
 }
 $("#bExcel").onclick=async()=>{ const b=$("#bExcel"); b.classList.add("cargando");
-  try{ if(!SNAP) SNAP=await ComprasApp.snapAgro(); ComprasApp.excelMatriz(SNAP.filas); marcar("excel"); }catch(e){ alert(e.message); }
+  try{ if(!SNAP) SNAP=await ComprasApp.filasAgro({forzar:false}); ComprasApp.excelMatriz(SNAP.filas); marcar("excel"); }catch(e){ alert(e.message); }
   b.classList.remove("cargando"); };
 
-async function mostrarCorte(){ const c=await ComprasApp.corteWA(); if(c) $("#corteWA").textContent="Datos al "+new Date(c).toLocaleString("es-EC",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})+"."; }
+async function mostrarCorte(){ const c=await ComprasApp.corteWA(); if(c) $("#corteWA").textContent="Datos al "+new Date(c).toLocaleString("es-EC",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"America/Guayaquil"})+"."; }
 function saludo(s){
-  const h=new Date().getHours(), parte=h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches";
+  const h=Number(new Intl.DateTimeFormat("en-US",{timeZone:"America/Guayaquil",hour:"numeric",hour12:false}).format(new Date()))||12;
+  const parte=h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches";
   const correo=(s&&s.user&&s.user.email)||"", nom=correo.startsWith("compras@")?"Ing. Wilson":(correo.split("@")[0]||"");
   $("#hola").textContent=`${parte}, ${nom}`.replace(/, $/,"");
-  $("#fecha").textContent=new Date().toLocaleDateString("es-EC",{weekday:"long",day:"numeric",month:"long"});
+  $("#fecha").textContent=new Date().toLocaleDateString("es-EC",{weekday:"long",day:"numeric",month:"long",timeZone:"America/Guayaquil"});
   $("#usuario").textContent="Sesión iniciada como "+correo;
 }
 async function iniciar(){
-  let s=null; try{ s=await ComprasApp.sesion(); }catch(e){}
+  let s=null; try{ s=await ComprasApp.sesion({permitirNube:true}); }catch(e){}
   if(!s){ ver("pLogin"); $("#correo").focus(); return; }
-  if(!ComprasApp.tieneClave() && !sessionStorage.getItem("agd_sin_wa")){ ver("pClave"); $("#frase").focus(); return; }
+  if(!ComprasApp.tieneClave() && !sessionStorage.getItem("agd_sin_wa") && !(s&&s.nube)){ ver("pClave"); $("#frase").focus(); return; }
   ver("pMenu"); saludo(s); pintarPasos(); mostrarCorte(); urgente();
+  if(window.AgdGuia && AgdGuia.renderizarFrescura) AgdGuia.renderizarFrescura();
 }
 $("#fLogin").addEventListener("submit",async e=>{ e.preventDefault(); err($("#eLogin"),""); const b=$("#bEntrar"); b.disabled=true; b.textContent="Entrando…";
   try{ await ComprasApp.entrar($("#correo").value,$("#clave").value); $("#clave").value=""; await iniciar(); }
   catch(x){ err($("#eLogin"),x.message||"No se pudo entrar."); }
   b.disabled=false; b.textContent="Entrar"; });
+$("#bLoginGoogle").onclick=async()=>{ err($("#eLogin"),""); const b=$("#bLoginGoogle"); b.disabled=true;
+  try{ if(!window.AgdNube) throw new Error("Módulo de nube no disponible."); await AgdNube.conectar(); await iniciar(); }
+  catch(x){ err($("#eLogin"),x.message||"No se pudo entrar con Google."); }
+  b.disabled=false; };
 $("#fClave").addEventListener("submit",async e=>{ e.preventDefault(); err($("#eClave"),""); const b=$("#bClave"); b.disabled=true; b.textContent="Abriendo…";
   try{ await ComprasApp.abrirDatos($("#frase").value,$("#recordar").checked); $("#frase").value=""; await iniciar(); }
   catch(x){ err($("#eClave"),x.message||"No se pudo abrir."); }
@@ -278,11 +284,14 @@ function pintarMatrizVivo(d){
   if(!r){ est.textContent="Todavía no llega la primera lectura de AgroControl a la nube."; }
   else{
     const corte=new Date(r.corte||r.actualizado_en);
-    est.textContent=`${r.filas} líneas de pedido · lectura de AgroControl del ${isNaN(corte)?"—":corte.toLocaleString("es-EC",{dateStyle:"short",timeStyle:"short"})} · subida ${haceCuanto(r.actualizado_en)}.`;
+    est.textContent=`${r.filas} líneas de pedido · lectura de AgroControl del ${isNaN(corte)?"—":corte.toLocaleString("es-EC",{dateStyle:"short",timeStyle:"short",timeZone:"America/Guayaquil"})} (Ecuador) · subida ${haceCuanto(r.actualizado_en)}.`;
   }
-  lx.classList.toggle("hide",!(x&&x.url_xlsx)); if(x&&x.url_xlsx) lx.href=x.url_xlsx;
-  bc.classList.toggle("hide",!(x&&x.url_csv));
-  bc.onclick=async()=>{ try{ await navigator.clipboard.writeText(x.url_csv); bc.textContent="Enlace copiado"; }catch(e){ prompt("Copie el enlace:",x.url_csv); } };
+  const urlExcelSegura = u => typeof u === "string" && u.startsWith("https://compras-agrodavila.web.app/datos/");
+  const xlsxOk = !!(x && urlExcelSegura(x.url_xlsx));
+  const csvOk = !!(x && urlExcelSegura(x.url_csv));
+  lx.classList.toggle("hide",!xlsxOk); if(xlsxOk) lx.href=x.url_xlsx; else lx.removeAttribute("href");
+  bc.classList.toggle("hide",!csvOk);
+  bc.onclick=async()=>{ if(!csvOk) return; try{ await navigator.clipboard.writeText(x.url_csv); bc.textContent="Enlace copiado"; }catch(e){ prompt("Copie el enlace:",x.url_csv); } };
 }
 function pintarEstadoNube(est){
   const el=$("#estadoNube"), bt=$("#bNube"), tx=$("#txtNube"); if(!el||!bt||!tx) return;

@@ -69,8 +69,22 @@ select,input[type=search],input[type=text],input[type=tel],input[type=email],inp
 .marco a.sec{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--t2);font-weight:600;font-size:14px;padding:8px 14px;border-radius:999px;min-height:42px}
 .marco a.sec[aria-current="page"]{background:var(--pri2);color:var(--pri)}
 .marco a.sec:hover{color:var(--tx)}
+.marco .mas-wrap{display:none;position:relative}
+.marco .mas-btn{background:none;border:0;color:var(--t2);font:600 14px var(--letra);cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;min-height:42px}
+.marco .mas-btn[aria-current="page"]{background:var(--pri2);color:var(--pri)}
+.marco-mas{position:absolute;bottom:calc(100% + 10px);right:0;min-width:190px;background:var(--card);border:1px solid var(--bd);border-radius:16px;box-shadow:var(--sombra-alta);padding:6px;display:flex;flex-direction:column;gap:4px;z-index:60}
+.marco-mas.hide{display:none !important}
+.marco-mas .mas-item{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:12px;text-decoration:none;color:var(--tx);background:none;border:0;font:600 14px var(--letra);text-align:left;cursor:pointer}
+.marco-mas .mas-item[aria-current="page"]{background:var(--pri2);color:var(--pri)}
+.marco-mas .mas-item:hover{background:var(--pri2)}
 .marco .ayuda{margin-left:6px;display:flex;align-items:center;gap:6px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:999px;padding:8px 14px;font:600 14px var(--letra);cursor:pointer;min-height:42px}
 .marco .ayuda:hover{border-color:var(--maiz);background:var(--maiz2)}
+.frescura{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 20px;background:var(--bg);border-bottom:1px solid var(--bd);font-size:12px;color:var(--t2)}
+.frescura:empty{display:none}
+.frescura-tit{font-weight:700;color:var(--tx)}
+.frescura-item{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:var(--card);border:1px solid var(--bd)}
+.frescura-item.atraso{border-color:var(--ladrillo);color:var(--ladrillo);background:color-mix(in srgb,var(--ladrillo) 10%,var(--card));font-weight:600}
+body:has(#pLogin:not(.hide)) .frescura,body:has(#pClave:not(.hide)) .frescura{display:none !important}
 /* cuando hay marco, el encabezado propio de cada pantalla deja de ser «pegajoso» */
 .marco ~ header{position:static !important}
 
@@ -100,11 +114,13 @@ header:has(.top) nav button{color:#F2F3F5 !important}
 /* Teléfono y tableta chica */
 @media (max-width:760px){
   body{padding-bottom:calc(var(--marco-alto) + env(safe-area-inset-bottom))}
-  .marco{position:fixed;left:0;right:0;bottom:0;top:auto;border-bottom:0;border-top:1px solid var(--bd);padding:6px 8px calc(6px + env(safe-area-inset-bottom));
-    justify-content:space-around;box-shadow:0 -6px 20px -8px rgba(20,28,40,.18)}
-  .marco .marca{display:none}
-  .marco a.sec,.marco .ayuda{flex:1;flex-direction:column;gap:3px;font-size:11px;padding:6px 4px;border-radius:12px;min-height:54px;justify-content:center;border:0;background:none}
-  .marco a.sec .ico,.marco .ayuda .ico{width:22px;height:22px}
+  .marco{position:fixed;left:0;right:0;bottom:0;top:auto;border-bottom:0;border-top:1px solid var(--bd);padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    justify-content:space-around;overflow:visible;box-shadow:0 -6px 20px -8px rgba(20,28,40,.18)}
+  .marco .marca,.marco a.sec.sec-extra,.marco .ayuda{display:none}
+  .marco .mas-wrap{display:flex;flex:1 1 0;justify-content:center}
+  .marco > a.sec,.marco .mas-btn{flex:1 1 0;min-width:0;white-space:nowrap;flex-direction:column;gap:3px;font-size:11px;padding:6px 4px;border-radius:12px;min-height:54px;justify-content:center;border:0;background:none}
+  .marco a.sec .ico,.marco .mas-btn .ico{width:22px;height:22px}
+  .frescura{padding:6px 12px;font-size:11px;gap:6px}
   input,select,textarea{font-size:16px !important}
   header{padding:12px 14px 0 !important}
   header h1{font-size:19px !important;line-height:1.2}

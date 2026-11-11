@@ -11,14 +11,42 @@
     if (!cliente) cliente = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, storageKey: "agd_compras_sesion" } });
     return cliente;
   }
-  async function sesion() { const { data } = await sb().auth.getSession(); return data.session || null; }
+  function limpiarClavesLocales() {
+    [localStorage, sessionStorage].forEach(st => {
+      try {
+        Object.keys(st).filter(k => k.startsWith("agd_") || k.startsWith("compras_")).forEach(k => st.removeItem(k));
+      } catch (e) {}
+    });
+  }
+  async function sesion(opts) {
+    const { data } = await sb().auth.getSession();
+    if (data && data.session) return data.session;
+    if (opts && opts.permitirNube && window.AgdNube && AgdNube.inicializar) {
+      try {
+        await AgdNube.inicializar();
+        const est = AgdNube.estado();
+        if (est && est.conectado) return { user: { email: est.correo || "" }, nube: true };
+      } catch (e) {}
+    }
+    return null;
+  }
   async function entrar(correo, clave) {
     const { data, error } = await sb().auth.signInWithPassword({ email: correo.trim(), password: clave });
     if (error) throw new Error(error.message === "Invalid login credentials" ? "Correo o contraseña incorrectos." : error.message);
     return data.session;
   }
-  async function salir() { try { await sb().auth.signOut(); } catch (e) {} try { localStorage.removeItem(LS_CLAVE); sessionStorage.clear(); } catch (e) {} }
-  async function exigirSesion() { const s = await sesion(); if (!s) { location.href = "index.html"; throw new Error("sin sesión"); } return s; }
+  async function salir() {
+    try { await sb().auth.signOut(); } catch (e) {}
+    if (window.AgdNube && AgdNube.desconectar) {
+      try { await AgdNube.desconectar(); } catch (e) {}
+    }
+    limpiarClavesLocales();
+  }
+  async function exigirSesion(opts) {
+    const s = await sesion(Object.assign({ permitirNube: true }, opts || {}));
+    if (!s) { location.href = "index.html"; throw new Error("sin sesión"); }
+    return s;
+  }
 
   async function todo(tabla, orden) {
     let r = [], desde = 0;
@@ -33,8 +61,29 @@
   }
 
   const p2 = n => String(n).padStart(2, "0");
-  const loc = v => { if (!v) return ""; const d = new Date(v); if (isNaN(d)) return ""; return d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()) + "T" + p2(d.getHours()) + ":" + p2(d.getMinutes()); };
-  const dia = v => v ? String(v).slice(0, 10) : "";
+  const EC_FMT = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Guayaquil", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false
+  });
+  const _ecPartes = v => {
+    if (!v) return null;
+    if (window.AgdReglas && AgdReglas.fechaHoraLocal && AgdReglas.fechaLocal) {
+      return { fecha: AgdReglas.fechaLocal(v), fechaHora: (AgdReglas.fechaHoraLocal(v) || "").slice(0, 16) };
+    }
+    const s = String(v).trim();
+    const d = (v instanceof Date) ? v : (/^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + "T12:00:00-05:00") : new Date(s));
+    if (isNaN(d)) return null;
+    const m = {};
+    EC_FMT.formatToParts(d).forEach(p => { if (p.type !== "literal") m[p.type] = p.value; });
+    const hh = m.hour === "24" ? "00" : m.hour;
+    return { fecha: `${m.year}-${m.month}-${m.day}`, fechaHora: `${m.year}-${m.month}-${m.day}T${hh}:${m.minute}` };
+  };
+  const loc = v => { const p = _ecPartes(v); return p ? p.fechaHora : ""; };
+  const dia = v => {
+    const s = v ? String(v).trim() : "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const p = _ecPartes(s);
+    return p ? p.fecha : "";
+  };
 
   /* Lee AgroControl en vivo y arma las filas con el mismo formato del exportador (51 columnas). */
   async function snapAgro() {
@@ -94,7 +143,8 @@
     const datos = filas.map(r => { const o = {}; COLS.forEach(c => { const v = r[c]; o[c] = v == null ? "" : (esF(c) ? aFechaExcel(v) : v); }); return o; });
     const ws = XLSX.utils.json_to_sheet(datos, { header: COLS, cellDates: true, dateNF: "dd/mm/yyyy hh:mm" });
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Datos");
-    const h = new Date(); XLSX.writeFile(wb, `matriz_agrocontrol_${h.getFullYear()}-${p2(h.getMonth() + 1)}-${p2(h.getDate())}.xlsx`, { cellDates: true });
+    const hoyEc = dia(new Date()) || `${new Date().getFullYear()}-${p2(new Date().getMonth() + 1)}-${p2(new Date().getDate())}`;
+    XLSX.writeFile(wb, `matriz_agrocontrol_${hoyEc}.xlsx`, { cellDates: true });
   }
 
   /* ---- Datos de WhatsApp cifrados (AES-GCM, clave derivada con PBKDF2) ---- */
@@ -129,6 +179,63 @@
 
   /* El marco visual (barra, guías, recorrido) está en guia.js */
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
-  async function corteWA() { try { const pq = await leerPaquete(); return pq.corte || ""; } catch (e) { return ""; } }
-  window.ComprasApp = { sb, sesion, entrar, salir, exigirSesion, snapAgro, abrirDatos, datosWA, tieneClave, excelMatriz, corteWA };
+  async function corteWA() {
+    try {
+      const pq = await leerPaquete();
+      const iso = pq.corte || "";
+      if (iso && window.AgdNube && AgdNube.registrarFrescura) AgdNube.registrarFrescura("whatsapp", iso);
+      return iso;
+    } catch (e) { return ""; }
+  }
+
+  /* Lectura unificada: primero Firestore (espacios/agrodavila/agrocontrol/resumen + filas_N), Supabase solo si se fuerza o falta en la nube. */
+  async function filasAgro(opts) {
+    const forzar = !!(opts && opts.forzar);
+    if (!forzar && window.AgdNube && AgdNube.leerAgrocontrol) {
+      try {
+        const fs = await AgdNube.leerAgrocontrol();
+        if (fs && Array.isArray(fs.filas) && fs.filas.length) return fs;
+      } catch (e) {}
+    }
+    const { data } = await sb().auth.getSession();
+    if (data && data.session) {
+      const vivo = await snapAgro();
+      if (window.AgdNube && AgdNube.registrarFrescura) AgdNube.registrarFrescura("agrocontrol", vivo.generado);
+      return vivo;
+    }
+    if (forzar && window.AgdNube && AgdNube.leerAgrocontrol) {
+      const fs = await AgdNube.leerAgrocontrol();
+      if (fs && Array.isArray(fs.filas) && fs.filas.length) return fs;
+      throw new Error("Inicie sesión en AgroControl para consultar en vivo; sin lectura en la nube.");
+    }
+    throw new Error("No se encontró lectura de AgroControl disponible.");
+  }
+
+  async function frescuraFuentes() {
+    const base = (window.AgdNube && AgdNube.resumenFrescura) ? await AgdNube.resumenFrescura() : {};
+    const cWa = await corteWA();
+    if (cWa && !base.whatsapp) base.whatsapp = cWa;
+    const ahora = Date.now();
+    const seisHorasMs = 6 * 3600 * 1000;
+    const evaluar = (clave, etiqueta) => {
+      const iso = base[clave] || "";
+      const ms = iso ? Date.parse(iso) : NaN;
+      const edadHoras = !isNaN(ms) ? Math.max(0, (ahora - ms) / 3600000) : null;
+      return {
+        fuente: clave,
+        etiqueta,
+        fecha: iso,
+        edadHoras,
+        atrasada: edadHoras === null || (ahora - ms) > seisHorasMs
+      };
+    };
+    return {
+      agrocontrol: evaluar("agrocontrol", "AgroControl"),
+      whatsapp: evaluar("whatsapp", "WhatsApp"),
+      recepciones: evaluar("recepciones", "Recepciones"),
+      vehiculos: evaluar("vehiculos", "Vehículos")
+    };
+  }
+
+  window.ComprasApp = { sb, sesion, entrar, salir, exigirSesion, snapAgro, filasAgro, frescuraFuentes, abrirDatos, datosWA, tieneClave, excelMatriz, corteWA };
 })();

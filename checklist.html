@@ -3,20 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#23262B">
 <title>Checklist del día · Compras AgroDávila</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="iconos/icono-192.png">
-<link rel="apple-touch-icon" href="iconos/icono-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="comun.js"></script>
-<script src="guia.js"></script>
-<script src="firebase_config.js"></script>
-<script src="nube.js"></script>
-<link rel="stylesheet" href="marco.css">
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;font-size:15px;line-height:1.45}
@@ -155,7 +143,7 @@ tr.fila-hecha td{background:color-mix(in srgb,var(--okbg) 35%,transparent)}
     </div>
   </section>
 
-  <!-- Tarjetas contadoras de las 7 etapas -->
+  <!-- Tarjetas contadoras de etapas -->
   <section class="etapas-grid" id="tarjetasEtapas" aria-label="Contador por etapa">
     <!-- Se llena dinámicamente -->
   </section>
@@ -170,13 +158,6 @@ tr.fila-hecha td{background:color-mix(in srgb,var(--okbg) 35%,transparent)}
       <label for="fEtapa">Etapa</label>
       <select id="fEtapa">
         <option value="">Todas las etapas</option>
-        <option value="1">1. Por cotizar</option>
-        <option value="2">2. Cotizando</option>
-        <option value="3">3. Por aprobar</option>
-        <option value="4">4. Por generar o subir la OC</option>
-        <option value="5">5. Por entregar</option>
-        <option value="6">6. Por pagar</option>
-        <option value="7">7. Cerrado</option>
       </select>
     </div>
     <div class="filtro-item">
@@ -211,15 +192,19 @@ tr.fila-hecha td{background:color-mix(in srgb,var(--okbg) 35%,transparent)}
 <script>
 "use strict";
 
-const ETAPAS = [
-  { id: 1, key: "por_cotizar", nombre: "Por cotizar", desc: "Aprobada por campo, sin cotizaciones (n_cot = 0)", accion: "cotizado" },
-  { id: 2, key: "cotizando", nombre: "Cotizando", desc: "Tiene cotizaciones, pero no hay proveedor seleccionado", accion: "proveedor seleccionado" },
-  { id: 3, key: "por_aprobar", nombre: "Por aprobar", desc: "Proveedor seleccionado, faltan Lola, Daniela o Gerencia", accion: "aprobado" },
-  { id: 4, key: "por_generar_oc", nombre: "Por generar o subir la OC", desc: "Aprobada, sin número oficial de OC", accion: "OC generada" },
-  { id: 5, key: "por_entregar", nombre: "Por entregar", desc: "Tiene OC y no tiene fecha de entrega registrada", accion: "entregado" },
-  { id: 6, key: "por_pagar", nombre: "Por pagar", desc: "Entregada y sin fecha de pago realizado, con fecha programada", accion: "pagado" },
-  { id: 7, key: "cerrado", nombre: "Cerrado", desc: "Entregada y pagada, o anulada/rechazada", accion: "cerrado" }
-];
+const R = window.AgdReglas;
+if (!R) throw new Error("Falta etapas.js");
+const ETAPAS = R.ETAPAS.map(e => ({
+  id: e.orden,
+  key: e.id,
+  nombre: e.nombre,
+  desc: e.descripcion,
+  accion: e.nombre.toLowerCase(),
+  responsable: e.responsable,
+  aparte: !!e.aparte,
+  autorizado: !!e.autorizado
+}));
+const ETAPAS_TARJETAS = ETAPAS.filter(e => !e.aparte);
 
 let SNAP_FILAS = [];
 let CHECKLIST_MAPA = {};
@@ -230,87 +215,46 @@ let CARGANDO = false;
 /* ---- Funciones auxiliares ---- */
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fechaCorta = v => {
-  if (!v) return "—";
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? String(v).slice(0, 10) : d.toLocaleDateString("es-EC", { day: "2-digit", month: "short" });
+  const ymd = R.fechaLocal(v);
+  if (!ymd) return "—";
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("es-EC", { day: "2-digit", month: "short", timeZone: R.ZONA_HORARIA });
 };
-const hoyISO = () => new Date().toISOString().slice(0, 10);
+const hoyISO = () => R.hoyEcuador();
+const ayerISO = () => {
+  const dt = new Date(R.hoyEcuador() + "T12:00:00-05:00");
+  return R.fechaLocal(new Date(dt.getTime() - 86400000));
+};
 
 function diasHabiles(fechaStr) {
-  if (!fechaStr) return 0;
-  const d = new Date(fechaStr);
-  if (isNaN(d.getTime())) return 0;
-  const hoy = new Date();
-  d.setHours(0, 0, 0, 0);
-  hoy.setHours(0, 0, 0, 0);
-  if (hoy <= d) return 0;
-  let count = 0;
-  let cur = new Date(d);
-  while (cur < hoy) {
-    cur.setDate(cur.getDate() + 1);
-    const diaSem = cur.getDay();
-    if (diaSem !== 0 && diaSem !== 6) count++;
-  }
-  return count;
+  return R.diasHabiles(fechaStr, R.hoyEcuador());
 }
 
 function alertaWilo(diasH) {
-  if (diasH >= 3) return { tipo: "estancado", label: `Estancado (${diasH} d)`, cls: "c-cr" };
-  if (diasH >= 1) return { tipo: "alerta", label: `Alerta (${diasH} d)`, cls: "c-al" };
+  if (diasH >= R.UMBRALES.dias_estancado) return { tipo: "estancado", label: `Estancado (${diasH} d)`, cls: "c-cr" };
+  if (diasH >= R.UMBRALES.dias_alerta) return { tipo: "alerta", label: `Alerta (${diasH} d)`, cls: "c-al" };
   return { tipo: "ok", label: `Al día (${diasH} d)`, cls: "c-ok" };
 }
 
-/* Clasificación estricta en una sola etapa */
+/* Clasificación estricta usando reglas_agd.json / AgdReglas */
 function clasificarLinea(r) {
-  const e = (r["Estado (código)"] || "").toLowerCase();
-  const nCot = Number(r["N° cotizaciones"] || 0);
-  const prov = (r["Proveedor"] || "").trim();
-  const numOc = String(r["N° OC"] || "").trim();  // la OC cuenta cuando ya tiene número registrado en AgroControl
-  const fEntrega = r["F. entrega"];
-  const fPagoReal = r["F. pago realizado"];
-  const fPagoProg = r["F. pago programada"];
-  const fAut = r["F. autorización"];
-  const okLola = r["OK Lola (día)"];
-  const okDan = r["OK Daniela (día)"];
-  const okGer = r["OK Gerencia (día)"];
-  const ok3 = r["F. pago aprobado (3 OK)"];
+  const et = R.clasificarEtapa(r);
+  return {
+    etapaId: et.orden,
+    key: et.id,
+    nombre: et.nombre,
+    aparte: !!et.aparte,
+    autorizado: !!et.autorizado,
+    fechaInicio: et.fecha_inicio || ""
+  };
+}
 
-  // 7. Cerrado: anulado, rechazado, o entregado Y pagado
-  if (e === "anulado" || e === "rechazado") {
-    return { etapaId: 7, nombre: "Cerrado", fechaInicio: r["F. anulación"] || r["Última edición"] };
-  }
-  if (fEntrega && (fPagoReal || e === "cerrado")) {
-    return { etapaId: 7, nombre: "Cerrado", fechaInicio: fPagoReal || fEntrega };
-  }
-
-  // 6. Por pagar: entregada y sin f_pago_real, con fecha programada
-  if (fEntrega && !fPagoReal) {
-    return { etapaId: 6, nombre: "Por pagar", fechaInicio: fEntrega, fPagoProg: fPagoProg || "" };
-  }
-
-  // 5. Por entregar: tiene OC y no tiene f_entrega
-  if (numOc) {
-    return { etapaId: 5, nombre: "Por entregar", fechaInicio: r["F. registro N° OC"] || r["F. OC creada"] || r["Pago programado el"] };
-  }
-
-  // 4. Por generar o subir la OC: aprobada, sin numero_oc
-  const tieneAprobacion = !!(ok3 || (okLola && okDan && okGer) || fAut || e === "aprobado" || e === "autorizado");
-  if (tieneAprobacion) {
-    return { etapaId: 4, nombre: "Por generar o subir la OC", fechaInicio: fAut || ok3 || r["F. selección proveedor"] };
-  }
-
-  // 3. Por aprobar: proveedor seleccionado, faltan Lola, Daniela o Gerencia
-  if (prov || e === "seleccionado") {
-    return { etapaId: 3, nombre: "Por aprobar", fechaInicio: r["F. selección proveedor"] || r["F. última cotización"] };
-  }
-
-  // 2. Cotizando: tiene cotizaciones, pero no hay proveedor seleccionado
-  if (nCot > 0 || e === "cotizado") {
-    return { etapaId: 2, nombre: "Cotizando", fechaInicio: r["F. 1ª cotización"] || r["F. revisión campo"] };
-  }
-
-  // 1. Por cotizar: aprobada por campo, sin cotizaciones (n_cot = 0)
-  return { etapaId: 1, nombre: "Por cotizar", fechaInicio: r["F. revisión campo"] || r["F. pedido"] };
+function poblarFiltroEtapas() {
+  const sel = document.getElementById("fEtapa");
+  if (!sel) return;
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">Todas las etapas</option>' +
+    ETAPAS.map(e => `<option value="${e.id}"${String(e.id) === actual ? " selected" : ""}>${e.aparte ? e.nombre : (e.id + ". " + e.nombre)}</option>`).join("");
 }
 
 /* Toast */
@@ -322,15 +266,15 @@ function toast_(msg) {
 }
 
 /* ---- Carga de datos ---- */
-async function cargarDatos(silencioso) {
+async function cargarDatos(silencioso, forzar) {
   if (CARGANDO) return;
   CARGANDO = true;
   const f = document.getElementById("fuente");
-  if (!silencioso) f.textContent = "Leyendo AgroControl en vivo…";
+  if (!silencioso) f.textContent = "Leyendo AgroControl…";
 
   try {
-    await ComprasApp.exigirSesion();
-    const snap = await ComprasApp.snapAgro();
+    await ComprasApp.exigirSesion({ permitirNube: true });
+    const snap = await (ComprasApp.filasAgro ? ComprasApp.filasAgro({ forzar: !!forzar }) : ComprasApp.snapAgro());
     SNAP_FILAS = snap.filas || [];
     ULTIMO_CORTE_MIN = Date.now();
 
@@ -342,11 +286,13 @@ async function cargarDatos(silencioso) {
 
     // Actualizar resumen y vista
     await actualizarResumenDia();
+    poblarFiltroEtapas();
     poblarFiltroFincas();
     renderizarTodo();
 
-    const hora = new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" });
-    f.textContent = `EN VIVO · ${snap.usuario || "Compras"} · ${SNAP_FILAS.length} líneas · actualizado ${hora}`;
+    const hora = new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit", timeZone: R.ZONA_HORARIA });
+    f.textContent = `${snap.fuente === "firestore" ? "Nube" : "EN VIVO"} · ${snap.usuario || "Compras"} · ${SNAP_FILAS.length} líneas · actualizado ${hora}`;
+    if (window.AgdGuia && AgdGuia.renderizarFrescura) AgdGuia.renderizarFrescura();
   } catch (err) {
     if (err.message !== "sin sesión") {
       if (silencioso) {
@@ -389,9 +335,9 @@ async function autoCerrarMarcasAvanzadas() {
     // Si la etapa actual es posterior a la marcada, se cierra sola y va al historial
     if (actual.etapaId > idMarcado && idMarcado > 0) {
       let tipoAvance = "general";
-      if (idMarcado === 1) tipoAvance = "cotizada";
-      else if (idMarcado === 4) tipoAvance = "oc";
-      else if (idMarcado === 5) tipoAvance = "entrega";
+      if (etMarcada.key === "por_cotizar") tipoAvance = "cotizada";
+      else if (etMarcada.key === "autorizado_sin_oc") tipoAvance = "oc";
+      else if (etMarcada.key === "con_oc") tipoAvance = "entrega";
 
       promesas.push(
         AgdNube.archivarMarcaEnHistorial(lin, hoy, {
@@ -419,9 +365,7 @@ async function actualizarResumenDia() {
 
   if (window.AgdNube) {
     histHoy = await AgdNube.obtenerHistorialDia(hoy);
-    const dAyer = new Date();
-    dAyer.setDate(dAyer.getDate() - 1);
-    histAyer = await AgdNube.obtenerHistorialDia(dAyer.toISOString().slice(0, 10));
+    histAyer = await AgdNube.obtenerHistorialDia(ayerISO());
   }
 
   const totHoy = (histHoy && histHoy.total_avanzadas) || 0;
@@ -443,7 +387,7 @@ async function actualizarResumenDia() {
 function poblarFiltroFincas() {
   const sel = document.getElementById("fFinca");
   const actual = sel.value;
-  const fincas = [...new Set(SNAP_FILAS.map(r => r["Finca"]).filter(Boolean))].sort();
+  const fincas = [...new Set(SNAP_FILAS.map(r => R.normFinca(r["Finca"])).filter(f => f && f !== "Sin finca"))].sort();
   sel.innerHTML = '<option value="">Todas las fincas</option>' +
     fincas.map(f => `<option value="${esc(f)}"${f === actual ? " selected" : ""}>${esc(f)}</option>`).join("");
 }
@@ -462,24 +406,19 @@ function renderizarTodo() {
     const dHab = diasHabiles(info.fechaInicio);
     const al = alertaWilo(dHab);
     const chk = CHECKLIST_MAPA[lin] || { hecho: false, nota: "" };
-    const etapaObj = ETAPAS.find(e => e.id === info.etapaId);
+    const etapaObj = ETAPAS.find(e => e.id === info.etapaId) || ETAPAS[0];
 
     // Detección de diferencia (Wilo marcó Hecho pero AgroControl sigue en la misma etapa)
     let avisoDif = "";
-    if (chk.hecho && chk.etapa_marcada === etapaObj.nombre && info.etapaId < 7) {
-      if (info.etapaId === 5) avisoDif = "Marcó entregado, pero falta registrarlo en AgroControl";
-      else if (info.etapaId === 1) avisoDif = "Marcó cotizado, pero falta registrarlo en AgroControl";
-      else if (info.etapaId === 3) avisoDif = "Marcó aprobado, pero falta registrarlo en AgroControl";
-      else if (info.etapaId === 4) avisoDif = "Marcó OC generada, pero falta registrarlo en AgroControl";
-      else if (info.etapaId === 6) avisoDif = "Marcó pagado, pero falta registrarlo en AgroControl";
-      else avisoDif = `Marcó ${esc(etapaObj.accion)}, pero falta registrarlo en AgroControl`;
+    if (chk.hecho && chk.etapa_marcada === etapaObj.nombre && !etapaObj.aparte && etapaObj.key !== "pagado") {
+      avisoDif = `Marcó avance en «${esc(etapaObj.nombre)}», pero falta registrarlo en AgroControl`;
     }
 
     return {
       raw: r,
       linea: lin,
       pedido: r["Pedido"] || "—",
-      finca: r["Finca"] || "—",
+      finca: R.normFinca(r["Finca"]) || "—",
       producto: r["Producto"] || "—",
       categoria: r["Categoría"] || "",
       cantidad: r["Cantidad"] || 0,
@@ -505,8 +444,8 @@ function renderizarTodo() {
     if (fFinca && item.finca !== fFinca) return false;
     if (fEstado === "hecho" && !item.chk.hecho) return false;
     if (fEstado === "pendiente" && item.chk.hecho) return false;
-    if (fEstado === "alerta" && item.diasH < 1) return false;
-    if (fEstado === "estancado" && item.diasH < 3) return false;
+    if (fEstado === "alerta" && item.diasH < R.UMBRALES.dias_alerta) return false;
+    if (fEstado === "estancado" && item.diasH < R.UMBRALES.dias_estancado) return false;
     if (fEstado === "diferencia" && !item.avisoDif) return false;
     if (q) {
       const match = (item.linea + " " + item.pedido + " " + item.producto + " " + item.proveedor + " " + item.finca).toLowerCase();
@@ -523,10 +462,10 @@ function renderizarTarjetasEtapas(todas) {
   const cont = document.getElementById("tarjetasEtapas");
   const etapaFiltro = FILTRO_ETAPA_ACTIVA || document.getElementById("fEtapa").value;
 
-  cont.innerHTML = ETAPAS.map(e => {
+  cont.innerHTML = ETAPAS_TARJETAS.map(e => {
     const items = todas.filter(x => x.etapaId === e.id);
-    const alertas = items.filter(x => x.diasH >= 1).length;
-    const estancadas = items.filter(x => x.diasH >= 3).length;
+    const alertas = items.filter(x => x.diasH >= R.UMBRALES.dias_alerta).length;
+    const estancadas = items.filter(x => x.diasH >= R.UMBRALES.dias_estancado).length;
     const esActiva = etapaFiltro === String(e.id);
 
     return `
@@ -571,7 +510,7 @@ function renderizarBloquesEtapas(items) {
   // Agrupar por etapa
   const porEtapa = {};
   ETAPAS.forEach(e => (porEtapa[e.id] = []));
-  items.forEach(it => porEtapa[it.etapaId].push(it));
+  items.forEach(it => { (porEtapa[it.etapaId] = porEtapa[it.etapaId] || []).push(it); });
 
   let html = "";
   ETAPAS.forEach(e => {
@@ -619,7 +558,7 @@ function renderizarBloquesEtapas(items) {
                     ${it.avisoDif ? `<div class="aviso-diferencia">${esc(it.avisoDif)}</div>` : ""}
                   </td>
                   <td class="tabular" data-l="Cantidad">
-                    <b>${it.cantidad}</b> <small class="muted">${esc(it.unidad)}</small>
+                    <b>${esc(it.cantidad)}</b> <small class="muted">${esc(it.unidad)}</small>
                   </td>
                   <td data-l="Proveedor">${esc(it.proveedor)}</td>
                   <td class="tabular" data-l="Días etapa">
@@ -648,7 +587,7 @@ function renderizarBloquesEtapas(items) {
       const lin = chk.dataset.chk;
       const etapa = chk.dataset.etapa;
       const hecho = chk.checked;
-      const inputNota = cont.querySelector(`input[data-nota="${lin}"]`);
+      const inputNota = cont.querySelector(`input[data-nota="${CSS.escape(lin)}"]`);
       const nota = (inputNota && inputNota.value) || "";
 
       if (window.AgdNube) {
@@ -664,7 +603,7 @@ function renderizarBloquesEtapas(items) {
       const lin = inp.dataset.nota;
       const etapa = inp.dataset.etapa;
       const nota = inp.value.trim();
-      const chkBox = cont.querySelector(`input[data-chk="${lin}"]`);
+      const chkBox = cont.querySelector(`input[data-chk="${CSS.escape(lin)}"]`);
       const hecho = chkBox ? chkBox.checked : false;
 
       if (window.AgdNube) {
@@ -696,11 +635,11 @@ function descargarExcelChecklist() {
     const dHab = diasHabiles(info.fechaInicio);
     const al = alertaWilo(dHab);
     const chk = CHECKLIST_MAPA[lin] || { hecho: false, nota: "" };
-    const etapaObj = ETAPAS.find(e => e.id === info.etapaId);
+    const etapaObj = ETAPAS.find(e => e.id === info.etapaId) || ETAPAS[0];
     return {
       linea: lin,
       pedido: r["Pedido"] || "",
-      finca: r["Finca"] || "",
+      finca: R.normFinca(r["Finca"]) || "",
       producto: r["Producto"] || "",
       cantidad: r["Cantidad"] || 0,
       unidad: r["Unidad"] || "",
@@ -724,8 +663,8 @@ function descargarExcelChecklist() {
 
   ETAPAS.forEach(e => {
     const grupo = clasificadas.filter(x => x.etapaId === e.id);
-    const als = grupo.filter(x => x.diasH >= 1).length;
-    const ests = grupo.filter(x => x.diasH >= 3).length;
+    const als = grupo.filter(x => x.diasH >= R.UMBRALES.dias_alerta).length;
+    const ests = grupo.filter(x => x.diasH >= R.UMBRALES.dias_estancado).length;
     const hechas = grupo.filter(x => x.hecho === "SI").length;
     resumenRows.push({
       "Etapa": e.id,
@@ -740,7 +679,7 @@ function descargarExcelChecklist() {
   const wsRes = XLSX.utils.json_to_sheet(resumenRows, { skipHeader: true });
   XLSX.utils.book_append_sheet(wb, wsRes, "Resumen");
 
-  // 2. Una hoja por cada una de las 7 etapas
+  // 2. Una hoja por cada etapa oficial
   ETAPAS.forEach(e => {
     const grupo = clasificadas.filter(x => x.etapaId === e.id);
     const datosEtapa = grupo.map(it => ({
@@ -765,7 +704,7 @@ function descargarExcelChecklist() {
   });
 
   XLSX.writeFile(wb, `checklist_compras_agrodavila_${hoy}.xlsx`);
-  toast_("Checklist descargado en Excel con 7 hojas de etapa y hoja de Resumen.");
+  toast_(`Checklist descargado en Excel con ${ETAPAS.length} hojas de etapa y hoja de Resumen.`);
 }
 
 function procesarExcelSubido(archivo) {
@@ -818,7 +757,7 @@ function procesarExcelSubido(archivo) {
 }
 
 /* ---- Inicialización de eventos ---- */
-document.getElementById("refrescar").onclick = () => cargarDatos(false);
+document.getElementById("refrescar").onclick = () => cargarDatos(false, true);
 document.getElementById("btnDescargarExcel").onclick = descargarExcelChecklist;
 document.getElementById("btnSubirExcel").onclick = () => document.getElementById("archExcel").click();
 document.getElementById("archExcel").onchange = e => {
@@ -861,6 +800,7 @@ if (window.AgdNube) {
 }
 
 // Carga inicial
+poblarFiltroEtapas();
 cargarDatos(false);
 </script>
 </body>

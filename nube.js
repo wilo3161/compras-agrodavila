@@ -12,6 +12,18 @@
   const LS_PASOS = "agd_pasos";
   const LS_CHECKLIST = "agd_checklist_v1";
   const LS_HISTORIAL = "agd_checklist_hist_v1";
+  const LS_FRESCURA = "agd_frescura_fuentes_v1";
+  const COLS_51_AGRO = [
+    "Pedido", "Línea", "OC (código)", "Finca", "Región", "Hectáreas", "Semana", "Producto", "Categoría",
+    "Ingrediente activo", "Cantidad", "Unidad", "Urgencia", "Estado (código)", "Solicitó", "Revisó campo",
+    "F. pedido", "F. revisión campo", "F. 1ª cotización", "F. última cotización", "F. selección proveedor",
+    "F. autorización", "N° cotizaciones", "Precio unit. elegido", "Precio unit. mínimo", "Precio unit. máximo",
+    "Precio unit. promedio", "Proveedor", "Días entrega ofrecidos", "Tipo de pago", "Días crédito", "F. OC creada",
+    "F. pago programada", "Pago programado el", "OK Lola (día)", "OK Daniela (día)", "OK Gerencia (día)",
+    "F. pago aprobado (3 OK)", "N° OC", "F. registro N° OC", "F. check final", "F. pago realizado", "F. entrega",
+    "Estado OC", "Corrección", "Motivo rechazo", "Motivo anulación", "F. anulación", "Comentario compras",
+    "Comentario contabilidad", "Última edición"
+  ];
 
   let modApp = null, modAuth = null, modFs = null;
   let app = null, auth = null, db = null;
@@ -140,13 +152,48 @@
     }
   }
 
+  function limpiarClavesLocales() {
+    [localStorage, sessionStorage].forEach(st => {
+      try {
+        Object.keys(st).filter(k => k.startsWith("agd_") || k.startsWith("compras_")).forEach(k => st.removeItem(k));
+      } catch (e) {}
+    });
+  }
+
+  function leerFrescuraLocal() {
+    try { return JSON.parse(localStorage.getItem(LS_FRESCURA) || "{}"); } catch (e) { return {}; }
+  }
+
+  function registrarFrescura(fuente, iso) {
+    if (!fuente || !iso) return;
+    const actual = leerFrescuraLocal();
+    if (!actual[fuente] || msFecha(iso) >= msFecha(actual[fuente])) {
+      actual[fuente] = String(iso);
+      try { localStorage.setItem(LS_FRESCURA, JSON.stringify(actual)); } catch (e) {}
+    }
+  }
+
   async function desconectar() {
     if (unsubBorradores) { try { unsubBorradores(); } catch (e) {} unsubBorradores = null; }
     if (unsubTelefonos) { try { unsubTelefonos(); } catch (e) {} unsubTelefonos = null; }
     if (unsubAjustes) { try { unsubAjustes(); } catch (e) {} unsubAjustes = null; }
+    if (unsubChecklist) { try { unsubChecklist(); } catch (e) {} unsubChecklist = null; }
+    if (unsubConversaciones) { try { unsubConversaciones(); } catch (e) {} unsubConversaciones = null; }
+    if (unsubBandeja) { try { unsubBandeja(); } catch (e) {} unsubBandeja = null; }
+    unsubMatrizVivo.forEach(u => { try { u(); } catch (e) {} });
+    unsubMatrizVivo = [];
+    Object.keys(_unsubsErp).forEach(k => { try { _unsubsErp[k](); } catch (e) {} delete _unsubsErp[k]; });
     if (auth && modAuth) {
       try { await modAuth.signOut(auth); } catch (e) {}
     }
+    if (db && modFs) {
+      const inst = db;
+      db = null;
+      promesaInicio = null;
+      try { if (modFs.terminate) await modFs.terminate(inst); } catch (e) {}
+      try { if (modFs.clearIndexedDbPersistence) await modFs.clearIndexedDbPersistence(inst); } catch (e) {}
+    }
+    limpiarClavesLocales();
     usuarioActual = null;
     notificarEstado();
   }
@@ -503,7 +550,7 @@
     });
   }
 
-  /* Matriz en vivo de Gerencia: el motor (cada 30 min) deja en la nube el resumen de AgroControl y los enlaces del
+  /* Matriz en vivo de Gerencia: el motor (según programación) deja en la nube el resumen de AgroControl y los enlaces del
      Excel que se actualiza solo. Solo los correos autorizados pueden leerlos. cb({excel, resumen}) en cada cambio. */
   let unsubMatrizVivo = [];
   async function escucharMatrizEnVivo(cb) {
@@ -518,6 +565,85 @@
     }, () => cb(Object.assign({}, actual, { error: true })));
     unsubMatrizVivo.push(oir(`${RAIZ}/ajustes/excel`, "excel"), oir(`${RAIZ}/agrocontrol/resumen`, "resumen"));
     return true;
+  }
+
+  /* Lectura completa de AgroControl desde Firestore (resumen + filas_N): permite consultar sin usuario Supabase. */
+  async function leerAgrocontrol() {
+    await inicializar();
+    if (!db || !usuarioActual) return null;
+    try {
+      const resSnap = await modFs.getDoc(modFs.doc(db, `${RAIZ}/agrocontrol/resumen`));
+      if (!resSnap.exists()) return null;
+      const res = resSnap.data() || {};
+      const cols = Array.isArray(res.columnas) && res.columnas.length ? res.columnas : COLS_51_AGRO;
+      const nTrozos = Math.max(0, Number(res.trozos || 0));
+      if (!nTrozos) return null;
+      const snaps = await Promise.all(
+        Array.from({ length: nTrozos }, (_, idx) => modFs.getDoc(modFs.doc(db, `${RAIZ}/agrocontrol/filas_${idx}`)))
+      );
+      const filas = [];
+      snaps.forEach(s => {
+        if (!s.exists()) return;
+        const d = s.data() || {};
+        let arr = [];
+        try { arr = JSON.parse(d.json || "[]"); } catch (e) { arr = []; }
+        if (!Array.isArray(arr)) return;
+        arr.forEach(row => {
+          if (!Array.isArray(row)) { if (row && typeof row === "object") filas.push(row); return; }
+          const obj = {};
+          for (let i = 0; i < cols.length; i++) {
+            const v = row[i];
+            if (v !== "" && v != null) obj[cols[i]] = v;
+          }
+          filas.push(obj);
+        });
+      });
+      const marca = String(res.actualizado_en || res.corte || "");
+      if (marca) registrarFrescura("agrocontrol", marca);
+      return {
+        generado: res.corte || res.actualizado_en || "",
+        actualizado_en: res.actualizado_en || "",
+        corte: res.corte || "",
+        vivo: false,
+        fuente: "firestore",
+        usuario: (usuarioActual && usuarioActual.email) || "",
+        filas
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function resumenFrescura() {
+    const out = Object.assign({}, leerFrescuraLocal());
+    await inicializar();
+    if (!db || !usuarioActual) return out;
+    try {
+      const resSnap = await modFs.getDoc(modFs.doc(db, `${RAIZ}/agrocontrol/resumen`));
+      if (resSnap.exists()) {
+        const d = resSnap.data() || {};
+        const iso = d.actualizado_en || d.corte;
+        if (iso && msFecha(iso) >= msFecha(out.agrocontrol)) out.agrocontrol = iso;
+      }
+    } catch (e) {}
+    const consultarMax = async (col, key, campos) => {
+      try {
+        const snap = await modFs.getDocs(modFs.collection(db, `${RAIZ}/${col}`));
+        let maxIso = out[key] || "";
+        snap.forEach(docu => {
+          const d = docu.data() || {};
+          for (const c of campos) {
+            if (d[c] && msFecha(d[c]) > msFecha(maxIso)) { maxIso = String(d[c]); break; }
+          }
+        });
+        if (maxIso) { out[key] = maxIso; registrarFrescura(key, maxIso); }
+      } catch (e) {}
+    };
+    await Promise.all([
+      consultarMax("recepciones", "recepciones", ["actualizado_en", "creado_en", "fecha"]),
+      consultarMax("vehiculos", "vehiculos", ["actualizado_en", "creado_en", "fecha_actividad"])
+    ]);
+    return out;
   }
 
   /* ── Checklist diario: espacios/agrodavila/checklist/{linea} ─────────────── */
@@ -789,9 +915,16 @@
     const colRef = modFs.collection(db, `${RAIZ}/${clave}`);
     _unsubsErp[clave] = modFs.onSnapshot(colRef, snap => {
       const lista = [];
+      let maxIso = "";
       snap.forEach(d => {
-        lista.push(Object.assign({ id: d.id }, d.data()));
+        const dato = d.data();
+        lista.push(Object.assign({ id: d.id }, dato));
+        const iso = dato && (dato.actualizado_en || dato.creado_en || dato.fecha_actividad || dato.fecha);
+        if (iso && msFecha(iso) > msFecha(maxIso)) maxIso = String(iso);
       });
+      if ((clave === "recepciones" || clave === "vehiculos") && maxIso) {
+        registrarFrescura(clave, maxIso);
+      }
       cb(lista);
     }, err => {
       if (typeof alError === "function") alError(err);
@@ -903,6 +1036,10 @@
     escucharActivos,
     escucharVehiculos,
     escucharMatrizEnVivo,
+    leerAgrocontrol,
+    resumenFrescura,
+    registrarFrescura,
+    limpiarClavesLocales,
     inicializar,
     conectar,
     desconectar,
