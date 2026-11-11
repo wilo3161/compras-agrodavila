@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#23262B">
+<title>Gerencia · Compras AgroDávila</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconos/icono-192.png">
+<link rel="apple-touch-icon" href="iconos/icono-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="marco.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--tx);font-family:var(--letra);font-size:15px;line-height:1.5}
+main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
+.hide{display:none !important}
+.muted{color:var(--t2)}
+.small{font-size:13px}
+
+/* Cabecera y filtros */
+.cab-ger{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:18px}
+.cab-ger h1{margin:0 0 4px;font-size:clamp(24px,3.2vw,32px);line-height:1.15}
+.cab-ger p{margin:0;color:var(--t2);font-size:14px}
+.estado-fila{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.filtros-ger{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px 16px;margin-bottom:18px;box-shadow:var(--sombra)}
+.filtro-grp{display:flex;flex-direction:column;gap:4px;min-width:160px;flex:1}
+.filtro-grp label{font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.03em}
+.filtro-grp select,.filtro-grp input{width:100%;padding:8px 10px}
+
+/* Tarjetas KPI */
+.grid-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.kpi-card{background:var(--card);border:1px solid var(--bd);border-top:4px solid var(--pri);border-radius:16px;padding:14px 16px;box-shadow:var(--sombra);display:flex;flex-direction:column;gap:4px}
+.kpi-card.ac-grafito{border-top-color:#23262B}
+.kpi-card.ac-maiz{border-top-color:var(--maiz)}
+.kpi-card.ac-ladrillo{border-top-color:var(--tierra)}
+.kpi-card.ac-gris{border-top-color:#8A8F98}
+.kpi-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--t2)}
+.kpi-val{font-family:var(--titulo);font-size:clamp(20px,2.4vw,26px);font-weight:700;color:var(--tx);font-variant-numeric:tabular-nums}
+.kpi-sub{font-size:12px;color:var(--t2)}
+
+/* Tabs */
+.tabs-ger{display:flex;gap:8px;border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:20px;overflow-x:auto;scrollbar-width:none}
+.tab-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:12px;border:1px solid transparent;background:none;color:var(--t2);font:600 14px var(--letra);cursor:pointer;white-space:nowrap}
+.tab-btn:hover{color:var(--tx);background:var(--card)}
+.tab-btn.activo{background:var(--pri2);color:var(--pri);border-color:color-mix(in srgb,var(--pri) 30%,transparent)}
+
+/* Gráficos responsive */
+.grid-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:20px}
+.panel-card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:16px 18px;box-shadow:var(--sombra);margin-bottom:16px}
+.panel-card h2{margin:0 0 4px;font-size:17px}
+.panel-card .sub-panel{margin:0 0 12px;font-size:13px;color:var(--t2)}
+.chart-box{position:relative;width:100%;height:300px}
+.chart-box.alto{height:340px}
+
+/* Tablas */
+.tw{overflow-x:auto;border:1px solid var(--bd);margin-bottom:16px}
+.tw table{width:100%;border-collapse:collapse;font-size:13.5px}
+.tw th,.tw td{padding:9px 12px;border-bottom:1px solid var(--bd);text-align:left}
+.tw th.n,.tw td.n{text-align:right}
+.chip-est{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
+.chip-est.azul{background:var(--pri2);color:var(--pri)}
+.chip-est.maiz{background:var(--maiz2);color:var(--md)}
+.chip-est.ladrillo{background:var(--tierra2);color:var(--tierra)}
+.chip-est.grafito{background:color-mix(in srgb,#23262B 14%,transparent);color:var(--tx)}
+
+/* Formulario mantenimiento */
+.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.form-grp{display:flex;flex-direction:column;gap:4px}
+.form-grp.ancho{grid-column:1 / -1}
+.form-grp label{font-size:12px;font-weight:700;color:var(--t2)}
+.form-grp input,.form-grp select,.form-grp textarea{width:100%;padding:8px 11px;font-size:14px}
+.form-grp textarea{min-height:70px;resize:vertical}
+
+/* Estados carga, vacío, error */
+.aviso-box{background:var(--card);border:1px dashed var(--bd);border-radius:16px;padding:22px 18px;text-align:center;color:var(--t2);margin-bottom:16px}
+.aviso-box.error{border-color:var(--tierra);background:var(--tierra2);color:var(--tierra)}
+.msg-ok{background:var(--pri2);color:var(--pri);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;margin-top:10px}
+.msg-err{background:var(--tierra2);color:var(--tierra);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;margin-top:10px}
+
+@media (max-width:980px){
+  .grid-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid-charts{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  main{padding:14px 12px 72px}
+  .grid-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .kpi-card{padding:11px 12px}
+  .form-grid{grid-template-columns:1fr}
+  .chart-box{height:250px}
+  .filtro-grp{min-width:100%}
+}
+</style>
+</head>
+<body>
+<main id="main">
+  <div class="cab-ger">
+    <div>
+      <h1>Tablero Gerencial</h1>
+      <p id="subGerencia">Gasto por finca y etapa, mantenimiento de activos y rendimiento de vehículos en vivo.</p>
+    </div>
+    <div class="estado-fila">
+      <span id="badgeEstadoGer" class="small muted">Iniciando tablero…</span>
+      <button class="btn sm" type="button" id="btnRefrescarGer">Actualizar</button>
+    </div>
+  </div>
+
+  <div id="bannerError" class="aviso-box error hide" role="alert"></div>
+  <div id="bannerCargando" class="aviso-box" role="status">
+    <span data-i="refrescar"></span> Cargando datos en vivo de AgroControl y Firestore…
+  </div>
+
+  <!-- FILTROS -->
+  <section id="filtrosGerencia" class="filtros-ger" aria-label="Filtros del tablero">
+    <div class="filtro-grp">
+      <label for="fFinca">Finca</label>
+      <select id="fFinca"><option value="">Todas las fincas</option></select>
+    </div>
+    <div class="filtro-grp">
+      <label for="fMes">Mes</label>
+      <select id="fMes"><option value="">Todos los meses</option></select>
+    </div>
+    <div class="filtro-grp">
+      <label for="fSemana">Semana ISO</label>
+      <select id="fSemana"><option value="">Todas las semanas</option></select>
+    </div>
+    <div>
+      <button class="btn sm" type="button" id="btnLimpiarGer">Limpiar filtros</button>
+    </div>
+  </section>
+
+  <!-- KPI CARDS -->
+  <section id="kpisGerencia" class="grid-kpis" aria-label="Indicadores clave">
+    <div class="kpi-card"><span class="kpi-lbl">Gasto semana</span><span class="kpi-val" id="kSem">$0</span><span class="kpi-sub" id="kSemSub">—</span></div>
+    <div class="kpi-card ac-grafito"><span class="kpi-lbl">Gasto mes</span><span class="kpi-val" id="kMes">$0</span><span class="kpi-sub" id="kMesSub">—</span></div>
+    <div class="kpi-card"><span class="kpi-lbl">% Recibido en finca</span><span class="kpi-val" id="kRec">0%</span><span class="kpi-sub" id="kRecSub">Sobre ordenado + recibido</span></div>
+    <div class="kpi-card ac-maiz"><span class="kpi-lbl">OC abiertas</span><span class="kpi-val" id="kOc">0</span><span class="kpi-sub">Órdenes activas</span></div>
+    <div class="kpi-card ac-ladrillo"><span class="kpi-lbl">Pagos vencidos</span><span class="kpi-val" id="kVen">0</span><span class="kpi-sub" id="kVenSub">$0.00</span></div>
+    <div class="kpi-card ac-maiz"><span class="kpi-lbl">Mant. prog. / atrasados</span><span class="kpi-val" id="kMnt">0</span><span class="kpi-sub" id="kMntSub">Atraso prom: 0 d</span></div>
+    <div class="kpi-card ac-grafito"><span class="kpi-lbl">Km recorridos (filt.)</span><span class="kpi-val" id="kKm">0 km</span><span class="kpi-sub" id="kKmSub">Viajes registrados</span></div>
+    <div class="kpi-card ac-gris"><span class="kpi-lbl">Rendimiento vehículo</span><span class="kpi-val" id="kRend">—</span><span class="kpi-sub" id="kRendSub">km/tanque · $/km</span></div>
+  </section>
+
+  <!-- NAVEGACIÓN INTERNA -->
+  <nav id="tabsGerencia" class="tabs-ger" role="tablist" aria-label="Secciones gerenciales">
+    <button class="tab-btn activo" type="button" data-tab="gasto" role="tab" aria-selected="true">Gasto por finca</button>
+    <button class="tab-btn" type="button" data-tab="mantenimiento" role="tab" aria-selected="false">Mantenimiento</button>
+    <button class="tab-btn" type="button" data-tab="vehiculos" role="tab" aria-selected="false">Vehículos</button>
+  </nav>
+
+  <!-- SECCIÓN 1: GASTO POR FINCA -->
+  <section id="secGastoFinca" role="tabpanel">
+    <div id="vacioGasto" class="aviso-box hide">No hay líneas de gasto para los filtros seleccionados.</div>
+    <div class="grid-charts">
+      <div class="panel-card">
+        <h2>Gasto por finca y etapa</h2>
+        <p class="sub-panel">Comprometido, Ordenado, Recibido en finca y Pagado (USD).</p>
+        <div class="chart-box"><canvas id="chEtapasFinca"></canvas></div>
+      </div>
+      <div class="panel-card">
+        <h2>Tendencia semanal (últimas 12 semanas)</h2>
+        <p class="sub-panel">Evolución del gasto por finca en semanas ISO.</p>
+        <div class="chart-box"><canvas id="chTendenciaSem"></canvas></div>
+      </div>
+      <div class="panel-card">
+        <h2>Gasto por categoría</h2>
+        <p class="sub-panel">Distribución concentrada por familia de insumos.</p>
+        <div class="chart-box"><canvas id="chCategorias"></canvas></div>
+      </div>
+      <div class="panel-card">
+        <h2>Top 10 proveedores</h2>
+        <p class="sub-panel">Mayor monto acumulado según selección actual.</p>
+        <div class="chart-box"><canvas id="chProveedores"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h2>Detalle semanal (Semana ISO × Finca) por etapa</h2>
+      <p class="sub-panel">Si AgroControl ya registra <code>f_entrega</code>, prevalece sobre la fecha del grupo.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Semana</th><th>Finca</th><th class="n">Comprometido</th><th class="n">Ordenado</th><th class="n">Recibido finca</th><th class="n">Pagado</th><th class="n">Total $</th></tr></thead>
+          <tbody id="tbSemanalFinca"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid-charts">
+      <div class="panel-card">
+        <h2>Top 10 categorías</h2>
+        <div class="tw"><table><thead><tr><th>Categoría</th><th class="n">Líneas</th><th class="n">Gasto $</th></tr></thead><tbody id="tbTopCats"></tbody></table></div>
+      </div>
+      <div class="panel-card">
+        <h2>Top 10 proveedores</h2>
+        <div class="tw"><table><thead><tr><th>Proveedor</th><th class="n">Líneas</th><th class="n">Gasto $</th></tr></thead><tbody id="tbTopProvs"></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 2: MANTENIMIENTO Y ACTIVOS -->
+  <section id="secMantenimiento" class="hide" role="tabpanel">
+    <div class="grid-charts">
+      <div class="panel-card">
+        <h2>Mantenimientos por estado</h2>
+        <p class="sub-panel" id="subMantRatio">Preventivo vs Correctivo: —</p>
+        <div class="chart-box"><canvas id="chMantEstado"></canvas></div>
+      </div>
+      <div class="panel-card">
+        <h2>Costo de mantenimiento por finca</h2>
+        <p class="sub-panel" id="subMantAtraso">Días de atraso promedio: —</p>
+        <div class="chart-box"><canvas id="chMantFinca"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h2>Registrar mantenimiento</h2>
+      <p class="sub-panel">Guarda directamente en la colección única <code>mantenimientos</code> de Firestore.</p>
+      <form id="formRegistrarMant" class="form-grid">
+        <div class="form-grp">
+          <label for="mActivo">Activo / equipo *</label>
+          <input type="text" id="mActivo" required list="dlActivos" placeholder="Ej. Camioneta (confirmar) / Bomba 2">
+          <datalist id="dlActivos"><option value="Camioneta (confirmar)"></datalist>
+        </div>
+        <div class="form-grp">
+          <label for="mFinca">Finca *</label>
+          <select id="mFinca" required>
+            <option value="Imbabura">Imbabura</option>
+            <option value="Eliana">Eliana</option>
+            <option value="Otoburo">Otoburo</option>
+            <option value="Puerto Cayo">Puerto Cayo</option>
+            <option value="Andrés López">Andrés López</option>
+            <option value="Coñaqui">Coñaqui</option>
+            <option value="General">General</option>
+          </select>
+        </div>
+        <div class="form-grp">
+          <label for="mTipo">Tipo *</label>
+          <select id="mTipo" required>
+            <option value="Preventivo">Preventivo</option>
+            <option value="Correctivo">Correctivo</option>
+          </select>
+        </div>
+        <div class="form-grp">
+          <label for="mPrioridad">Prioridad</label>
+          <select id="mPrioridad"><option value="Media">Media</option><option value="Alta">Alta</option><option value="Baja">Baja</option></select>
+        </div>
+        <div class="form-grp">
+          <label for="mFechaProg">Fecha programada</label>
+          <input type="date" id="mFechaProg">
+        </div>
+        <div class="form-grp">
+          <label for="mHoraProg">Hora</label>
+          <input type="time" id="mHoraProg">
+        </div>
+        <div class="form-grp">
+          <label for="mEstado">Estado *</label>
+          <select id="mEstado" required>
+            <option value="Programado">Programado</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En ejecución">En ejecución</option>
+            <option value="Ejecutado">Ejecutado</option>
+            <option value="Cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div class="form-grp">
+          <label for="mCosto">Costo estimado ($)</label>
+          <input type="number" id="mCosto" step="0.01" min="0" value="0">
+        </div>
+        <div class="form-grp">
+          <label for="mProveedor">Proveedor / taller</label>
+          <input type="text" id="mProveedor" placeholder="Nombre del taller o proveedor">
+        </div>
+        <div class="form-grp ancho">
+          <label for="mDesc">Descripción *</label>
+          <input type="text" id="mDesc" required placeholder="Ej. Cambio de aceite y revisión 202 mil km">
+        </div>
+        <div class="form-grp ancho">
+          <label for="mObs">Observaciones</label>
+          <textarea id="mObs" placeholder="Detalles adicionales o responsable"></textarea>
+        </div>
+        <div class="form-grp ancho" style="flex-direction:row;align-items:center;gap:12px">
+          <button class="btn p" type="submit" id="btnGuardarMant">Guardar mantenimiento</button>
+          <span id="msgMantForm" class="small muted"></span>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel-card">
+      <h2>Órdenes y reservas de mantenimiento</h2>
+      <div class="tw">
+        <table>
+          <thead><tr><th>F. prog.</th><th>Activo</th><th>Finca</th><th>Tipo</th><th>Descripción</th><th>Estado</th><th>Proveedor</th><th class="n">Costo $</th></tr></thead>
+          <tbody id="tbMantenimientos"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h2>Activos registrados</h2>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Código</th><th>Máquina / equipo</th><th>Tipo</th><th>Marca / Modelo</th><th>Finca</th><th class="n">Horómetro / Km</th><th>Próximo mant.</th><th>Estado</th></tr></thead>
+          <tbody id="tbActivos"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 3: VEHÍCULOS Y COMBUSTIBLE -->
+  <section id="secVehiculos" class="hide" role="tabpanel">
+    <div id="vacioVeh" class="aviso-box hide">Aún no hay viajes registrados en la colección <code>vehiculos</code> de Firestore.</div>
+    <div class="grid-charts">
+      <div class="panel-card">
+        <h2>Kilometraje semanal por vehículo</h2>
+        <p class="sub-panel">Tendencia agregada a partir de recorridos diarios.</p>
+        <div class="chart-box"><canvas id="chKmVehiculos"></canvas></div>
+      </div>
+      <div class="panel-card">
+        <h2>Lecturas de combustible por nivel</h2>
+        <p class="sub-panel">Alto (≥3/4), Medio (1/4–3/4) y Bajo (&lt;1/4).</p>
+        <div class="chart-box"><canvas id="chCombNivel"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h2>Registro de viajes, cargas y rendimiento</h2>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Fecha</th><th>Vehículo</th><th>Ruta</th><th class="n">Km rec.</th><th>Nivel comb.</th><th class="n">Rend. km/tanque</th><th class="n">$/km</th><th>Estado</th></tr></thead>
+          <tbody id="tbVehiculos"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const PAL = { grafito: "#23262B", azul: "#2E5E8E", ladrillo: "#B5452F", maiz: "#C7901A", gris: "#8A8F98" };
+const PAL_ARR = [PAL.azul, PAL.ladrillo, PAL.maiz, PAL.grafito, PAL.gris];
+
+let AGRO_FILAS = [];
+let RECEPCIONES = [];
+let MANTENIMIENTOS = [];
+let ACTIVOS = [];
+let VEHICULOS = [];
+let CHARTS = {};
+window.TAB = "gasto";
+
+function col(r, nombre, alt) {
+  if (!r) return "";
+  if (r[nombre] !== undefined && r[nombre] !== null && r[nombre] !== "") return r[nombre];
+  if (alt && r[alt] !== undefined && r[alt] !== null) return r[alt];
+  return "";
+}
+
+function num(v) {
+  if (typeof v === "number") return isFinite(v) ? v : 0;
+  const s = String(v == null ? "" : v).replace(/[^0-9.,-]/g, "").replace(",", ".");
+  const n = parseFloat(s);
+  return isFinite(n) ? n : 0;
+}
+
+function fmtUsd(v) {
+  return "$" + (Number(v) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function normOc(v) {
+  let s = String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (s.startsWith("OC") && s.length > 2 && /^\d+$/.test(s.slice(2))) s = s.slice(2);
+  return s.replace(/^0+/, "") || s;
+}
+
+function normFinca(f) {
+  const s = String(f || "").trim();
+  if (!s) return "Sin finca";
+  const u = s.toUpperCase();
+  if (u === "PCAYO" || u.includes("CAYO")) return "Puerto Cayo";
+  if (u === "CONAQUI" || u.includes("ÑAQUI") || u.includes("NAQUI")) return "Coñaqui";
+  if (u === "ALOPEZ" || u.includes("LOPEZ") || u.includes("LÓPEZ")) return "Andrés López";
+  if (u.includes("ELIANA")) return "Eliana";
+  if (u.includes("OTOBURO")) return "Otoburo";
+  if (u.includes("CARMEN")) return "El Carmen";
+  if (u.includes("IMBABURA")) return "Imbabura";
+  return s;
+}
+
+function parseFecha(s) {
+  if (!s) return null;
+  const txt = String(s).trim();
+  const m = txt.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const d = new Date(txt);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function semanaIso(dt, semTxt) {
+  if (dt) {
+    const tmp = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+    const day = tmp.getUTCDay() || 7;
+    tmp.setUTCDate(tmp.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
+    return `${tmp.getUTCFullYear()}-S${String(weekNo).padStart(2, "0")}`;
+  }
+  const m = String(semTxt || "").match(/(\d{1,2})/);
+  if (m) return `${new Date().getFullYear()}-S${String(Number(m[1])).padStart(2, "0")}`;
+  return "Sin fecha";
+}
+
+function clasificarCombustible(val) {
+  if (!val) return "";
+  const t = String(val).toLowerCase();
+  let pct = null;
+  if (t.includes("full") || t.includes("lleno") || /\bf\b/.test(t)) pct = 100;
+  else if (t.includes("reserva") || /\be\b/.test(t)) pct = 5;
+  else {
+    const mf = t.match(/(\d+(?:[.,]\d+)?)\s*\/\s*(\d+(?:[.,]\d+)?)/);
+    const mp = t.match(/(\d+(?:[.,]\d+)?)\s*%/);
+    if (mf) pct = (num(mf[1]) / (num(mf[2]) || 1)) * 100;
+    else if (mp) pct = num(mp[1]);
+  }
+  if (pct == null) return "";
+  if (pct >= 75) return "Alto";
+  if (pct >= 25) return "Medio";
+  return "Bajo";
+}
+
+function themeColors() {
+  const root = document.documentElement;
+  const dark = root.dataset.theme === "dark" || (!root.dataset.theme && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  return {
+    text: dark ? "#E8EAED" : "#23262B",
+    grid: dark ? "rgba(255,255,255,0.1)" : "rgba(35,38,43,0.08)",
+    border: dark ? "#1A1D22" : "#FFFFFF"
+  };
+}
+
+function drawChart(id, config) {
+  const el = document.getElementById(id);
+  if (!el || !window.Chart) return;
+  if (CHARTS[id]) { CHARTS[id].destroy(); }
+  const th = themeColors();
+  config.options = config.options || {};
+  config.options.responsive = true;
+  config.options.maintainAspectRatio = false;
+  config.options.resizeDelay = 180;
+  config.options.plugins = config.options.plugins || {};
+  config.options.plugins.legend = config.options.plugins.legend || {};
+  config.options.plugins.legend.labels = Object.assign({ color: th.text }, config.options.plugins.legend.labels || {});
+  if (config.options.scales) {
+    Object.values(config.options.scales).forEach(sc => {
+      sc.ticks = Object.assign({ color: th.text }, sc.ticks || {});
+      sc.grid = Object.assign({ color: th.grid }, sc.grid || {});
+    });
+  }
+  CHARTS[id] = new Chart(el, config);
+}
+
+function poblarFiltros(lineas, mantenimientos, viajes) {
+  const fincas = new Set();
+  const meses = new Set();
+  const semanas = new Set();
+  lineas.forEach(l => {
+    if (l.finca) fincas.add(l.finca);
+    if (l.mes) meses.add(l.mes);
+    if (l.semana) semanas.add(l.semana);
+  });
+  mantenimientos.forEach(m => {
+    if (m.finca) fincas.add(normFinca(m.finca));
+    const dt = parseFecha(m.fecha_programada || m.fecha_reporte);
+    if (dt) {
+      meses.add(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`);
+      semanas.add(semanaIso(dt));
+    }
+  });
+  viajes.forEach(v => {
+    const dt = parseFecha(v.fecha_actividad);
+    if (dt) {
+      meses.add(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`);
+      semanas.add(semanaIso(dt));
+    }
+  });
+
+  const fillSel = (id, vals, labelAll) => {
+    const sel = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = `<option value="">${labelAll}</option>` + [...vals].sort().map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+    if ([...vals].includes(prev)) sel.value = prev;
+  };
+  fillSel("fFinca", fincas, "Todas las fincas");
+  fillSel("fMes", meses, "Todos los meses");
+  fillSel("fSemana", semanas, "Todas las semanas");
+}
+
+function procesarLineasGasto() {
+  const recPorOc = new Map();
+  const recPorPedLin = new Map();
+  RECEPCIONES.forEach(rec => {
+    if (!["emparejada", "conciliada_manual"].includes(rec.estado_conciliacion)) return;
+    [rec.oc_codigo, rec.numero_oc].forEach(c => {
+      const nc = normOc(c);
+      if (nc && !recPorOc.has(nc)) recPorOc.set(nc, rec);
+    });
+    if (rec.pedido && rec.linea) recPorPedLin.set(`${rec.pedido}|${rec.linea}`, rec);
+  });
+
+  const hoy = new Date();
+  let ocAbiertas = new Set();
+  let vencN = 0, vencM = 0;
+  const lineas = [];
+
+  AGRO_FILAS.forEach(r => {
+    const est = String(col(r, "Estado (código)", "estado")).toLowerCase();
+    if (est === "anulado" || est === "rechazado") return;
+    const monto = Math.round(num(col(r, "Cantidad", "cantidad")) * num(col(r, "Precio unit. elegido", "precio_sel")) * 100) / 100;
+    const finca = normFinca(col(r, "Finca", "finca"));
+    const ocCod = col(r, "OC (código)", "oc_codigo");
+    const ocNum = col(r, "N° OC", "numero_oc");
+    const ocCreada = col(r, "F. OC creada", "oc_creada");
+    const ped = String(col(r, "Pedido", "pedido"));
+    const lin = String(col(r, "Línea", "linea"));
+    const rec = recPorPedLin.get(`${ped}|${lin}`) || recPorOc.get(normOc(ocCod)) || recPorOc.get(normOc(ocNum));
+    const tieneOc = Boolean(ocNum || ocCreada || ocCod);
+
+    const fEntAg = parseFecha(col(r, "F. entrega", "f_entrega"));
+    const fPago = parseFecha(col(r, "F. pago realizado", "f_pago_real"));
+    const fOc = parseFecha(ocCreada) || parseFecha(col(r, "F. registro N° OC", "f_registro_oc"));
+    const fAut = parseFecha(col(r, "F. autorización", "f_autorizacion")) || parseFecha(col(r, "F. revisión campo", "f_rev_campo"));
+    const fCr = parseFecha(col(r, "F. pedido", "creado"));
+    const fProgPago = parseFecha(col(r, "F. pago programada", "f_pago_programada"));
+    const estOc = String(col(r, "Estado OC", "estado_oc")).toLowerCase();
+
+    if (tieneOc && (estOc === "abierta" || (!fPago && !fEntAg && estOc !== "cerrada" && estOc !== "anulada"))) {
+      ocAbiertas.add(String(ocCod || ocNum));
+    }
+    if (fProgPago && fProgPago < hoy && !fPago && monto > 0) {
+      vencN += 1;
+      vencM += monto;
+    }
+    if (monto <= 0) return;
+
+    let etapa = null, dtRef = null;
+    if (fPago || col(r, "F. pago realizado", "f_pago_real")) {
+      etapa = "Pagado";
+      dtRef = fPago || fEntAg || fOc || fCr;
+    } else if (fEntAg || est === "entregado" || rec) {
+      etapa = "Recibido en finca";
+      dtRef = fEntAg || (rec ? parseFecha(rec.fecha) : null) || fOc || fAut || fCr;
+    } else if (tieneOc) {
+      etapa = "Ordenado";
+      dtRef = fOc || fAut || fCr;
+    } else if (["aprobado", "aprobado_campo"].includes(est) || (est === "seleccionado" && col(r, "F. autorización", "f_autorizacion"))) {
+      etapa = "Comprometido";
+      dtRef = fAut || fCr;
+    }
+    if (!etapa) return;
+
+    const sem = semanaIso(dtRef, col(r, "Semana", "semana"));
+    const mes = dtRef ? `${dtRef.getFullYear()}-${String(dtRef.getMonth() + 1).padStart(2, "0")}` : "";
+    lineas.push({
+      finca, etapa, monto, semana: sem, mes,
+      categoria: String(col(r, "Categoría", "categoria") || "Sin categoría"),
+      proveedor: String(col(r, "Proveedor", "proveedor") || "Sin proveedor")
+    });
+  });
+
+  return { lineas, ocAbiertas: ocAbiertas.size, vencN, vencM };
+}
+
+function renderTodo() {
+  const fFinca = $("#fFinca").value;
+  const fMes = $("#fMes").value;
+  const fSemana = $("#fSemana").value;
+
+  const gastoInfo = procesarLineasGasto();
+  const todasLineas = gastoInfo.lineas;
+  poblarFiltros(todasLineas, MANTENIMIENTOS, VEHICULOS);
+
+  const lFilt = todasLineas.filter(l => (!fFinca || l.finca === fFinca) && (!fMes || l.mes === fMes) && (!fSemana || l.semana === fSemana));
+  const mFilt = MANTENIMIENTOS.filter(m => {
+    if (fFinca && normFinca(m.finca) !== fFinca) return false;
+    const dt = parseFecha(m.fecha_programada || m.fecha_reporte);
+    if (fMes && (!dt || `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}` !== fMes)) return false;
+    if (fSemana && (!dt || semanaIso(dt) !== fSemana)) return false;
+    return true;
+  });
+  const vFilt = VEHICULOS.filter(v => {
+    const dt = parseFecha(v.fecha_actividad);
+    if (fMes && (!dt || `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}` !== fMes)) return false;
+    if (fSemana && (!dt || semanaIso(dt) !== fSemana)) return false;
+    return true;
+  });
+
+  // KPIs superiores
+  const ahora = new Date();
+  const semHoy = fSemana || semanaIso(ahora);
+  const mesHoy = fMes || `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}`;
+  const sumSem = lFilt.filter(l => fSemana ? true : l.semana === semHoy).reduce((s, l) => s + l.monto, 0);
+  const sumMes = lFilt.filter(l => fMes ? true : l.mes === mesHoy).reduce((s, l) => s + l.monto, 0);
+  const sumRecPag = lFilt.filter(l => l.etapa === "Recibido en finca" || l.etapa === "Pagado").reduce((s, l) => s + l.monto, 0);
+  const sumOrdMas = lFilt.filter(l => l.etapa !== "Comprometido").reduce((s, l) => s + l.monto, 0);
+  const pctRec = sumOrdMas > 0 ? Math.round((sumRecPag / sumOrdMas) * 1000) / 10 : 0;
+
+  $("#kSem").textContent = fmtUsd(sumSem);
+  $("#kSemSub").textContent = semHoy;
+  $("#kMes").textContent = fmtUsd(sumMes);
+  $("#kMesSub").textContent = mesHoy;
+  $("#kRec").textContent = pctRec + "%";
+  $("#kOc").textContent = gastoInfo.ocAbiertas;
+  $("#kVen").textContent = gastoInfo.vencN;
+  $("#kVenSub").textContent = fmtUsd(gastoInfo.vencM);
+
+  // KPI Mantenimiento
+  let atrasos = [], progAtr = 0;
+  mFilt.forEach(m => {
+    const dp = parseFecha(m.fecha_programada), de = parseFecha(m.fecha_ejecucion);
+    let atr = null;
+    if (dp && de) atr = Math.max(0, Math.round((de - dp) / 86400000));
+    else if (dp && m.estado !== "Ejecutado" && m.estado !== "Cancelado") atr = Math.max(0, Math.round((ahora - dp) / 86400000));
+    if (atr != null) atrasos.push(atr);
+    if (["Pendiente", "Programado", "En ejecución"].includes(m.estado) || (atr && atr > 0 && m.estado !== "Cancelado")) progAtr += 1;
+  });
+  const atrProm = atrasos.length ? (atrasos.reduce((a, b) => a + b, 0) / atrasos.length).toFixed(1) : "0.0";
+  $("#kMnt").textContent = progAtr;
+  $("#kMntSub").textContent = `Atraso prom: ${atrProm} d`;
+
+  // KPI Vehículos
+  const kmSum = vFilt.reduce((s, v) => s + (v.km_recorridos > 0 ? Number(v.km_recorridos) : 0), 0);
+  const rends = vFilt.map(v => Number(v.rendimiento_km_tanque || 0)).filter(x => x > 0);
+  const ckm = vFilt.map(v => Number(v.costo_por_km || 0)).filter(x => x > 0);
+  const rendProm = rends.length ? (rends.reduce((a, b) => a + b, 0) / rends.length).toFixed(1) + " km" : "—";
+  const ckmProm = ckm.length ? "$" + (ckm.reduce((a, b) => a + b, 0) / ckm.length).toFixed(2) + "/km" : "sin vales";
+  $("#kKm").textContent = kmSum.toLocaleString("es-EC", { maximumFractionDigits: 1 }) + " km";
+  $("#kKmSub").textContent = `${vFilt.length} viajes`;
+  $("#kRend").textContent = rendProm;
+  $("#kRendSub").textContent = `km/tanque · ${ckmProm}`;
+
+  // Sección 1: Gráficos y tablas de gasto
+  $("#vacioGasto").classList.toggle("hide", lFilt.length > 0);
+  const fincas = [...new Set(lFilt.map(l => l.finca))].sort();
+  const etapas = ["Comprometido", "Ordenado", "Recibido en finca", "Pagado"];
+  const estCols = [PAL.gris, PAL.azul, PAL.maiz, PAL.grafito];
+
+  drawChart("chEtapasFinca", {
+    type: "bar",
+    data: {
+      labels: fincas.length ? fincas : ["Sin datos"],
+      datasets: etapas.map((et, i) => ({
+        label: et,
+        data: fincas.length ? fincas.map(fn => lFilt.filter(l => l.finca === fn && l.etapa === et).reduce((s, x) => s + x.monto, 0)) : [0],
+        backgroundColor: estCols[i],
+        stack: "gasto"
+      }))
+    },
+    options: { scales: { x: { stacked: true }, y: { stacked: true } }, plugins: { legend: { position: "bottom" } } }
+  });
+
+  const sems12 = [...new Set(lFilt.map(l => l.semana).filter(s => s !== "Sin fecha"))].sort().slice(-12);
+  drawChart("chTendenciaSem", {
+    type: "line",
+    data: {
+      labels: sems12.length ? sems12 : ["Sin datos"],
+      datasets: (fincas.length ? fincas : ["Sin finca"]).map((fn, i) => ({
+        label: fn,
+        data: sems12.length ? sems12.map(sm => lFilt.filter(l => l.semana === sm && l.finca === fn).reduce((s, x) => s + x.monto, 0)) : [0],
+        borderColor: PAL_ARR[i % PAL_ARR.length],
+        backgroundColor: PAL_ARR[i % PAL_ARR.length],
+        tension: 0.25
+      }))
+    },
+    options: { scales: { x: {}, y: {} }, plugins: { legend: { position: "bottom" } } }
+  });
+
+  const agrupar = (campo) => {
+    const m = new Map();
+    lFilt.forEach(l => {
+      const k = l[campo];
+      const cur = m.get(k) || { nombre: k, lineas: 0, monto: 0 };
+      cur.lineas += 1; cur.monto += l.monto;
+      m.set(k, cur);
+    });
+    return [...m.values()].sort((a, b) => b.monto - a.monto);
+  };
+  const topCats = agrupar("categoria").slice(0, 10);
+  const topProvs = agrupar("proveedor").filter(x => x.nombre !== "Sin proveedor").slice(0, 10);
+  const th = themeColors();
+
+  drawChart("chCategorias", {
+    type: "doughnut",
+    data: {
+      labels: topCats.length ? topCats.map(c => c.nombre) : ["Sin datos"],
+      datasets: [{
+        data: topCats.length ? topCats.map(c => Math.round(c.monto * 100) / 100) : [0],
+        backgroundColor: (topCats.length ? topCats : [1]).map((_, i) => PAL_ARR[i % PAL_ARR.length]),
+        borderColor: th.border,
+        borderWidth: 2
+      }]
+    },
+    options: { plugins: { legend: { position: "bottom" } } }
+  });
+
+  drawChart("chProveedores", {
+    type: "bar",
+    data: {
+      labels: topProvs.length ? topProvs.map(p => p.nombre.slice(0, 26)) : ["Sin datos"],
+      datasets: [{
+        label: "Gasto USD",
+        data: topProvs.length ? topProvs.map(p => Math.round(p.monto * 100) / 100) : [0],
+        backgroundColor: PAL.azul
+      }]
+    },
+    options: { indexAxis: "y", scales: { x: {}, y: {} }, plugins: { legend: { display: false } } }
+  });
+
+  // Tabla semanal
+  const mapaSem = new Map();
+  lFilt.forEach(l => {
+    const key = `${l.semana}|${l.finca}`;
+    const cur = mapaSem.get(key) || { semana: l.semana, finca: l.finca, Comprometido: 0, Ordenado: 0, "Recibido en finca": 0, Pagado: 0 };
+    cur[l.etapa] += l.monto;
+    mapaSem.set(key, cur);
+  });
+  const filasSem = [...mapaSem.values()].sort((a, b) => b.semana.localeCompare(a.semana) || a.finca.localeCompare(b.finca));
+  $("#tbSemanalFinca").innerHTML = filasSem.length ? filasSem.map(fs => {
+    const tot = fs.Comprometido + fs.Ordenado + fs["Recibido en finca"] + fs.Pagado;
+    return `<tr><td>${esc(fs.semana)}</td><td><b>${esc(fs.finca)}</b></td><td class="n">${fmtUsd(fs.Comprometido)}</td><td class="n">${fmtUsd(fs.Ordenado)}</td><td class="n">${fmtUsd(fs["Recibido en finca"])}</td><td class="n">${fmtUsd(fs.Pagado)}</td><td class="n"><b>${fmtUsd(tot)}</b></td></tr>`;
+  }).join("") : '<tr><td colspan="7" class="muted">Sin movimientos en el filtro actual.</td></tr>';
+
+  $("#tbTopCats").innerHTML = topCats.length ? topCats.map(c => `<tr><td>${esc(c.nombre)}</td><td class="n">${c.lineas}</td><td class="n"><b>${fmtUsd(c.monto)}</b></td></tr>`).join("") : '<tr><td colspan="3" class="muted">Sin datos</td></tr>';
+  $("#tbTopProvs").innerHTML = topProvs.length ? topProvs.map(p => `<tr><td>${esc(p.nombre)}</td><td class="n">${p.lineas}</td><td class="n"><b>${fmtUsd(p.monto)}</b></td></tr>`).join("") : '<tr><td colspan="3" class="muted">Sin datos</td></tr>';
+
+  // Sección 2: Mantenimiento
+  const estsM = ["Pendiente", "Programado", "En ejecución", "Ejecutado", "Cancelado"];
+  drawChart("chMantEstado", {
+    type: "bar",
+    data: {
+      labels: estsM,
+      datasets: [{ label: "Órdenes", data: estsM.map(e => mFilt.filter(m => m.estado === e).length), backgroundColor: [PAL.maiz, PAL.azul, PAL.ladrillo, PAL.grafito, PAL.gris] }]
+    },
+    options: { scales: { x: {}, y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+  });
+  const mCostFinca = new Map();
+  let nPrev = 0, nCorr = 0;
+  mFilt.forEach(m => {
+    const fn = normFinca(m.finca);
+    mCostFinca.set(fn, (mCostFinca.get(fn) || 0) + num(m.costo));
+    if (String(m.tipo || "").toLowerCase().includes("prev")) nPrev++; else nCorr++;
+  });
+  $("#subMantRatio").textContent = `Preventivo: ${nPrev} · Correctivo: ${nCorr}`;
+  $("#subMantAtraso").textContent = `Días de atraso promedio: ${atrProm} días`;
+  const mfKeys = [...mCostFinca.keys()].sort();
+  drawChart("chMantFinca", {
+    type: "bar",
+    data: {
+      labels: mfKeys.length ? mfKeys : ["Sin datos"],
+      datasets: [{ label: "Costo USD", data: mfKeys.length ? mfKeys.map(k => mCostFinca.get(k)) : [0], backgroundColor: PAL.ladrillo }]
+    },
+    options: { scales: { x: {}, y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+  });
+
+  const chipEstado = e => e === "Ejecutado" ? "grafito" : (e === "Programado" ? "azul" : (e === "Pendiente" ? "maiz" : "ladrillo"));
+  const mOrd = [...mFilt].sort((a, b) => String(b.fecha_programada || b.fecha_reporte || "").localeCompare(String(a.fecha_programada || a.fecha_reporte || "")));
+  $("#tbMantenimientos").innerHTML = mOrd.length ? mOrd.map(m =>
+    `<tr><td>${esc(m.fecha_programada || m.fecha_reporte || "—")} ${esc(m.hora_programada || "")}</td><td><b>${esc(m.activo)}</b></td><td>${esc(normFinca(m.finca))}</td><td>${esc(m.tipo)}</td><td>${esc(m.descripcion)}</td><td><span class="chip-est ${chipEstado(m.estado)}">${esc(m.estado)}</span></td><td>${esc(m.proveedor || "—")}</td><td class="n">${fmtUsd(m.costo)}</td></tr>`
+  ).join("") : '<tr><td colspan="8" class="muted">Sin órdenes de mantenimiento registradas todavía.</td></tr>';
+
+  const dl = $("#dlActivos");
+  const actNombres = new Set(["Camioneta (confirmar)", ...ACTIVOS.map(a => `${a.codigo} · ${a.maquina_equipo || ""}`.trim())]);
+  dl.innerHTML = [...actNombres].map(n => `<option value="${esc(n)}">`).join("");
+
+  $("#tbActivos").innerHTML = ACTIVOS.length ? ACTIVOS.map(a =>
+    `<tr><td><b>${esc(a.codigo)}</b></td><td>${esc(a.maquina_equipo || "")}</td><td>${esc(a.tipo || "")}</td><td>${esc(a.marca_modelo || "")}</td><td>${esc(normFinca(a.finca))}</td><td class="n">${num(a.horometro_km).toLocaleString("es-EC")}</td><td>${esc(a.proximo_mantenimiento || "—")}</td><td><span class="chip-est azul">${esc(a.estado || "Operativo")}</span></td></tr>`
+  ).join("") : '<tr><td colspan="8" class="muted">Sin activos cargados aún (listo para importar Excel).</td></tr>';
+
+  // Sección 3: Vehículos
+  $("#vacioVeh").classList.toggle("hide", vFilt.length > 0);
+  const vehsUniq = [...new Set(vFilt.map(v => v.vehiculo || "Camioneta"))].sort();
+  const semsVeh = [...new Set(vFilt.map(v => semanaIso(parseFecha(v.fecha_actividad))))].filter(s => s !== "Sin fecha").sort().slice(-12);
+  drawChart("chKmVehiculos", {
+    type: "bar",
+    data: {
+      labels: semsVeh.length ? semsVeh : ["Sin datos"],
+      datasets: (vehsUniq.length ? vehsUniq : ["Camioneta"]).map((vh, i) => ({
+        label: vh,
+        data: semsVeh.length ? semsVeh.map(sm => vFilt.filter(v => (v.vehiculo || "Camioneta") === vh && semanaIso(parseFecha(v.fecha_actividad)) === sm).reduce((s, x) => s + (x.km_recorridos > 0 ? Number(x.km_recorridos) : 0), 0)) : [0],
+        backgroundColor: PAL_ARR[i % PAL_ARR.length]
+      }))
+    },
+    options: { scales: { x: {}, y: { beginAtZero: true } }, plugins: { legend: { position: "bottom" } } }
+  });
+
+  const cNivel = { Alto: 0, Medio: 0, Bajo: 0 };
+  vFilt.forEach(v => {
+    const r = v.combustible_rango || clasificarCombustible(v.combustible_final || v.combustible_inicial);
+    if (r && cNivel[r] !== undefined) cNivel[r] += 1;
+  });
+  drawChart("chCombNivel", {
+    type: "bar",
+    data: {
+      labels: ["Alto (≥3/4)", "Medio (1/4–3/4)", "Bajo (<1/4)"],
+      datasets: [{ label: "Lecturas", data: [cNivel.Alto, cNivel.Medio, cNivel.Bajo], backgroundColor: [PAL.azul, PAL.maiz, PAL.ladrillo] }]
+    },
+    options: { indexAxis: "y", scales: { x: { beginAtZero: true }, y: {} }, plugins: { legend: { display: false } } }
+  });
+
+  const vOrd = [...vFilt].sort((a, b) => String(b.fecha_actividad || "").localeCompare(String(a.fecha_actividad || "")));
+  $("#tbVehiculos").innerHTML = vOrd.length ? vOrd.map(v => {
+    const rango = v.combustible_rango || clasificarCombustible(v.combustible_final || v.combustible_inicial) || "—";
+    const chipRng = rango === "Alto" ? "azul" : (rango === "Medio" ? "maiz" : "ladrillo");
+    return `<tr><td>${esc(v.fecha_actividad || "—")}</td><td><b>${esc(v.vehiculo || "Camioneta")}</b></td><td>${esc(v.origen || "")} → ${esc(v.destino || "")}</td><td class="n">${v.km_recorridos != null ? num(v.km_recorridos) : "—"}</td><td><span class="chip-est ${chipRng}">${esc(rango)}</span> <span class="small muted">${esc(v.combustible_final || v.combustible_inicial || "")}</span></td><td class="n">${v.rendimiento_km_tanque ? num(v.rendimiento_km_tanque) + " km" : "—"}</td><td class="n">${v.costo_por_km ? "$" + Number(v.costo_por_km).toFixed(2) : "—"}</td><td>${esc(v.estado || "")}</td></tr>`;
+  }).join("") : '<tr><td colspan="8" class="muted">Sin recorridos registrados en este rango.</td></tr>';
+}
+
+function cambiarTab(tab) {
+  window.TAB = tab;
+  $("#secGastoFinca").classList.toggle("hide", tab !== "gasto");
+  $("#secMantenimiento").classList.toggle("hide", tab !== "mantenimiento");
+  $("#secVehiculos").classList.toggle("hide", tab !== "vehiculos");
+  document.querySelectorAll("#tabsGerencia .tab-btn").forEach(b => {
+    const act = b.dataset.tab === tab;
+    b.classList.toggle("activo", act);
+    b.setAttribute("aria-selected", act ? "true" : "false");
+  });
+}
+
+document.querySelectorAll("#tabsGerencia .tab-btn").forEach(b => {
+  b.onclick = () => cambiarTab(b.dataset.tab);
+});
+
+$("#fFinca").onchange = renderTodo;
+$("#fMes").onchange = renderTodo;
+$("#fSemana").onchange = renderTodo;
+$("#btnLimpiarGer").onclick = () => {
+  $("#fFinca").value = ""; $("#fMes").value = ""; $("#fSemana").value = "";
+  renderTodo();
+};
+
+$("#formRegistrarMant").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const btn = $("#btnGuardarMant");
+  const msg = $("#msgMantForm");
+  btn.disabled = true;
+  msg.className = "small muted";
+  msg.textContent = "Guardando en Firestore…";
+
+  const payload = {
+    activo: $("#mActivo").value.trim(),
+    finca: $("#mFinca").value,
+    tipo: $("#mTipo").value,
+    prioridad: $("#mPrioridad").value,
+    fecha_programada: $("#mFechaProg").value,
+    hora_programada: $("#mHoraProg").value,
+    estado: $("#mEstado").value,
+    costo: num($("#mCosto").value),
+    proveedor: $("#mProveedor").value.trim(),
+    descripcion: $("#mDesc").value.trim(),
+    observaciones: $("#mObs").value.trim(),
+    fuente: "manual_app"
+  };
+
+  if (window.AgdNube && AgdNube.guardarMantenimiento) {
+    const res = await AgdNube.guardarMantenimiento(payload);
+    if (res && res.ok) {
+      msg.className = "msg-ok";
+      msg.textContent = "Mantenimiento guardado correctamente (" + res.id + ").";
+      ev.target.reset();
+    } else {
+      msg.className = "msg-err";
+      msg.textContent = "No se pudo guardar: " + ((res && res.error) || "verifique conexión y autorización.");
+    }
+  } else {
+    msg.className = "msg-err";
+    msg.textContent = "Módulo de nube no disponible.";
+  }
+  btn.disabled = false;
+};
+
+async function cargarDatos() {
+  $("#bannerError").classList.add("hide");
+  $("#bannerCargando").classList.remove("hide");
+  $("#badgeEstadoGer").textContent = "Actualizando datos…";
+
+  try {
+    if (window.ComprasApp) {
+      await ComprasApp.exigirSesion();
+      const s = await ComprasApp.snapAgro();
+      AGRO_FILAS = (s && s.filas) || [];
+    }
+  } catch (e) {
+    $("#bannerError").textContent = "No se pudo cargar AgroControl en vivo (" + (e.message || e) + "). Mostrando colecciones disponibles.";
+    $("#bannerError").classList.remove("hide");
+  }
+
+  if (window.AgdNube) {
+    await AgdNube.inicializar();
+    const est = AgdNube.estado();
+    if (est.conectado) {
+      $("#badgeEstadoGer").textContent = "En vivo · Firestore conectado";
+      AgdNube.escucharRecepciones(d => { RECEPCIONES = d || []; renderTodo(); });
+      AgdNube.escucharMantenimientos(d => { MANTENIMIENTOS = d || []; renderTodo(); });
+      AgdNube.escucharActivos(d => { ACTIVOS = d || []; renderTodo(); });
+      AgdNube.escucharVehiculos(d => { VEHICULOS = d || []; renderTodo(); });
+    } else {
+      $("#badgeEstadoGer").innerHTML = 'Sin sesión Google (<a href="index.html">Conectar</a>)';
+    }
+  }
+  $("#bannerCargando").classList.add("hide");
+  renderTodo();
+}
+
+$("#btnRefrescarGer").onclick = cargarDatos;
+document.addEventListener("DOMContentLoaded", () => {
+  if (window.AgdGuia && AgdGuia.ico) {
+    document.querySelectorAll("[data-i]").forEach(el => { el.innerHTML = AgdGuia.ico(el.dataset.i); });
+  }
+  cargarDatos();
+});
+</script>
+</body>
+</html>

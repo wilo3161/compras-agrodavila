@@ -129,6 +129,10 @@ dialog#dlgComp::backdrop{background:rgba(14,20,30,.65);backdrop-filter:blur(4px)
       <span data-i="checklist"></span><span>Requerimientos</span>
       <span class="tab-badge" id="badgeCountReq">0</span>
     </button>
+    <button class="tab-btn" type="button" data-tab="conc" role="tab" aria-selected="false" id="tabBtnConc">
+      <span data-i="camion"></span><span>Por conciliar</span>
+      <span class="tab-badge" id="badgeCountConc">0</span>
+    </button>
     <button class="tab-btn" type="button" data-tab="hist" role="tab" aria-selected="false" id="tabBtnHist">
       <span data-i="control"></span><span>Historial de envíos</span>
       <span class="tab-badge" id="badgeCountHist">0</span>
@@ -153,6 +157,17 @@ dialog#dlgComp::backdrop{background:rgba(14,20,30,.65);backdrop-filter:blur(4px)
         <span data-i="refrescar"></span>
         <h3>Cargando requerimientos…</h3>
         <p>Leyendo cotizaciones y pedidos abiertos.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 2B: RECEPCIONES POR CONCILIAR -->
+  <section id="secConciliar" class="hide" role="tabpanel" aria-labelledby="tabBtnConc">
+    <div id="listaConciliar" class="grid-cards">
+      <div class="vacio-box">
+        <span data-i="refrescar"></span>
+        <h3>Cargando recepciones por conciliar…</h3>
+        <p>Buscando entregas de finca pendientes de asignar a una OC.</p>
       </div>
     </div>
   </section>
@@ -197,8 +212,11 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&am
 
 let CONVERSACIONES = [];
 let REQUERIMIENTOS = [];
+let RECEPCIONES = [];
+let LINEAS_AGRO = [];
 let HISTORIAL = [];
 let TAB_ACTIVA = "conv";
+window.TAB = "conv";
 
 function ponerIconos() {
   document.querySelectorAll("[data-i]").forEach(e => {
@@ -213,6 +231,7 @@ function cambiarTab(tab) {
   TAB_ACTIVA = tab;
   $("#secConversaciones").classList.toggle("hide", tab !== "conv");
   $("#secRequerimientos").classList.toggle("hide", tab !== "req");
+  $("#secConciliar").classList.toggle("hide", tab !== "conc");
   $("#secHistorial").classList.toggle("hide", tab !== "hist");
 
   document.querySelectorAll(".tab-btn").forEach(b => {
@@ -689,6 +708,148 @@ async function iniciarBandeja() {
   }, err => {
     console.warn("Error al escuchar bandeja:", err);
     $("#listaRequerimientos").innerHTML = `<div class="vacio-box"><h3>Error de lectura</h3><p>${esc(err.message)}</p></div>`;
+  });
+
+  // Escuchar recepciones de finca (pendientes de conciliación manual)
+  if (AgdNube.escucharRecepciones) {
+    AgdNube.escucharRecepciones(recs => {
+      RECEPCIONES = recs || [];
+      pintarConciliaciones();
+    }, err => {
+      console.warn("Error al escuchar recepciones:", err);
+      $("#listaConciliar").innerHTML = `<div class="vacio-box"><h3>Error de lectura</h3><p>${esc(err.message)}</p></div>`;
+    });
+  }
+
+  // Cargar líneas abiertas de AgroControl para selector de conciliación
+  if (window.ComprasApp && ComprasApp.snapAgro) {
+    try {
+      await ComprasApp.exigirSesion();
+      const snap = await ComprasApp.snapAgro();
+      LINEAS_AGRO = (snap && snap.filas) || [];
+      pintarConciliaciones();
+    } catch (e) {
+      LINEAS_AGRO = [];
+    }
+  }
+}
+
+function pintarConciliaciones() {
+  const cont = $("#listaConciliar");
+  const pend = RECEPCIONES.filter(r => r.estado_conciliacion === "por_conciliar");
+  $("#badgeCountConc").textContent = pend.length;
+
+  if (!pend.length) {
+    cont.innerHTML = `
+      <div class="vacio-box">
+        <span data-i="check"></span>
+        <h3>Sin recepciones por conciliar</h3>
+        <p>Todas las recepciones reportadas desde finca están emparejadas con su OC o conciliadas.</p>
+      </div>`;
+    ponerIconos();
+    return;
+  }
+
+  const abiertas = LINEAS_AGRO.filter(f => {
+    const est = String(f["Estado (código)"] || f.estado || "").toLowerCase();
+    const tieneOc = f["N° OC"] || f.numero_oc || f["OC"] || f.oc_codigo;
+    return tieneOc && est !== "anulado" && est !== "rechazado";
+  });
+
+  cont.innerHTML = pend.map(r => {
+    const fincaRec = (r.finca || "").toLowerCase();
+    const candidatas = [...abiertas].sort((a, b) => {
+      const af = String(a["Finca"] || a.finca || "").toLowerCase().includes(fincaRec) ? 0 : 1;
+      const bf = String(b["Finca"] || b.finca || "").toLowerCase().includes(fincaRec) ? 0 : 1;
+      return af - bf;
+    }).slice(0, 60);
+
+    return `
+      <article class="card-conv alerta-ladrillo" data-rid="${esc(r.id)}">
+        <div class="conv-top">
+          <div>
+            <h2 class="conv-tit">${esc(r.producto || "Material recibido")}</h2>
+            <div class="conv-sub">
+              <span><b>${esc(r.finca || "Sin finca")}</b></span> ·
+              <span>${esc(r.fecha || "Sin fecha")}</span>
+              ${r.cantidad ? `· <span>${esc(r.cantidad)} ${esc(r.unidad || "")}</span>` : ""}
+            </div>
+          </div>
+          <span class="chip-urg media">Por conciliar</span>
+        </div>
+        <div class="chips-fila">
+          ${r.autor ? `<span class="chip-espera">Reporta: ${esc(r.autor)}</span>` : ""}
+          ${r.numero_guia ? `<span class="chip-espera">Guía: ${esc(r.numero_guia)}</span>` : ""}
+          ${r.numero_oc ? `<span class="chip-espera">Ref OC: ${esc(r.numero_oc)}</span>` : ""}
+        </div>
+        ${r.evidencia ? `<div class="conv-mensajes"><div class="burbuja entrante">${esc(r.evidencia)}</div></div>` : ""}
+        <div class="conv-sugerencia">
+          <label for="sel_oc_${esc(r.id)}">Asignar a línea / OC de AgroControl:</label>
+          <select id="sel_oc_${esc(r.id)}" class="sel-oc-conc" style="width:100%;padding:8px 10px">
+            <option value="">— Seleccionar OC de AgroControl (o escribir abajo) —</option>
+            ${candidatas.map((c, idx) => {
+              const oc = c["N° OC"] || c.numero_oc || c.oc_codigo || "";
+              const pr = c["Producto"] || c.producto || "";
+              const fn = c["Finca"] || c.finca || "";
+              return `<option value="${idx}">OC ${esc(oc)} · ${esc(fn)} · ${esc(pr)}</option>`;
+            }).join("")}
+          </select>
+          <input type="text" id="inp_oc_${esc(r.id)}" placeholder="N° OC manual (si no aparece en lista)" value="${esc(r.numero_oc || '')}" style="width:100%;padding:8px 10px">
+        </div>
+        <div class="conv-acciones">
+          <button class="btn p btn-conciliar" type="button" data-rid="${esc(r.id)}">
+            <span data-i="check"></span><span>Conciliar con OC</span>
+          </button>
+          <button class="btn btn-descarte btn-descartar-rec" type="button" data-rid="${esc(r.id)}">
+            <span>Descartar</span>
+          </button>
+        </div>
+      </article>`;
+  }).join("");
+
+  ponerIconos();
+
+  cont.querySelectorAll(".btn-conciliar").forEach(btn => {
+    btn.onclick = async () => {
+      const rid = btn.dataset.rid;
+      const card = btn.closest("article");
+      const selIdx = card.querySelector(".sel-oc-conc").value;
+      const manualOc = card.querySelector(`#inp_oc_${CSS.escape(rid)}`).value.trim();
+      const cand = selIdx !== "" ? abiertas.sort((a, b) => {
+        const recObj = pend.find(x => x.id === rid);
+        const fRec = ((recObj && recObj.finca) || "").toLowerCase();
+        const af = String(a["Finca"] || a.finca || "").toLowerCase().includes(fRec) ? 0 : 1;
+        const bf = String(b["Finca"] || b.finca || "").toLowerCase().includes(fRec) ? 0 : 1;
+        return af - bf;
+      })[Number(selIdx)] : null;
+      if (!cand && !manualOc) {
+        alert("Seleccione una OC de AgroControl o escriba el N° OC.");
+        return;
+      }
+      btn.disabled = true;
+      const asig = cand ? {
+        numero_oc: String(cand["N° OC"] || cand.numero_oc || manualOc || ""),
+        oc_codigo: String(cand.oc_codigo || ""),
+        pedido: String(cand["Pedido"] || cand.pedido || ""),
+        linea: String(cand["Línea"] || cand.linea || ""),
+        proveedor: String(cand["Proveedor"] || cand.proveedor || ""),
+        finca: String(cand["Finca"] || cand.finca || ""),
+        f_entrega_agrocontrol: String(cand["F. entrega"] || cand.f_entrega || "")
+      } : { numero_oc: manualOc };
+      if (window.AgdNube && AgdNube.conciliarRecepcion) {
+        await AgdNube.conciliarRecepcion(rid, asig);
+      }
+    };
+  });
+
+  cont.querySelectorAll(".btn-descartar-rec").forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm("¿Descartar este reporte de recepción?")) return;
+      btn.disabled = true;
+      if (window.AgdNube && AgdNube.descartarRecepcion) {
+        await AgdNube.descartarRecepcion(btn.dataset.rid, "Descartado en Bandeja");
+      }
+    };
   });
 }
 

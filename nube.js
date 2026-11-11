@@ -778,11 +778,130 @@
     }
   }
 
+  const _unsubsErp = {};
+  async function _escucharColeccion(clave, cb, alError) {
+    await inicializar();
+    if (!db || !usuarioActual || typeof cb !== "function") {
+      if (typeof cb === "function") cb([]);
+      return () => {};
+    }
+    if (_unsubsErp[clave]) { try { _unsubsErp[clave](); } catch (e) {} }
+    const colRef = modFs.collection(db, `${RAIZ}/${clave}`);
+    _unsubsErp[clave] = modFs.onSnapshot(colRef, snap => {
+      const lista = [];
+      snap.forEach(d => {
+        lista.push(Object.assign({ id: d.id }, d.data()));
+      });
+      cb(lista);
+    }, err => {
+      if (typeof alError === "function") alError(err);
+    });
+    return _unsubsErp[clave];
+  }
+
+  const escucharRecepciones = (cb, alError) => _escucharColeccion("recepciones", cb, alError);
+  const escucharMantenimientos = (cb, alError) => _escucharColeccion("mantenimientos", cb, alError);
+  const escucharActivos = (cb, alError) => _escucharColeccion("activos", cb, alError);
+  const escucharVehiculos = (cb, alError) => _escucharColeccion("vehiculos", cb, alError);
+
+  async function conciliarRecepcion(recepcionId, asignacion) {
+    if (!recepcionId || !asignacion) return false;
+    await inicializar();
+    if (!db || !usuarioActual) return false;
+    const docRef = modFs.doc(db, `${RAIZ}/recepciones/${recepcionId}`);
+    const ahora = new Date().toISOString();
+    const datos = {
+      estado_conciliacion: "conciliada_manual",
+      confianza: "alta",
+      metodo_match: "manual_bandeja",
+      numero_oc: String(asignacion.numero_oc || ""),
+      oc_codigo: String(asignacion.oc_codigo || ""),
+      pedido: String(asignacion.pedido || ""),
+      linea: String(asignacion.linea || ""),
+      proveedor: String(asignacion.proveedor || ""),
+      f_entrega_agrocontrol: String(asignacion.f_entrega_agrocontrol || ""),
+      notas: String(asignacion.notas || ""),
+      actualizado_en: ahora,
+      actualizado_por: (usuarioActual && usuarioActual.email) || "local"
+    };
+    if (asignacion.finca) datos.finca = String(asignacion.finca);
+    if (asignacion.f_entrega_agrocontrol) datos.fecha = String(asignacion.f_entrega_agrocontrol).slice(0, 10);
+    try {
+      await modFs.setDoc(docRef, datos, { merge: true });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function descartarRecepcion(recepcionId, motivo) {
+    if (!recepcionId) return false;
+    await inicializar();
+    if (!db || !usuarioActual) return false;
+    const docRef = modFs.doc(db, `${RAIZ}/recepciones/${recepcionId}`);
+    try {
+      await modFs.setDoc(docRef, {
+        estado_conciliacion: "descartada",
+        notas: String(motivo || "Descartado desde Bandeja"),
+        actualizado_en: new Date().toISOString(),
+        actualizado_por: (usuarioActual && usuarioActual.email) || "local"
+      }, { merge: true });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function guardarMantenimiento(reg) {
+    if (!reg || !reg.activo || !reg.finca) return { ok: false, error: "Faltan activo o finca." };
+    await inicializar();
+    if (!db || !usuarioActual) return { ok: false, error: "Sin sesión de Google." };
+    const id = String(reg.id || ("mnt_app_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 6)));
+    const ahora = new Date().toISOString();
+    const docRef = modFs.doc(db, `${RAIZ}/mantenimientos/${id}`);
+    const datos = {
+      id,
+      fecha_reporte: String(reg.fecha_reporte || ahora.slice(0, 10)),
+      activo: String(reg.activo).trim(),
+      codigo_activo: String(reg.codigo_activo || "").trim(),
+      finca: String(reg.finca).trim(),
+      tipo: reg.tipo === "Preventivo" ? "Preventivo" : "Correctivo",
+      descripcion: String(reg.descripcion || "").trim(),
+      prioridad: ["Alta", "Media", "Baja"].includes(reg.prioridad) ? reg.prioridad : "Media",
+      responsable: String(reg.responsable || (usuarioActual && usuarioActual.email) || "Campo").trim(),
+      fecha_programada: String(reg.fecha_programada || "").trim(),
+      hora_programada: String(reg.hora_programada || "").trim(),
+      fecha_ejecucion: String(reg.fecha_ejecucion || "").trim(),
+      costo: Number(reg.costo || 0) || 0,
+      estado: ["Pendiente", "Programado", "En ejecución", "Ejecutado", "Cancelado"].includes(reg.estado) ? reg.estado : "Pendiente",
+      proveedor: String(reg.proveedor || "").trim(),
+      observaciones: String(reg.observaciones || "").trim(),
+      fuente: String(reg.fuente || "manual_app"),
+      placa_vehiculo: String(reg.placa_vehiculo || "").trim(),
+      creado_en: String(reg.creado_en || ahora),
+      actualizado_en: ahora,
+      actualizado_por: (usuarioActual && usuarioActual.email) || "local"
+    };
+    try {
+      await modFs.setDoc(docRef, datos, { merge: true });
+      return { ok: true, id, datos };
+    } catch (e) {
+      return { ok: false, error: e.message || String(e) };
+    }
+  }
+
   window.AgdNube = {
     escucharConversaciones,
     marcarConversacion,
     escucharBandeja,
     marcarBorradorBandeja,
+    escucharRecepciones,
+    conciliarRecepcion,
+    descartarRecepcion,
+    escucharMantenimientos,
+    guardarMantenimiento,
+    escucharActivos,
+    escucharVehiculos,
     escucharMatrizEnVivo,
     inicializar,
     conectar,

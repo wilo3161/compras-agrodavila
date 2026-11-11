@@ -25,7 +25,8 @@
     check: '<path d="M20 6 9 17l-5-5"/>',
     checklist: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
     camion: '<path d="M10 17h4V5H2v12h3"/><path d="M14 9h4l4 4v4h-3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/>',
-    bandeja: '<path d="M22 12h-6l-2 3h-4l-2-3H2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6Z"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>'
+    bandeja: '<path d="M22 12h-6l-2 3h-4l-2-3H2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6Z"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    gerencia: '<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10Z"/>'
   };
   const ico = (n, cls) => `<svg class="ico${cls ? " " + cls : ""}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ""}</svg>`;
 
@@ -68,7 +69,13 @@
     "bandeja.html": {
       conv: ["Conversaciones que esperan respuesta", "Mensajes entrantes con respuestas sugeridas por el asistente. Revise, edite y pulse «Revisar y enviar»."],
       req: ["Cotizaciones por requerimiento", "Requerimientos abiertos de fincas con borradores por proveedor listos para enviar."],
+      conc: ["Recepciones de finca por conciliar", "Entregas reportadas en grupos de finca que aún no coinciden con una OC. Seleccione la OC correspondiente o descártelas."],
       hist: ["Historial de envíos", "Mensajes y cotizaciones enviadas con filtros por proveedor y fecha."]
+    },
+    "gerencia.html": {
+      gasto: ["Gasto por finca y etapas", "Visualiza Comprometido, Ordenado, Recibido en finca y Pagado desde AgroControl + recepciones confirmadas. Filtre por finca, semana o mes."],
+      mantenimiento: ["Control de mantenimiento y activos", "Consolida órdenes de mantenimiento desde AgroControl, WhatsApp, movilidad y registros directos. Puede registrar nuevos mantenimientos aquí mismo."],
+      vehiculos: ["Vehículos, combustible y rendimiento", "Lecturas de tablero por rango (Alto, Medio, Bajo), detección de cargas/vales, rendimiento km/tanque y kilometraje semanal."]
     }
   };
 
@@ -108,13 +115,19 @@
       ["#bCargarWA", "Cargar desde WhatsApp", "Trae los 60 proveedores base del paquete de WhatsApp sin pisar ningún dato que usted ya haya editado."],
       ["#bExcelProv", "Excel de la matriz", "Descarga toda la matriz de proveedores en un archivo .xlsx listo para compartir con Contabilidad o Gerencia."],
       ["#filtrosProv", "Buscador y filtros", "Filtre por estado de datos (pendiente, incompleto, recibido), zona o categoría, y toque cualquier proveedor para editar su ficha."]
+    ],
+    "gerencia.html": [
+      ["#filtrosGerencia", "Filtros ejecutivos", "Filtre todo el tablero en vivo por finca, semana ISO o mes."],
+      ["#kpisGerencia", "Indicadores clave", "Resumen instantáneo de gasto semanal/mensual, % recibido, OC abiertas, pagos vencidos, mantenimiento y km."],
+      ["#tabsGerencia", "Tres módulos gerenciales", "Cambie entre Gasto por finca, Mantenimiento y Vehículos."],
+      ["#formRegistrarMant", "Registrar mantenimiento", "Cree una orden o reserva de mantenimiento directamente en Firestore para gerencia y campo."]
     ]
   };
 
   function ponerMarco() {
     if (document.querySelector(".marco")) return;
     const p = pag();
-    const items = [["index.html", "inicio", "Inicio"], ["bandeja.html", "bandeja", "Bandeja"], ["checklist.html", "checklist", "Checklist"], ["control.html", "control", "Control"], ["whatsapp.html", "whatsapp", "WhatsApp"], ["proveedores.html", "proveedores", "Proveedores"]];
+    const items = [["index.html", "inicio", "Inicio"], ["gerencia.html", "gerencia", "Gerencia"], ["bandeja.html", "bandeja", "Bandeja"], ["checklist.html", "checklist", "Checklist"], ["control.html", "control", "Control"], ["whatsapp.html", "whatsapp", "WhatsApp"], ["proveedores.html", "proveedores", "Proveedores"]];
     const n = document.createElement("nav"); n.className = "marco"; n.setAttribute("aria-label", "Secciones de la app");
     n.innerHTML = `<a class="marca" href="index.html"><span class="sello">${ico("hoja")}</span>Compras AgroDávila</a>` +
       items.map(([h, i, t]) => `<a class="sec" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}<span>${t}</span></a>`).join("") +
