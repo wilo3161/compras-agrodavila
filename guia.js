@@ -27,6 +27,8 @@
     camion: '<path d="M10 17h4V5H2v12h3"/><path d="M14 9h4l4 4v4h-3"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/>',
     bandeja: '<path d="M22 12h-6l-2 3h-4l-2-3H2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6Z"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
     gerencia: '<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10Z"/>',
+    avance: '<path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="m4 6 1 1 2-2"/><path d="m4 12 1 1 2-2"/><path d="m4 18 1 1 2-2"/>',
+    gestion: '<path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/>',
     mas: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>'
   };
   const ico = (n, cls) => `<svg class="ico${cls ? " " + cls : ""}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ""}</svg>`;
@@ -77,6 +79,13 @@
       gasto: ["Gasto por finca y etapas", "Visualiza Comprometido, Ordenado, Recibido en finca y Pagado desde AgroControl + recepciones confirmadas. Filtre por finca, semana o mes."],
       mantenimiento: ["Control de mantenimiento y activos", "Consolida órdenes de mantenimiento desde AgroControl, WhatsApp, movilidad y registros directos. Puede registrar nuevos mantenimientos aquí mismo."],
       vehiculos: ["Vehículos, combustible y rendimiento", "Lecturas de tablero por rango (Alto, Medio, Bajo), detección de cargas/vales, rendimiento km/tanque y kilometraje semanal."]
+    },
+    "avance.html": {
+      pedidos: ["Avance por pedido y por línea", "Cada pedido muestra cuánto va entregado (azul), en proceso (maíz), comprometido o por cotizar (ladrillo). Toque cualquier pedido para ver sus líneas, el estado de pago y corregir si AgroControl aún no se actualiza."],
+      faltacot: ["Líneas pendientes de cotización", "Muestra lo que falta por cotizar o está en revisión, los días desde que se pidió y cuántas cotizaciones faltan según la regla (2 hasta $300, 3 si supera $300)."]
+    },
+    "gestion.html": {
+      resumen: ["Evidencia de gestión", "Consolida ahorro documentado, proveedores nuevos incorporados, cumplimiento de cotizaciones y mejora en tiempos de ciclo desde el 04/11/2026."]
     }
   };
 
@@ -122,6 +131,15 @@
       ["#kpisGerencia", "Indicadores clave", "Resumen instantáneo de gasto semanal/mensual, % recibido, OC abiertas, pagos vencidos, mantenimiento y km."],
       ["#tabsGerencia", "Tres módulos gerenciales", "Cambie entre Gasto por finca, Mantenimiento y Vehículos."],
       ["#formRegistrarMant", "Registrar mantenimiento", "Cree una orden o reserva de mantenimiento sincronizada para gerencia y campo."]
+    ],
+    "avance.html": [
+      ["#kpisAvance", "Resumen de avance", "Vea cuánto está entregado, cuánto falta pagar de lo ya recibido, dónde falta visto bueno de pago y cuántas líneas siguen por cotizar."],
+      ["#filtrosAvance", "Filtros rápidos", "Filtre por finca, estado real de entrega o proveedor, o cambie a la pestaña Falta cotizar."],
+      ["#tablaPedidos", "Barras por pedido", "Toque cualquier fila para desplegar el detalle de sus líneas y usar Corregir estado."]
+    ],
+    "gestion.html": [
+      ["#kpisGestion", "Indicadores de gestión", "Ahorro acumulado, proveedores nuevos desde el 04/11, cotizaciones por línea y tiempos de ciclo."],
+      ["#btnExcelGerencia", "Informe para Gerencia", "Descarga el archivo Excel con todas las hojas de respaldo y cálculo."]
     ]
   };
 
@@ -130,16 +148,17 @@
     const p = pag();
     const primarios = [
       ["index.html", "inicio", "Inicio"],
+      ["avance.html", "avance", "Avance"],
       ["gerencia.html", "gerencia", "Gerencia"],
       ["bandeja.html", "bandeja", "Bandeja"],
-      ["checklist.html", "checklist", "Checklist"],
-      ["control.html", "control", "Control"]
+      ["checklist.html", "checklist", "Checklist"]
     ];
     const secundarios = [
+      ["control.html", "control", "Control"],
       ["whatsapp.html", "whatsapp", "WhatsApp"],
       ["proveedores.html", "proveedores", "Proveedores"]
     ];
-    const esSecundario = secundarios.some(([h]) => h === p);
+    const esSecundario = secundarios.some(([h]) => h === p) || p === "gestion.html";
     const n = document.createElement("nav"); n.className = "marco"; n.setAttribute("aria-label", "Secciones de la app");
     n.innerHTML = `<a class="marca" href="index.html"><span class="sello">${ico("hoja")}</span>Compras AgroDávila</a>` +
       primarios.map(([h, i, t]) => `<a class="sec" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}<span>${t}</span></a>`).join("") +
@@ -268,13 +287,46 @@
     });
   }
 
+  async function actualizarEnlaceGestion() {
+    const nav = document.querySelector(".marco");
+    if (!nav) return;
+    let ver = false;
+    if (window.AgdNube && AgdNube.puedeVerGestion) {
+      try { ver = !!(await AgdNube.puedeVerGestion()); } catch (e) { ver = false; }
+    }
+    nav.querySelectorAll(".sec-gestion, .mas-gestion").forEach(el => el.remove());
+    if (!ver) return;
+    const p = pag();
+    const masWrap = nav.querySelector(".mas-wrap");
+    const extra = document.createElement("a");
+    extra.className = "sec sec-extra sec-gestion";
+    extra.href = "gestion.html";
+    if (p === "gestion.html") extra.setAttribute("aria-current", "page");
+    extra.innerHTML = `${ico("gestion")}<span>Mi gestión</span>`;
+    if (masWrap) nav.insertBefore(extra, masWrap);
+    else nav.appendChild(extra);
+
+    const masMenu = nav.querySelector(".marco-mas");
+    if (masMenu) {
+      const item = document.createElement("a");
+      item.className = "mas-item mas-gestion";
+      item.setAttribute("role", "menuitem");
+      item.href = "gestion.html";
+      if (p === "gestion.html") item.setAttribute("aria-current", "page");
+      item.innerHTML = `${ico("gestion")}<span>Mi gestión</span>`;
+      const helpBtn = masMenu.querySelector(".mas-ayuda");
+      if (helpBtn) masMenu.insertBefore(item, helpBtn);
+      else masMenu.appendChild(item);
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
-    ponerMarco(); renderizarFrescura(); etiquetarTablas(); iconosBotones();
+    ponerMarco(); renderizarFrescura(); etiquetarTablas(); iconosBotones(); actualizarEnlaceGestion();
     let pend = false;
     new MutationObserver(() => { if (pend) return; pend = true; requestAnimationFrame(() => { pend = false; etiquetarTablas(); iconosBotones(); guiaPestana(); }); })
       .observe(document.body, { childList: true, subtree: true });
     if (window.AgdNube && AgdNube.alCambiarEstado) {
-      AgdNube.alCambiarEstado(() => { renderizarFrescura(); });
+      AgdNube.alCambiarEstado(() => { renderizarFrescura(); actualizarEnlaceGestion(); });
     }
     setTimeout(() => recorrido(false), 1600);   // primera visita: después de que la pantalla cargó datos
   });

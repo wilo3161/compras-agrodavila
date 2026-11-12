@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Avance de pedidos · Compras AgroDávila</title>
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--tx);font-family:var(--letra);font-size:15px;line-height:1.5}
+main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
+.hide{display:none !important}
+.muted{color:var(--t2)}
+.small{font-size:13px}
+.cab-av{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:16px}
+.cab-av h1{margin:0 0 4px;font-size:clamp(24px,3.2vw,32px);line-height:1.15}
+.cab-av p{margin:0;color:var(--t2);font-size:14px}
+.acciones-av{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.grid-kpis-av{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.kpi-card{background:var(--card);border:1px solid var(--bd);border-top:4px solid #8A8F98;border-radius:16px;padding:13px 14px;box-shadow:var(--sombra);display:flex;flex-direction:column;gap:4px}
+.kpi-card.ac-azul{border-top-color:#2E5E8E}
+.kpi-card.ac-maiz{border-top-color:#C7901A}
+.kpi-card.ac-ladrillo{border-top-color:#B5452F}
+.kpi-card.ac-gris{border-top-color:#8A8F98}
+.kpi-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--t2)}
+.kpi-val{font-family:var(--titulo);font-size:clamp(20px,2.2vw,25px);font-weight:700;color:var(--tx);font-variant-numeric:tabular-nums}
+.kpi-sub{font-size:12px;color:var(--t2)}
+
+.filtros-av{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:12px 14px;margin-bottom:14px;box-shadow:var(--sombra)}
+.filtro-grp{display:flex;flex-direction:column;gap:4px;min-width:155px;flex:1}
+.filtro-grp label{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.03em}
+.filtro-grp select,.filtro-grp input{width:100%;padding:8px 10px}
+
+.tabs-av{display:flex;gap:8px;border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:16px;overflow-x:auto}
+.tab-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 15px;border-radius:12px;border:1px solid transparent;background:none;color:var(--t2);font:600 14px var(--letra);cursor:pointer;white-space:nowrap}
+.tab-btn:hover{color:var(--tx);background:var(--card)}
+.tab-btn.activo{background:var(--pri2);color:var(--pri);border-color:color-mix(in srgb,var(--pri) 30%,transparent)}
+.badge-cnt{display:inline-block;padding:1px 7px;border-radius:999px;font-size:12px;font-weight:700;background:color-mix(in srgb,var(--bd) 55%,transparent)}
+
+.panel-card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:16px 18px;box-shadow:var(--sombra);margin-bottom:16px}
+.panel-card h2{margin:0 0 6px;font-size:17px}
+
+.leyenda-bar{display:flex;flex-wrap:wrap;gap:14px;margin:8px 0 12px;font-size:12px;color:var(--t2)}
+.leyenda-item{display:inline-flex;align-items:center;gap:6px}
+.leyenda-dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+.barra-stack{display:flex;width:100%;min-width:110px;height:12px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--bd) 50%,transparent)}
+.seg-ent{background:#2E5E8E}
+.seg-proc{background:#C7901A}
+.seg-comp{background:#8A8F98}
+.seg-cot{background:#B5452F}
+.bar-txt{font-size:12px;color:var(--t2);margin-top:3px;font-variant-numeric:tabular-nums}
+
+tr.fila-ped{cursor:pointer}
+tr.fila-ped:hover td{background:color-mix(in srgb,var(--pri) 5%,transparent)}
+tr.fila-ped.activa td{background:color-mix(in srgb,var(--pri) 10%,transparent)}
+
+.pill-est{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.est-ent{background:color-mix(in srgb,#2E5E8E 16%,transparent);color:#2E5E8E}
+.est-proc{background:color-mix(in srgb,#C7901A 18%,transparent);color:#8A6208}
+.est-comp{background:color-mix(in srgb,#8A8F98 18%,transparent);color:#4A5058}
+.est-alert{background:color-mix(in srgb,#B5452F 16%,transparent);color:#B5452F}
+.est-baja{background:color-mix(in srgb,#8A8F98 14%,transparent);color:var(--t2)}
+
+.detalle-cab{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.chip-f{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:600 12px var(--letra);cursor:pointer}
+.chip-f:hover{border-color:var(--pri);color:var(--pri)}
+.chips-rapidos{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+
+dialog.modal-seg{border:1px solid var(--bd);border-radius:18px;padding:20px;max-width:520px;width:calc(100% - 28px);background:var(--card);color:var(--tx);box-shadow:0 20px 50px rgba(0,0,0,.22)}
+dialog.modal-seg::backdrop{background:rgba(15,20,28,.5)}
+.modal-seg h3{margin:0 0 6px;font-size:18px}
+.campo-m{display:flex;flex-direction:column;gap:5px;margin:10px 0}
+.campo-m label{font-size:13px;font-weight:600;color:var(--t2)}
+.campo-m select,.campo-m textarea{width:100%;padding:9px 11px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:400 14px var(--letra)}
+.scope-m{display:flex;flex-direction:column;gap:6px;margin:10px 0;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--bd) 25%,transparent);font-size:13px}
+.scope-m label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.modal-acciones{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.aviso-ok{padding:8px 12px;border-radius:10px;background:color-mix(in srgb,#2E5E8E 14%,transparent);color:#2E5E8E;font-size:13px;margin-bottom:12px}
+.aviso-warn{padding:8px 12px;border-radius:10px;background:color-mix(in srgb,#C7901A 16%,transparent);color:#7B5808;font-size:13px;margin-bottom:10px}
+.toast-av{position:fixed;bottom:22px;right:20px;z-index:80;background:#23262B;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+
+@media(max-width:1020px){.grid-kpis-av{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:680px){
+  main{padding:14px 12px 92px}
+  .grid-kpis-av{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .filtro-grp{min-width:calc(50% - 6px)}
+}
+</style>
+</head>
+<body>
+<main>
+  <header class="cab-av">
+    <div>
+      <h1>Avance de pedidos</h1>
+      <p id="subEstadoAv">Cargando estado real de líneas, entregas y pagos…</p>
+    </div>
+    <div class="acciones-av">
+      <button class="btn" id="btnRefrescarAv" type="button">Actualizar</button>
+      <button class="btn p" id="btnExcelAv" type="button">Exportar a Excel</button>
+    </div>
+  </header>
+
+  <section class="grid-kpis-av" id="kpisAvance" aria-label="Indicadores de avance">
+    <div class="kpi-card ac-azul">
+      <span class="kpi-lbl">% entregado global</span>
+      <strong class="kpi-val" id="kPctEnt">—</strong>
+      <span class="kpi-sub" id="kPctEntSub">Sobre líneas vigentes</span>
+    </div>
+    <div class="kpi-card ac-ladrillo">
+      <span class="kpi-lbl">Entregado y falta pagar</span>
+      <strong class="kpi-val" id="kEntFalta">$0.00</strong>
+      <span class="kpi-sub" id="kEntFaltaSub">0 líneas recibidas por pagar</span>
+    </div>
+    <div class="kpi-card ac-maiz">
+      <span class="kpi-lbl">Falta OK de pago</span>
+      <strong class="kpi-val" id="kFaltaOk">$0.00</strong>
+      <span class="kpi-sub" id="kFaltaOkSub">0 líneas esperando firma</span>
+    </div>
+    <div class="kpi-card ac-ladrillo">
+      <span class="kpi-lbl">Por cotizar</span>
+      <strong class="kpi-val" id="kPorCot">0</strong>
+      <span class="kpi-sub" id="kPorCotSub">0 en revisión</span>
+    </div>
+    <div class="kpi-card ac-gris">
+      <span class="kpi-lbl">Autorizado sin OC</span>
+      <strong class="kpi-val" id="kAutSinOc">0</strong>
+      <span class="kpi-sub" id="kAutSinOcSub">Listo para emitir orden</span>
+    </div>
+  </section>
+
+  <section class="filtros-av" id="filtrosAvance" aria-label="Filtros de avance">
+    <div class="filtro-grp">
+      <label for="filFinca">Finca</label>
+      <select id="filFinca"><option value="">Todas las fincas</option></select>
+    </div>
+    <div class="filtro-grp">
+      <label for="filEstado">Estado de entrega o pago</label>
+      <select id="filEstado">
+        <option value="">Todos los estados</option>
+        <option value="Por cotizar">Por cotizar</option>
+        <option value="Cotizado (en revisión)">Cotizado (en revisión)</option>
+        <option value="Cotizado: proveedor elegido">Cotizado: proveedor elegido</option>
+        <option value="Autorizado, falta OC">Autorizado, falta OC</option>
+        <option value="Con OC, por entregar">Con OC, por entregar</option>
+        <option value="Entregado">Entregado</option>
+        <option value="No se compró">No se compró</option>
+        <option value="_falta_pagar">Entregado y falta pagar</option>
+        <option value="_falta_ok">Falta OK de pago</option>
+      </select>
+    </div>
+    <div class="filtro-grp">
+      <label for="filProveedor">Proveedor</label>
+      <select id="filProveedor"><option value="">Todos los proveedores</option></select>
+    </div>
+    <div class="filtro-grp">
+      <label for="filBuscar">Buscar pedido, OC o producto</label>
+      <input id="filBuscar" type="search" placeholder="Ej. PED-0006, glifosato…">
+    </div>
+  </section>
+
+  <nav class="tabs-av" id="tabsAvance" aria-label="Vistas de avance">
+    <button class="tab-btn activo" type="button" data-tab="pedidos">Por pedido <span class="badge-cnt" id="cntPedidos">0</span></button>
+    <button class="tab-btn" type="button" data-tab="faltacot">Falta cotizar <span class="badge-cnt" id="cntFaltaCot">0</span></button>
+  </nav>
+
+  <section id="panelPedidos" data-pane="pedidos">
+    <div class="panel-card">
+      <h2>Resumen por pedido</h2>
+      <p class="muted small">Toque cualquier pedido para ver sus líneas, estado de pago, orden de compra y corregir su estado si AgroControl aún no se actualiza.</p>
+      <div class="leyenda-bar">
+        <span class="leyenda-item"><span class="leyenda-dot seg-ent"></span>Entregado</span>
+        <span class="leyenda-item"><span class="leyenda-dot seg-proc"></span>Cotizado / en revisión</span>
+        <span class="leyenda-item"><span class="leyenda-dot seg-comp"></span>Autorizado o con OC</span>
+        <span class="leyenda-item"><span class="leyenda-dot seg-cot"></span>Por cotizar</span>
+      </div>
+      <div class="tw">
+        <table id="tablaPedidos">
+          <thead>
+            <tr>
+              <th>Pedido</th>
+              <th>Finca</th>
+              <th>Vigentes</th>
+              <th>Entregado</th>
+              <th>Por entregar</th>
+              <th>Por cotizar</th>
+              <th>Progreso %</th>
+              <th>Monto vigente</th>
+              <th>Entregado por pagar</th>
+              <th>Falta OK pago</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyPedidos">
+            <tr><td colspan="10" class="muted">Cargando pedidos…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel-card hide" id="detallePedido">
+      <div class="detalle-cab">
+        <div>
+          <h2 id="tituloDetalle">Detalle del pedido</h2>
+          <p class="muted small" id="subDetalle"></p>
+        </div>
+        <button class="btn" id="btnCerrarDetalle" type="button">Ocultar detalle</button>
+      </div>
+      <div class="tw">
+        <table id="tablaDetalle">
+          <thead>
+            <tr>
+              <th>Línea</th>
+              <th>Producto</th>
+              <th>Proveedor</th>
+              <th>OC</th>
+              <th>Monto</th>
+              <th>Estado entrega</th>
+              <th>Estado pago</th>
+              <th>Fuente y nota</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyDetalle"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="panelFaltaCot" class="hide" data-pane="faltacot">
+    <div class="panel-card">
+      <h2>Líneas pendientes de cotización</h2>
+      <p class="muted small">Líneas por cotizar o en revisión. Se exigen 2 cotizaciones cuando el pedido u OC es menor a $300 (o sin monto) y 3 cuando alcanza o supera $300.</p>
+      <div class="tw">
+        <table id="tablaFaltaCot">
+          <thead>
+            <tr>
+              <th>Pedido</th>
+              <th>Línea</th>
+              <th>Finca</th>
+              <th>Producto</th>
+              <th>Estado</th>
+              <th>Días desde pedido</th>
+              <th>Cotizaciones</th>
+              <th>Faltan</th>
+              <th>Monto est.</th>
+              <th>Proveedor</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyFaltaCot">
+            <tr><td colspan="10" class="muted">Sin líneas pendientes de cotizar.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlgCorregir" class="modal-seg" aria-labelledby="dlgTitulo">
+  <form method="dialog" id="formCorregir">
+    <h3 id="dlgTitulo">Corregir estado de entrega</h3>
+    <p class="muted small" id="dlgLineaDesc"></p>
+    <div id="dlgAvisoAgro" class="aviso-warn hide">AgroControl ya registra fecha de entrega en esta línea; su estado oficial seguirá siendo Entregado.</div>
+    <div class="chips-rapidos" aria-label="Atajos de estado">
+      <button type="button" class="chip-f" data-preset="Entregado">Marcar Entregado</button>
+      <button type="button" class="chip-f" data-preset="Por retirar">Por retirar (Con OC)</button>
+      <button type="button" class="chip-f" data-preset="No se compró">No se compró</button>
+      <button type="button" class="chip-f" data-preset="Según AgroControl">Según AgroControl</button>
+    </div>
+    <div class="campo-m">
+      <label for="dlgEstado">Estado real de entrega</label>
+      <select id="dlgEstado" required>
+        <option value="Según AgroControl">Según AgroControl (sin corrección manual)</option>
+        <option value="Por cotizar">Por cotizar</option>
+        <option value="Cotizado (en revisión)">Cotizado (en revisión)</option>
+        <option value="Cotizado: proveedor elegido">Cotizado: proveedor elegido</option>
+        <option value="Autorizado, falta OC">Autorizado, falta OC</option>
+        <option value="Con OC, por entregar">Con OC, por entregar</option>
+        <option value="Entregado">Entregado</option>
+        <option value="No se compró">No se compró</option>
+      </select>
+    </div>
+    <div class="campo-m">
+      <label for="dlgNota">Nota de seguimiento (<span id="dlgContador">0</span>/300)</label>
+      <textarea id="dlgNota" rows="3" maxlength="300" placeholder="Ej. Solvesa entregó el 06/11 en finca; factura pendiente de retirar…"></textarea>
+    </div>
+    <div class="scope-m hide" id="dlgScopeWrap">
+      <label><input type="radio" name="dlgScope" value="linea" checked> Aplicar solo a esta línea (<strong id="dlgLinSolo"></strong>)</label>
+      <label><input type="radio" name="dlgScope" value="oc"> Aplicar a toda la orden de compra <strong id="dlgOcTxt"></strong> (<span id="dlgOcCnt">0</span> líneas)</label>
+    </div>
+    <div class="modal-acciones">
+      <button class="btn" type="button" id="dlgCancelar">Cancelar</button>
+      <button class="btn p" type="submit" id="dlgGuardar">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toastAv" class="toast-av hide" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+(function () {
+  const R = window.AgdReglas;
+  let filasRaw = [];
+  let seguimientoMapa = (window.AgdNube && AgdNube.leerSeguimientoLocal) ? AgdNube.leerSeguimientoLocal() : {};
+  let resumenActual = null;
+  let pedidoSeleccionado = "";
+  let pestanaActual = "pedidos";
+  let contextoModal = null;
+
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
+  const usd = n => "$" + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function mostrarToast(msg) {
+    const t = document.getElementById("toastAv");
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.remove("hide");
+    clearTimeout(t._tm);
+    t._tm = setTimeout(() => t.classList.add("hide"), 3600);
+  }
+
+  function clasePillEntrega(est) {
+    if (est === "Entregado") return "est-ent";
+    if (est === "Cotizado (en revisión)" || est === "Cotizado: proveedor elegido") return "est-proc";
+    if (est === "Autorizado, falta OC" || est === "Con OC, por entregar") return "est-comp";
+    if (est === "Por cotizar") return "est-alert";
+    return "est-baja";
+  }
+
+  function clasePillPago(av) {
+    if (av.pagado) return "est-ent";
+    if (av.falta_ok_pago) return "est-alert";
+    if (av.estado_pago === "Falta pagar (OK completo)") return "est-proc";
+    return "est-baja";
+  }
+
+  function filasFiltradas() {
+    const fFinca = document.getElementById("filFinca").value;
+    const fEstado = document.getElementById("filEstado").value;
+    const fProv = document.getElementById("filProveedor").value;
+    const fBusq = R.normTexto(document.getElementById("filBuscar").value);
+    return (filasRaw || []).filter(raw => {
+      const av = R.avancePorLinea(raw, seguimientoMapa);
+      if (av.aparte) return false;
+      if (fFinca && av.finca !== fFinca) return false;
+      if (fProv && av.proveedor !== fProv) return false;
+      if (fEstado) {
+        if (fEstado === "_falta_pagar") {
+          if (!av.entregado_falta_pagar) return false;
+        } else if (fEstado === "_falta_ok") {
+          if (!av.falta_ok_pago) return false;
+        } else if (av.estado_entrega !== fEstado) {
+          return false;
+        }
+      }
+      if (fBusq) {
+        const hay = R.normTexto([av.pedido, av.linea, av.oc, av.producto, av.proveedor, av.finca, av.nota].join(" "));
+        if (!hay.includes(fBusq)) return false;
+      }
+      return true;
+    });
+  }
+
+  function poblarCombos(lineas) {
+    const selFinca = document.getElementById("filFinca");
+    const selProv = document.getElementById("filProveedor");
+    const curF = selFinca.value;
+    const curP = selProv.value;
+    const fincas = Array.from(new Set(lineas.map(l => l.finca).filter(Boolean))).sort();
+    const provs = Array.from(new Set(lineas.map(l => l.proveedor).filter(Boolean))).sort();
+    selFinca.innerHTML = '<option value="">Todas las fincas</option>' + fincas.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("");
+    selProv.innerHTML = '<option value="">Todos los proveedores</option>' + provs.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
+    if (fincas.includes(curF)) selFinca.value = curF;
+    if (provs.includes(curP)) selProv.value = curP;
+  }
+
+  function renderizarTodo() {
+    const resGlobal = R.avancePorPedido(filasRaw, seguimientoMapa);
+    poblarCombos(resGlobal.lineas.filter(l => !l.aparte));
+
+    const filtradas = filasFiltradas();
+    resumenActual = R.avancePorPedido(filtradas, seguimientoMapa);
+    const t = resumenActual.totales;
+
+    document.getElementById("kPctEnt").textContent = t.pct_entregado_global.toFixed(1) + "%";
+    document.getElementById("kPctEntSub").textContent = `${t.entregado} de ${t.vigentes} líneas vigentes`;
+    document.getElementById("kEntFalta").textContent = usd(t.monto_entregado_falta_pagar);
+    document.getElementById("kEntFaltaSub").textContent = `${t.entregado_falta_pagar_lineas} líneas entregadas sin pago`;
+    document.getElementById("kFaltaOk").textContent = usd(t.monto_falta_ok_pago);
+    document.getElementById("kFaltaOkSub").textContent = `${t.falta_ok_lineas} líneas esperando OK de pago`;
+    document.getElementById("kPorCot").textContent = String(t.por_cotizar);
+    document.getElementById("kPorCotSub").textContent = `${t.cotizado_total} cotizadas / en revisión`;
+    document.getElementById("kAutSinOc").textContent = String(t.autorizado_sin_oc);
+    document.getElementById("kAutSinOcSub").textContent = `${t.con_oc} con OC por entregar`;
+
+    document.getElementById("cntPedidos").textContent = String(resumenActual.por_pedido.length);
+    const faltaCot = resumenActual.lineas.filter(l => !l.aparte && (l.estado_entrega === "Por cotizar" || l.estado_entrega === "Cotizado (en revisión)"));
+    document.getElementById("cntFaltaCot").textContent = String(faltaCot.length);
+
+    const tbodyPed = document.getElementById("tbodyPedidos");
+    if (!resumenActual.por_pedido.length) {
+      tbodyPed.innerHTML = '<tr><td colspan="10" class="muted">No hay pedidos que coincidan con los filtros actuales.</td></tr>';
+    } else {
+      tbodyPed.innerHTML = resumenActual.por_pedido.map(p => {
+        const vig = p.vigentes || 0;
+        const c = p.conteos;
+        const wEnt = vig ? (c["Entregado"] * 100 / vig) : 0;
+        const wProc = vig ? ((c["Cotizado (en revisión)"] + c["Cotizado: proveedor elegido"]) * 100 / vig) : 0;
+        const wComp = vig ? ((c["Autorizado, falta OC"] + c["Con OC, por entregar"]) * 100 / vig) : 0;
+        const wCot = vig ? (c["Por cotizar"] * 100 / vig) : 0;
+        const porEntr = p.cotizado_total + c["Autorizado, falta OC"] + c["Con OC, por entregar"];
+        const clsAct = pedidoSeleccionado === p.pedido ? " activo" : "";
+        return `<tr class="fila-ped${clsAct}" data-ped="${esc(p.pedido)}">
+          <td data-l="Pedido"><strong>${esc(p.pedido)}</strong></td>
+          <td data-l="Finca">${esc(p.finca)}</td>
+          <td data-l="Vigentes">${vig}${p.conteos["No se compró"] ? ` <span class="muted small">(${p.conteos["No se compró"]} no comp.)</span>` : ""}</td>
+          <td data-l="Entregado">${c["Entregado"]}</td>
+          <td data-l="Por entregar">${porEntr}</td>
+          <td data-l="Por cotizar">${c["Por cotizar"]}</td>
+          <td data-l="Progreso %">
+            <div class="barra-stack" title="Entregado ${p.pct_entregado}% · En proceso ${p.pct_por_entregar}% · Sin cotizar ${p.pct_sin_cotizar}%">
+              <span class="seg-ent" style="width:${wEnt.toFixed(1)}%"></span>
+              <span class="seg-proc" style="width:${wProc.toFixed(1)}%"></span>
+              <span class="seg-comp" style="width:${wComp.toFixed(1)}%"></span>
+              <span class="seg-cot" style="width:${wCot.toFixed(1)}%"></span>
+            </div>
+            <div class="bar-txt">${p.pct_entregado.toFixed(0)}% ent. · ${p.pct_por_entregar.toFixed(0)}% proc. · ${p.pct_sin_cotizar.toFixed(0)}% cot.</div>
+          </td>
+          <td data-l="Monto vigente">${usd(p.monto_vigente)}</td>
+          <td data-l="Entregado por pagar">${usd(p.monto_entregado_falta_pagar)}</td>
+          <td data-l="Falta OK pago">${p.falta_ok_lineas ? `${p.falta_ok_lineas} lín. (${usd(p.monto_falta_ok_pago)})` : "Al día"}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    const tbodyFc = document.getElementById("tbodyFaltaCot");
+    if (!faltaCot.length) {
+      tbodyFc.innerHTML = '<tr><td colspan="10" class="muted">Sin líneas pendientes de cotización para estos filtros.</td></tr>';
+    } else {
+      tbodyFc.innerHTML = faltaCot.map(l => {
+        const clsDias = l.dias_desde_creado >= 3 ? "est-alert" : (l.dias_desde_creado >= 1 ? "est-proc" : "est-baja");
+        return `<tr>
+          <td data-l="Pedido"><strong>${esc(l.pedido)}</strong></td>
+          <td data-l="Línea">${esc(l.linea)}</td>
+          <td data-l="Finca">${esc(l.finca)}</td>
+          <td data-l="Producto">${esc(l.producto)}</td>
+          <td data-l="Estado"><span class="pill-est ${clasePillEntrega(l.estado_entrega)}">${esc(l.estado_entrega)}</span></td>
+          <td data-l="Días desde pedido"><span class="pill-est ${clsDias}">${l.dias_desde_creado} d. háb.</span></td>
+          <td data-l="Cotizaciones">${l.n_cot} / ${l.cotizaciones_exigidas}</td>
+          <td data-l="Faltan"><strong>${l.cotizaciones_faltantes}</strong></td>
+          <td data-l="Monto est.">${l.monto > 0 ? usd(l.monto) : "Sin monto (regla: 2)"}</td>
+          <td data-l="Proveedor">${esc(l.proveedor || "Sin elegir")}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    if (pedidoSeleccionado) renderizarDetalle(pedidoSeleccionado);
+  }
+
+  function renderizarDetalle(pedido) {
+    pedidoSeleccionado = pedido;
+    const caja = document.getElementById("detallePedido");
+    const lineas = (resumenActual ? resumenActual.lineas : []).filter(l => !l.aparte && l.pedido === pedido);
+    if (!lineas.length) {
+      caja.classList.add("hide");
+      pedidoSeleccionado = "";
+      return;
+    }
+    caja.classList.remove("hide");
+    document.getElementById("tituloDetalle").textContent = `Detalle de ${pedido}`;
+    const pedInfo = resumenActual.por_pedido.find(p => p.pedido === pedido);
+    document.getElementById("subDetalle").textContent = pedInfo
+      ? `${pedInfo.finca} · ${pedInfo.vigentes} líneas vigentes · ${pedInfo.pct_entregado}% entregado · ${usd(pedInfo.monto_vigente)}`
+      : `${lineas.length} líneas`;
+
+    document.getElementById("tbodyDetalle").innerHTML = lineas.map(l => {
+      const ocTxt = [l.oc_codigo, l.numero_oc ? `N° ${l.numero_oc}` : ""].filter(Boolean).join(" · ") || "Sin OC";
+      const notaTxt = l.nota ? `${l.fuente}: ${l.nota}` : l.fuente;
+      return `<tr>
+        <td data-l="Línea"><strong>${esc(l.linea)}</strong></td>
+        <td data-l="Producto">${esc(l.producto)}</td>
+        <td data-l="Proveedor">${esc(l.proveedor || "—")}</td>
+        <td data-l="OC">${esc(ocTxt)}</td>
+        <td data-l="Monto">${usd(l.monto)}</td>
+        <td data-l="Estado entrega"><span class="pill-est ${clasePillEntrega(l.estado_entrega)}">${esc(l.estado_entrega)}</span></td>
+        <td data-l="Estado pago"><span class="pill-est ${clasePillPago(l)}">${esc(l.estado_pago)}</span></td>
+        <td data-l="Fuente y nota" class="small">${esc(notaTxt)}</td>
+        <td data-l="Acción"><button type="button" class="btn btn-corregir" data-lin="${esc(l.linea)}">Corregir estado</button></td>
+      </tr>`;
+    }).join("");
+  }
+
+  function abrirModalCorregir(lineaId) {
+    const raw = (filasRaw || []).find(r => String(r.linea || r["Línea"] || "") === lineaId);
+    if (!raw) return;
+    const av = R.avancePorLinea(raw, seguimientoMapa);
+    const segAct = seguimientoMapa[lineaId] || null;
+    const tieneFechaEntregaAgro = Boolean(raw.f_entrega || raw["F. entrega"]);
+    const ocCod = av.oc_codigo || av.oc || "";
+    const mismasOc = ocCod
+      ? (filasRaw || []).filter(r => {
+          const avR = R.avancePorLinea(r, seguimientoMapa);
+          return !avR.aparte && (avR.oc_codigo === ocCod || avR.oc === ocCod);
+        }).map(r => String(r.linea || r["Línea"] || "")).filter(Boolean)
+      : [];
+
+    contextoModal = { linea: lineaId, oc: ocCod, lineasOc: mismasOc };
+    document.getElementById("dlgLineaDesc").textContent = `${lineaId} · ${av.producto} (${av.proveedor || "Sin proveedor"})`;
+    document.getElementById("dlgAvisoAgro").classList.toggle("hide", !tieneFechaEntregaAgro);
+
+    const sel = document.getElementById("dlgEstado");
+    sel.value = segAct && segAct.estado && segAct.estado !== "Según AgroControl" ? segAct.estado : av.estado_entrega;
+    const ta = document.getElementById("dlgNota");
+    ta.value = segAct ? (segAct.nota || "") : (av.nota && av.fuente !== "AgroControl" ? av.nota : "");
+    document.getElementById("dlgContador").textContent = String(ta.value.length);
+
+    const scopeWrap = document.getElementById("dlgScopeWrap");
+    if (mismasOc.length > 1) {
+      scopeWrap.classList.remove("hide");
+      document.getElementById("dlgLinSolo").textContent = lineaId;
+      document.getElementById("dlgOcTxt").textContent = ocCod;
+      document.getElementById("dlgOcCnt").textContent = String(mismasOc.length);
+      document.querySelector('input[name="dlgScope"][value="linea"]').checked = true;
+    } else {
+      scopeWrap.classList.add("hide");
+    }
+
+    const dlg = document.getElementById("dlgCorregir");
+    if (dlg.showModal) dlg.showModal();
+  }
+
+  function exportarExcel() {
+    if (typeof XLSX === "undefined" || !resumenActual) {
+      mostrarToast("Espere a que carguen los datos para exportar.");
+      return;
+    }
+    const wb = XLSX.utils.book_new();
+
+    // 1. Resumen por pedido
+    const hPed = ["Pedido", "Finca", "Líneas vigentes", "Por cotizar", "Cotizado", "Autorizado sin OC", "Con OC, por entregar", "Entregado", "No se compró", "% Entregado", "% Por entregar", "% Sin cotizar", "Monto vigente $", "Monto entregado $", "Entregado y falta pagar $", "Falta OK de pago $"];
+    const rPed = resumenActual.por_pedido.map(p => [
+      p.pedido, p.finca, p.vigentes, p.conteos["Por cotizar"], p.cotizado_total,
+      p.conteos["Autorizado, falta OC"], p.conteos["Con OC, por entregar"], p.conteos["Entregado"],
+      p.conteos["No se compró"], Number((p.pct_entregado / 100).toFixed(4)), Number((p.pct_por_entregar / 100).toFixed(4)),
+      Number((p.pct_sin_cotizar / 100).toFixed(4)), p.monto_vigente, p.monto_entregado, p.monto_entregado_falta_pagar, p.monto_falta_ok_pago
+    ]);
+    const t = resumenActual.totales;
+    rPed.push([
+      "TOTAL", "", t.vigentes, t.por_cotizar, t.cotizado_total, t.autorizado_sin_oc, t.con_oc, t.entregado, t.no_se_compro,
+      Number((t.pct_entregado_global / 100).toFixed(4)), "", "", t.monto_vigente, t.monto_entregado, t.monto_entregado_falta_pagar, t.monto_falta_ok_pago
+    ]);
+    const wsPed = XLSX.utils.aoa_to_sheet([hPed, ...rPed]);
+    wsPed["!cols"] = [12, 16, 10, 10, 10, 14, 14, 10, 12, 11, 12, 12, 14, 14, 16, 14].map(wch => ({ wch }));
+    XLSX.utils.book_append_sheet(wb, wsPed, "Resumen por pedido");
+
+    // 2. Estado general
+    const rowsEst = [["Estado", "Líneas", "% líneas vigentes", "Monto $"]];
+    R.ESTADOS_AVANCE.forEach(est => {
+      const sub = resumenActual.lineas.filter(l => !l.aparte && l.estado_entrega === est);
+      const montoSub = sub.reduce((a, b) => a + Number(b.monto || 0), 0);
+      rowsEst.push([est, sub.length, est === "No se compró" || !t.vigentes ? "—" : Number((sub.length / t.vigentes).toFixed(4)), Number(montoSub.toFixed(2))]);
+    });
+    rowsEst.push(["Entregado y falta pagar", t.entregado_falta_pagar_lineas, "", t.monto_entregado_falta_pagar]);
+    const wsEst = XLSX.utils.aoa_to_sheet(rowsEst);
+    wsEst["!cols"] = [{ wch: 30 }, { wch: 10 }, { wch: 16 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, wsEst, "Estado general");
+
+    // 3. Por orden de compra
+    const porOc = {};
+    resumenActual.lineas.filter(l => !l.aparte && l.oc).forEach(l => {
+      if (!porOc[l.oc]) porOc[l.oc] = [];
+      porOc[l.oc].push(l);
+    });
+    const rowsOc = [["OC", "Pedido", "Proveedor", "Líneas", "Monto $", "Estado entrega", "Estado pago", "Nota"]];
+    Object.keys(porOc).sort().forEach(oc => {
+      const grp = porOc[oc];
+      const ests = Array.from(new Set(grp.map(x => x.estado_entrega))).join(" / ");
+      const pags = Array.from(new Set(grp.map(x => x.estado_pago))).join(" / ");
+      const notas = Array.from(new Set(grp.map(x => x.nota).filter(Boolean))).join("; ");
+      rowsOc.push([oc, grp[0].pedido, grp[0].proveedor, grp.length, Number(grp.reduce((a, b) => a + b.monto, 0).toFixed(2)), ests, pags, notas]);
+    });
+    const wsOc = XLSX.utils.aoa_to_sheet(rowsOc);
+    wsOc["!cols"] = [14, 12, 32, 8, 12, 26, 26, 50].map(wch => ({ wch }));
+    XLSX.utils.book_append_sheet(wb, wsOc, "Por orden de compra");
+
+    // 4. Detalle por línea
+    const rowsDet = [["Pedido", "Línea", "Finca", "Producto", "Proveedor", "OC", "N° OC", "Monto $", "Estado entrega", "Fuente", "Nota", "Estado pago", "Estado plataforma"]];
+    resumenActual.lineas.filter(l => !l.aparte).forEach(l => {
+      rowsDet.push([l.pedido, l.linea, l.finca, l.producto, l.proveedor, l.oc_codigo, l.numero_oc, l.monto, l.estado_entrega, l.fuente, l.nota, l.estado_pago, l.estado_plataforma]);
+    });
+    const wsDet = XLSX.utils.aoa_to_sheet(rowsDet);
+    wsDet["!cols"] = [11, 13, 14, 34, 30, 14, 11, 11, 24, 22, 48, 24, 34].map(wch => ({ wch }));
+    XLSX.utils.book_append_sheet(wb, wsDet, "Detalle por línea");
+
+    // 5. Cómo se calculó
+    const wsComo = XLSX.utils.aoa_to_sheet([
+      ["Cómo se calculó"],
+      ["1. Si AgroControl trae Fecha de Entrega, la línea queda como Entregado (manda AgroControl)."],
+      ["2. Si no tiene entrega registrada en AgroControl, manda el seguimiento manual de compras."],
+      ["3. Si tampoco tiene seguimiento manual, se clasifica según el estado de AgroControl y su OC."],
+      ["4. Las líneas «No se compró», anuladas o rechazadas se excluyen de los porcentajes y montos vigentes."]
+    ]);
+    wsComo["!cols"] = [{ wch: 95 }];
+    XLSX.utils.book_append_sheet(wb, wsComo, "Cómo se calculó");
+
+    const fecha = R.hoyEcuador();
+    XLSX.writeFile(wb, `Avance_Pedidos_${fecha}.xlsx`);
+    mostrarToast("Excel descargado.");
+  }
+
+  async function cargarDatos(forzar) {
+    const sub = document.getElementById("subEstadoAv");
+    sub.textContent = "Leyendo AgroControl y seguimiento…";
+    try {
+      await ComprasApp.exigirSesion({ permitirNube: true });
+      const res = await ComprasApp.filasAgro({ forzar: !!forzar });
+      filasRaw = res.filas || [];
+      sub.textContent = `Actualizado ${new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guayaquil" })} · ${filasRaw.length} líneas`;
+      renderizarTodo();
+    } catch (e) {
+      sub.textContent = e && e.message === "sin sesión" ? "Inicie sesión para consultar el avance en vivo." : `No se pudo leer AgroControl: ${e.message || e}`;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("#tabsAvance .tab-btn").forEach(btn => {
+      btn.onclick = () => {
+        pestanaActual = btn.dataset.tab;
+        document.querySelectorAll("#tabsAvance .tab-btn").forEach(b => b.classList.toggle("activo", b === btn));
+        document.getElementById("panelPedidos").classList.toggle("hide", pestanaActual !== "pedidos");
+        document.getElementById("panelFaltaCot").classList.toggle("hide", pestanaActual !== "faltacot");
+      };
+    });
+
+    ["filFinca", "filEstado", "filProveedor", "filBuscar"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener(id === "filBuscar" ? "input" : "change", renderizarTodo);
+    });
+
+    document.getElementById("tbodyPedidos").addEventListener("click", ev => {
+      const tr = ev.target.closest("tr.fila-ped");
+      if (!tr) return;
+      renderizarDetalle(tr.dataset.ped);
+    });
+    document.getElementById("btnCerrarDetalle").onclick = () => {
+      pedidoSeleccionado = "";
+      document.getElementById("detallePedido").classList.add("hide");
+      renderizarTodo();
+    };
+    document.getElementById("tbodyDetalle").addEventListener("click", ev => {
+      const btn = ev.target.closest(".btn-corregir");
+      if (btn) abrirModalCorregir(btn.dataset.lin);
+    });
+
+    document.querySelectorAll("#dlgCorregir [data-preset]").forEach(b => {
+      b.onclick = () => {
+        const p = b.dataset.preset;
+        const sel = document.getElementById("dlgEstado");
+        const ta = document.getElementById("dlgNota");
+        if (p === "Por retirar") {
+          sel.value = "Con OC, por entregar";
+          if (!ta.value.trim()) ta.value = "Facturado; pendiente de retirar.";
+        } else {
+          sel.value = p;
+          if (p === "Según AgroControl") ta.value = "";
+        }
+        document.getElementById("dlgContador").textContent = String(ta.value.length);
+      };
+    });
+
+    document.getElementById("dlgNota").addEventListener("input", e => {
+      document.getElementById("dlgContador").textContent = String(e.target.value.length);
+    });
+    document.getElementById("dlgCancelar").onclick = () => document.getElementById("dlgCorregir").close();
+    document.getElementById("formCorregir").addEventListener("submit", async ev => {
+      ev.preventDefault();
+      if (!contextoModal) return;
+      const estado = document.getElementById("dlgEstado").value;
+      const nota = document.getElementById("dlgNota").value.trim().slice(0, 300);
+      const scopeEl = document.querySelector('input[name="dlgScope"]:checked');
+      const scope = scopeEl ? scopeEl.value : "linea";
+      const lineas = (scope === "oc" && contextoModal.lineasOc.length > 1) ? contextoModal.lineasOc : [contextoModal.linea];
+      const btn = document.getElementById("dlgGuardar");
+      btn.disabled = true;
+      try {
+        await AgdNube.guardarSeguimientoLote(lineas, { estado, nota });
+        seguimientoMapa = AgdNube.leerSeguimientoLocal();
+        document.getElementById("dlgCorregir").close();
+        renderizarTodo();
+        mostrarToast(`Guardado en ${lineas.length} ${lineas.length === 1 ? "línea" : "líneas"}.`);
+      } catch (e) {
+        mostrarToast("No se pudo guardar: " + (e.message || e));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById("btnRefrescarAv").onclick = () => cargarDatos(true);
+    document.getElementById("btnExcelAv").onclick = exportarExcel;
+
+    if (window.AgdNube && AgdNube.escucharSeguimiento) {
+      AgdNube.escucharSeguimiento(mapa => {
+        seguimientoMapa = mapa || {};
+        if (filasRaw.length) renderizarTodo();
+      });
+    }
+    cargarDatos(false);
+  });
+
+  window.AgdAvanceTest = {
+    cargarDesdeDatos(filas, seg) {
+      filasRaw = Array.isArray(filas) ? filas : [];
+      seguimientoMapa = seg || {};
+      document.getElementById("subEstadoAv").textContent = `Vista previa · ${filasRaw.length} líneas`;
+      renderizarTodo();
+    },
+    abrirCorregir: abrirModalCorregir
+  };
+})();
+</script>
+</body>
+</html>

@@ -10,6 +10,16 @@
   "utc_offset_horas": -5,
   "razon_social": "Agrícola El Carmen",
   "max_filas_hoja": 1000,
+  "fecha_inicio_gestion": "2026-11-04",
+  "estados_avance": [
+    "Por cotizar",
+    "Cotizado (en revisión)",
+    "Cotizado: proveedor elegido",
+    "Autorizado, falta OC",
+    "Con OC, por entregar",
+    "Entregado",
+    "No se compró"
+  ],
   "umbrales": {
     "monto_tres_cotizaciones": 300,
     "cotizaciones_bajo_umbral": 2,
@@ -430,6 +440,16 @@
   const FINCAS_POR_NOMBRE = Object.fromEntries(FINCAS.map(f => [f.nombre, f]));
   const TARJETAS_GERENCIA = REGLAS.tarjetas_gerencia;
   const MAX_FILAS_HOJA = Number(REGLAS.max_filas_hoja || 1000);
+  const FECHA_INICIO_GESTION = String(REGLAS.fecha_inicio_gestion || "2026-11-04");
+  const ESTADOS_AVANCE = Array.isArray(REGLAS.estados_avance) ? REGLAS.estados_avance.slice() : [
+    "Por cotizar",
+    "Cotizado (en revisión)",
+    "Cotizado: proveedor elegido",
+    "Autorizado, falta OC",
+    "Con OC, por entregar",
+    "Entregado",
+    "No se compró"
+  ];
   const ESTADOS_DESCARTADOS = new Set(REGLAS.estados_descartados);
   const ESTADOS_OC_CERRADOS = new Set(REGLAS.estados_oc_cerrados);
 
@@ -896,6 +916,326 @@
     return res;
   }
 
+  function normalizarEstadoAvance(valor) {
+    const raw = aStr(valor);
+    if (!raw) return "";
+    const cl = normTexto(raw);
+    if (!cl || cl.startsWith("segun agrocontrol")) return "";
+    if (cl === "por cotizar") return "Por cotizar";
+    if (cl === "cotizado (en revision)" || cl === "cotizado en revision" || cl === "cotizando") return "Cotizado (en revisión)";
+    if (cl === "cotizado: proveedor elegido" || cl === "cotizado proveedor elegido" || cl === "proveedor elegido") return "Cotizado: proveedor elegido";
+    if (cl === "autorizado, falta oc" || cl === "autorizado falta oc" || cl === "autorizado sin oc" || cl === "autorizado") return "Autorizado, falta OC";
+    if (cl === "con oc, por entregar" || cl === "con oc por entregar" || cl === "con oc" || cl === "por retirar") return "Con OC, por entregar";
+    if (cl === "entregado" || cl === "recibido") return "Entregado";
+    if (cl.startsWith("no se compro")) return "No se compró";
+    for (const est of ESTADOS_AVANCE) {
+      if (normTexto(est) === cl) return est;
+    }
+    return "";
+  }
+
+  function okPagoAprobado(valor) {
+    const s = normTexto(valor);
+    return !!s && !s.startsWith("n") && s !== "0" && s !== "false" && s !== "-" && s !== "pendiente";
+  }
+
+  function ordenCodigoTexto(codigo) {
+    const s = aStr(codigo);
+    const m = s.match(/\d+/);
+    return m ? [0, Number(m[0]), s] : [1, 0, s];
+  }
+
+  function _cmpOrdenCodigo(a, b) {
+    const ka = ordenCodigoTexto(a);
+    const kb = ordenCodigoTexto(b);
+    if (ka[0] !== kb[0]) return ka[0] - kb[0];
+    if (ka[1] !== kb[1]) return ka[1] - kb[1];
+    return ka[2] < kb[2] ? -1 : (ka[2] > kb[2] ? 1 : 0);
+  }
+
+  function _redondear(v, dec) {
+    const f = Math.pow(10, dec);
+    return Math.round((Number(v) + Number.EPSILON) * f) / f;
+  }
+
+  function avancePorLinea(fila, seguimiento, totalesRef, hoy) {
+    const ped = aStr(campo(fila, "pedido", "Pedido"));
+    const lin = aStr(campo(fila, "linea", "Línea", "Código producto"));
+    const oc = aStr(campo(fila, "oc_codigo", "OC (código)", "Orden de compra (código)"));
+    const numOc = aStr(campo(fila, "numero_oc", "N° OC", "N° Orden Compra"));
+    const ocCreada = aStr(campo(fila, "oc_creada", "F. OC creada"));
+    const est = normTexto(campo(fila, "estado", "Estado (código)", "Estado"));
+    const nCot = aInt(campo(fila, "n_cot", "N° cotizaciones", "N° Cotizaciones"));
+    const fEnt = aStr(campo(fila, "f_entrega", "F. entrega", "Fecha Entrega"));
+    const fPag = aStr(campo(fila, "f_pago_real", "F. pago realizado", "Fecha Pago Realizado"));
+    const fAut = aStr(campo(fila, "f_autorizacion", "F. autorización", "Fecha Autorización"));
+    const fCreado = aStr(campo(fila, "creado", "F. pedido", "Fecha creación"));
+    const finca = normFinca(campo(fila, "finca", "Finca"));
+    const producto = aStr(campo(fila, "producto", "Producto"));
+    const proveedor = aStr(campo(fila, "proveedor", "Proveedor", "Proveedor Seleccionado"));
+    const monto = _redondear(montoLinea(fila), 2);
+    const cotExig = cotizacionesExigidas(fila, totalesRef);
+    const cotFaltan = Math.max(0, cotExig - nCot);
+    const diasCreado = fCreado ? diasHabiles(fCreado, hoy) : 0;
+    const pagado = !!fPag;
+    const tieneOcNum = !!(oc || numOc || ocCreada);
+
+    if (ESTADOS_DESCARTADOS.has(est)) {
+      const estadoEntrega = est === "anulado" ? "Anulado" : "Rechazado";
+      const notaDesc = aStr(campo(fila, "motivo_anulacion", "Motivo Anulación", "motivo_rechazo", "Motivo Rechazo"));
+      return {
+        pedido: ped,
+        linea: lin,
+        oc: oc || numOc,
+        oc_codigo: oc,
+        numero_oc: numOc,
+        finca,
+        producto,
+        proveedor,
+        monto,
+        n_cot: nCot,
+        cotizaciones_exigidas: cotExig,
+        cotizaciones_faltantes: cotFaltan,
+        dias_desde_creado: diasCreado,
+        estado_entrega: estadoEntrega,
+        estado_pago: "—",
+        estado_plataforma: estadoEntrega,
+        fuente: "AgroControl",
+        nota: notaDesc,
+        pagado: false,
+        faltan_ok: [],
+        aprob_pago: 0,
+        falta_ok_pago: false,
+        entregado_falta_pagar: false,
+        vigente: false,
+        aparte: true
+      };
+    }
+
+    let seg = null;
+    if (seguimiento && typeof seguimiento === "object") {
+      if (lin && seguimiento[lin] && typeof seguimiento[lin] === "object") seg = seguimiento[lin];
+      else if (oc && seguimiento[oc] && typeof seguimiento[oc] === "object") seg = seguimiento[oc];
+    }
+
+    const segEst = seg ? normalizarEstadoAvance(seg.estado) : "";
+    const fEntTxt = fEnt ? (fechaLocal(fEnt) || fEnt) : "";
+    let estadoEntrega = "Por cotizar";
+    let fuente = "AgroControl";
+    let nota = "";
+
+    if (fEnt) {
+      estadoEntrega = "Entregado";
+      fuente = "AgroControl";
+      nota = `Entregado el ${fEntTxt} según AgroControl.`;
+    } else if (segEst) {
+      estadoEntrega = segEst;
+      const por = aStr(seg.por);
+      fuente = aStr(seg.fuente) || (por ? `Seguimiento (${por})` : "Seguimiento manual");
+      nota = aStr(seg.nota);
+    } else {
+      if (est === "entregado") estadoEntrega = "Entregado";
+      else if (tieneOcNum) estadoEntrega = "Con OC, por entregar";
+      else if (est === "aprobado" || est === "aprobada" || est === "compra autorizada" || fAut) estadoEntrega = "Autorizado, falta OC";
+      else if (est === "seleccionado" || est === "proveedor seleccionado") estadoEntrega = "Cotizado: proveedor elegido";
+      else if (est === "cotizado" || nCot > 0) estadoEntrega = "Cotizado (en revisión)";
+      else estadoEntrega = "Por cotizar";
+    }
+
+    const vigente = estadoEntrega !== "No se compró";
+    const f3Ok = aStr(campo(fila, "f_3ok", "F. 3 OK", "Fecha Pago Aprobado"));
+    const faltanOk = [];
+    if (!f3Ok) {
+      if (!okPagoAprobado(campo(fila, "ok_lola", "OK Lola (día)", "Pago Lola OK"))) faltanOk.push("Lola");
+      if (!okPagoAprobado(campo(fila, "ok_daniela", "OK Daniela (día)", "Pago Daniela OK"))) faltanOk.push("Daniela");
+      if (!okPagoAprobado(campo(fila, "ok_gerencia", "OK Gerencia (día)", "Pago Sebastián OK"))) faltanOk.push("Gerencia");
+    }
+    const aprobPago = 3 - faltanOk.length;
+
+    let estadoPago = "—";
+    let faltaOkPago = false;
+    if (!vigente || (estadoEntrega !== "Con OC, por entregar" && estadoEntrega !== "Entregado")) {
+      estadoPago = (pagado && vigente) ? "Pagado" : "—";
+    } else if (pagado) {
+      estadoPago = "Pagado";
+    } else if (faltanOk.length) {
+      estadoPago = `Falta OK de pago (${faltanOk.join(", ")})`;
+      faltaOkPago = true;
+    } else {
+      estadoPago = "Falta pagar (OK completo)";
+    }
+
+    let estadoPlataforma = estadoEntrega;
+    if (vigente) {
+      if (estadoEntrega === "Entregado") {
+        estadoPlataforma = pagado ? "Entregado y pagado" : ("Entregado y falta pagar" + (faltanOk.length ? " · falta OK de pago" : ""));
+      } else if (estadoEntrega === "Con OC, por entregar") {
+        estadoPlataforma = pagado ? "Pagado sin entregar" : ("Con OC por entregar · " + (faltanOk.length ? "falta OK de pago" : "falta pagar"));
+      }
+    }
+
+    return {
+      pedido: ped,
+      linea: lin,
+      oc: oc || numOc,
+      oc_codigo: oc,
+      numero_oc: numOc,
+      finca,
+      producto,
+      proveedor,
+      monto,
+      n_cot: nCot,
+      cotizaciones_exigidas: cotExig,
+      cotizaciones_faltantes: cotFaltan,
+      dias_desde_creado: diasCreado,
+      estado_entrega: estadoEntrega,
+      estado_pago: estadoPago,
+      estado_plataforma: estadoPlataforma,
+      fuente,
+      nota,
+      pagado,
+      faltan_ok: faltanOk,
+      aprob_pago: aprobPago,
+      falta_ok_pago: faltaOkPago,
+      entregado_falta_pagar: !!(vigente && estadoEntrega === "Entregado" && !pagado),
+      vigente,
+      aparte: false
+    };
+  }
+
+  function avancePorPedido(filas, seguimiento, hoy) {
+    const lista = Array.isArray(filas) ? filas : Array.from(filas || []);
+    const totRef = totalesReferenciaCotizacion(lista);
+    const lineasEval = [];
+    const grupos = {};
+    const totConteos = Object.fromEntries(ESTADOS_AVANCE.map(e => [e, 0]));
+    let totAparte = 0, totVigentes = 0;
+    let totMVigente = 0, totMEntregado = 0, totMEntFalta = 0, totMConOc = 0, totMFaltaOk = 0;
+    let totFaltaOkLin = 0, totEntFaltaLin = 0, totPagadoLin = 0;
+
+    for (const fila of lista) {
+      const av = avancePorLinea(fila, seguimiento, totRef, hoy);
+      lineasEval.push(av);
+      const ped = av.pedido || "Sin pedido";
+      if (av.aparte) {
+        totAparte++;
+        if (grupos[ped]) grupos[ped].aparte++;
+        continue;
+      }
+      if (!grupos[ped]) {
+        grupos[ped] = {
+          pedido: ped,
+          fincasSet: new Set(),
+          total_lineas: 0,
+          vigentes: 0,
+          aparte: 0,
+          conteos: Object.fromEntries(ESTADOS_AVANCE.map(e => [e, 0])),
+          monto_vigente: 0,
+          monto_entregado: 0,
+          monto_entregado_falta_pagar: 0,
+          monto_con_oc: 0,
+          monto_falta_ok_pago: 0,
+          falta_ok_lineas: 0,
+          entregado_falta_pagar_lineas: 0,
+          pagado_lineas: 0
+        };
+      }
+      const g = grupos[ped];
+      g.fincasSet.add(av.finca);
+      g.total_lineas++;
+      const estE = av.estado_entrega;
+      g.conteos[estE] = (g.conteos[estE] || 0) + 1;
+      totConteos[estE] = (totConteos[estE] || 0) + 1;
+      if (av.vigente) {
+        const m = Number(av.monto || 0);
+        g.vigentes++;
+        g.monto_vigente += m;
+        totVigentes++;
+        totMVigente += m;
+        if (estE === "Entregado") {
+          g.monto_entregado += m;
+          totMEntregado += m;
+        }
+        if (av.entregado_falta_pagar) {
+          g.monto_entregado_falta_pagar += m;
+          g.entregado_falta_pagar_lineas++;
+          totMEntFalta += m;
+          totEntFaltaLin++;
+        }
+        if (estE === "Con OC, por entregar") {
+          g.monto_con_oc += m;
+          totMConOc += m;
+        }
+        if (av.falta_ok_pago) {
+          g.monto_falta_ok_pago += m;
+          g.falta_ok_lineas++;
+          totMFaltaOk += m;
+          totFaltaOkLin++;
+        }
+        if (av.pagado) {
+          g.pagado_lineas++;
+          totPagadoLin++;
+        }
+      }
+    }
+
+    const porPedido = Object.keys(grupos).sort(_cmpOrdenCodigo).map(ped => {
+      const g = grupos[ped];
+      const c = g.conteos;
+      const vig = g.vigentes;
+      const cotTot = c["Cotizado (en revisión)"] + c["Cotizado: proveedor elegido"];
+      const porEntregar = cotTot + c["Autorizado, falta OC"] + c["Con OC, por entregar"];
+      const fincas = Array.from(g.fincasSet).sort();
+      return {
+        pedido: ped,
+        finca: fincas.join(", "),
+        fincas,
+        total_lineas: g.total_lineas,
+        vigentes: vig,
+        aparte: g.aparte,
+        conteos: c,
+        cotizado_total: cotTot,
+        pct_entregado: vig ? _redondear(c["Entregado"] * 100 / vig, 1) : 0,
+        pct_por_entregar: vig ? _redondear(porEntregar * 100 / vig, 1) : 0,
+        pct_sin_cotizar: vig ? _redondear(c["Por cotizar"] * 100 / vig, 1) : 0,
+        monto_vigente: _redondear(g.monto_vigente, 2),
+        monto_entregado: _redondear(g.monto_entregado, 2),
+        monto_entregado_falta_pagar: _redondear(g.monto_entregado_falta_pagar, 2),
+        monto_con_oc: _redondear(g.monto_con_oc, 2),
+        monto_falta_ok_pago: _redondear(g.monto_falta_ok_pago, 2),
+        falta_ok_lineas: g.falta_ok_lineas,
+        entregado_falta_pagar_lineas: g.entregado_falta_pagar_lineas,
+        pagado_lineas: g.pagado_lineas
+      };
+    });
+
+    return {
+      por_pedido: porPedido,
+      lineas: lineasEval,
+      totales: {
+        total_lineas: lineasEval.length - totAparte,
+        vigentes: totVigentes,
+        aparte: totAparte,
+        conteos: totConteos,
+        por_cotizar: totConteos["Por cotizar"],
+        cotizado_total: totConteos["Cotizado (en revisión)"] + totConteos["Cotizado: proveedor elegido"],
+        autorizado_sin_oc: totConteos["Autorizado, falta OC"],
+        con_oc: totConteos["Con OC, por entregar"],
+        entregado: totConteos["Entregado"],
+        no_se_compro: totConteos["No se compró"],
+        pct_entregado_global: totVigentes ? _redondear(totConteos["Entregado"] * 100 / totVigentes, 1) : 0,
+        monto_vigente: _redondear(totMVigente, 2),
+        monto_entregado: _redondear(totMEntregado, 2),
+        monto_entregado_falta_pagar: _redondear(totMEntFalta, 2),
+        monto_con_oc: _redondear(totMConOc, 2),
+        monto_falta_ok_pago: _redondear(totMFaltaOk, 2),
+        falta_ok_lineas: totFaltaOkLin,
+        entregado_falta_pagar_lineas: totEntFaltaLin,
+        pagado_lineas: totPagadoLin
+      }
+    };
+  }
+
   function resumirIndicadores(filas, recepciones, vehiculos, hoy) {
     const lista = Array.isArray(filas) ? filas : [];
     const hoyYmd = hoy ? fechaLocal(hoy) : hoyEcuador();
@@ -1128,7 +1468,12 @@
     FINCAS_POR_NOMBRE,
     TARJETAS_GERENCIA,
     MAX_FILAS_HOJA,
+    FECHA_INICIO_GESTION,
+    ESTADOS_AVANCE,
     normTexto,
+    normalizarEstadoAvance,
+    avancePorLinea,
+    avancePorPedido,
     normFinca,
     normRegion,
     cultivoDeLinea,

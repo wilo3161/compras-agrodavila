@@ -13,6 +13,7 @@
   const LS_CHECKLIST = "agd_checklist_v1";
   const LS_HISTORIAL = "agd_checklist_hist_v1";
   const LS_FRESCURA = "agd_frescura_fuentes_v1";
+  const LS_SEGUIMIENTO = "agd_seguimiento_v1";
   const COLS_51_AGRO = [
     "Pedido", "Línea", "OC (código)", "Finca", "Región", "Hectáreas", "Semana", "Producto", "Categoría",
     "Ingrediente activo", "Cantidad", "Unidad", "Urgencia", "Estado (código)", "Solicitó", "Revisó campo",
@@ -30,7 +31,7 @@
   let usuarioActual = null;
   let promesaInicio = null;
   let oyentesEstado = [];
-  let unsubBorradores = null, unsubTelefonos = null, unsubAjustes = null;
+  let unsubBorradores = null, unsubTelefonos = null, unsubAjustes = null, unsubSeguimiento = null;
 
   function configLista() {
     const cfg = window.AGD_FIREBASE_CONFIG;
@@ -180,6 +181,7 @@
     if (unsubChecklist) { try { unsubChecklist(); } catch (e) {} unsubChecklist = null; }
     if (unsubConversaciones) { try { unsubConversaciones(); } catch (e) {} unsubConversaciones = null; }
     if (unsubBandeja) { try { unsubBandeja(); } catch (e) {} unsubBandeja = null; }
+    if (unsubSeguimiento) { try { unsubSeguimiento(); } catch (e) {} unsubSeguimiento = null; }
     unsubMatrizVivo.forEach(u => { try { u(); } catch (e) {} });
     unsubMatrizVivo = [];
     Object.keys(_unsubsErp).forEach(k => { try { _unsubsErp[k](); } catch (e) {} delete _unsubsErp[k]; });
@@ -1023,7 +1025,125 @@
     }
   }
 
+  /* ── Seguimiento manual de líneas: espacios/agrodavila/seguimiento/{linea} ── */
+  function leerSeguimientoLocal() {
+    try { return JSON.parse(localStorage.getItem(LS_SEGUIMIENTO) || "{}"); } catch (e) { return {}; }
+  }
+
+  function escribirSeguimientoLocal(mapa) {
+    try { localStorage.setItem(LS_SEGUIMIENTO, JSON.stringify(mapa || {})); } catch (e) {}
+  }
+
+  async function escucharSeguimiento(alCambiar, alError) {
+    if (typeof alCambiar === "function") alCambiar(leerSeguimientoLocal());
+    await inicializar();
+    if (!db || !usuarioActual) return () => {};
+    if (unsubSeguimiento) { try { unsubSeguimiento(); } catch (e) {} unsubSeguimiento = null; }
+    const colRef = modFs.collection(db, `${RAIZ}/seguimiento`);
+    unsubSeguimiento = modFs.onSnapshot(
+      colRef,
+      snap => {
+        const mapa = {};
+        snap.forEach(d => { mapa[d.id] = Object.assign({ linea: d.id }, d.data() || {}); });
+        escribirSeguimientoLocal(mapa);
+        if (typeof alCambiar === "function") alCambiar(mapa);
+      },
+      err => { if (typeof alError === "function") alError(err); }
+    );
+    return unsubSeguimiento;
+  }
+
+  async function guardarSeguimiento(linea, datos) {
+    return guardarSeguimientoLote([linea], datos);
+  }
+
+  async function guardarSeguimientoLote(lineas, datos) {
+    const lista = Array.from(new Set((Array.isArray(lineas) ? lineas : [lineas]).map(x => String(x || "").trim()).filter(Boolean)));
+    if (!lista.length) throw new Error("No se indicó ninguna línea para guardar.");
+    const estadoSeg = String((datos && datos.estado) || "").trim();
+    if (!estadoSeg) throw new Error("Seleccione un estado válido.");
+    const nota = String((datos && datos.nota) || "").trim().slice(0, 300);
+    const ahora = new Date().toISOString();
+
+    await inicializar();
+    const correo = usuarioActual && usuarioActual.email ? String(usuarioActual.email) : "local";
+    const mapa = leerSeguimientoLocal();
+    const carga = {
+      estado: estadoSeg,
+      nota,
+      por: correo,
+      actualizado_en: ahora
+    };
+    lista.forEach(lin => { mapa[lin] = Object.assign({}, carga); });
+    escribirSeguimientoLocal(mapa);
+
+    if (!db || !usuarioActual) {
+      return { ok: true, local: true, cantidad: lista.length, datos: carga };
+    }
+    if (typeof modFs.writeBatch === "function" && lista.length > 1) {
+      for (let i = 0; i < lista.length; i += 400) {
+        const lote = lista.slice(i, i + 400);
+        const batch = modFs.writeBatch(db);
+        lote.forEach(lin => {
+          batch.set(modFs.doc(db, `${RAIZ}/seguimiento/${lin}`), carga);
+        });
+        await batch.commit();
+      }
+    } else {
+      await Promise.all(lista.map(lin => modFs.setDoc(modFs.doc(db, `${RAIZ}/seguimiento/${lin}`), carga)));
+    }
+    return { ok: true, local: false, cantidad: lista.length, datos: carga };
+  }
+
+  /* ── Mi gestión (solo correo principal de Wilo o lista config/acceso.gestion) ── */
+  async function puedeVerGestion() {
+    await inicializar();
+    if (!db || !usuarioActual || !usuarioActual.email) return false;
+    const correo = String(usuarioActual.email).toLowerCase().trim();
+    try {
+      const snap = await modFs.getDoc(modFs.doc(db, "config/acceso"));
+      if (!snap.exists()) return false;
+      const d = snap.data() || {};
+      if (Array.isArray(d.gestion) && d.gestion.length > 0) {
+        return d.gestion.some(c => String(c || "").toLowerCase().trim() === correo);
+      }
+      if (Array.isArray(d.correos) && d.correos.length > 0) {
+        return String(d.correos[0] || "").toLowerCase().trim() === correo;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function leerGestion() {
+    await inicializar();
+    if (!db || !usuarioActual) throw new Error("Inicie sesión para consultar sus indicadores de gestión.");
+    const colGestion = modFs.collection(db, `${RAIZ}/gestion`);
+    const colProvs = modFs.collection(db, `${RAIZ}/gestion/proveedores/lista`);
+    const [snapGest, snapProvs] = await Promise.all([modFs.getDocs(colGestion), modFs.getDocs(colProvs)]);
+    let resumen = null;
+    const meses = [];
+    snapGest.forEach(d => {
+      const data = Object.assign({ id: d.id }, d.data() || {});
+      if (d.id === "resumen") resumen = data;
+      else if (d.id.startsWith("mes_")) meses.push(data);
+    });
+    meses.sort((a, b) => String(a.mes || a.id).localeCompare(String(b.mes || b.id)));
+    const proveedores = [];
+    snapProvs.forEach(d => {
+      proveedores.push(Object.assign({ id: d.id }, d.data() || {}));
+    });
+    return { resumen, meses, proveedores };
+  }
+
   window.AgdNube = {
+    escucharSeguimiento,
+    guardarSeguimiento,
+    guardarSeguimientoLote,
+    leerSeguimientoLocal,
+    puedeVerGestion,
+    leerGestion,
     escucharConversaciones,
     marcarConversacion,
     escucharBandeja,
