@@ -207,8 +207,8 @@
       const orden = [datos.agrocontrol, datos.whatsapp, datos.recepciones, datos.vehiculos].filter(Boolean);
       const html = orden.map(it => {
         const cls = it.atrasada ? "frescura-item atraso" : "frescura-item";
-        const av = it.atrasada ? "⚠ >6 h · " : "";
-        return `<span class="${cls}" title="${it.atrasada ? "Más de 6 horas sin actualizar" : "Actualizado"}"><b>${it.etiqueta}:</b> ${av}${textoEdad(it)}</span>`;
+        const av = it.atrasada ? "⚠ dato desactualizado · " : "";
+        return `<span class="${cls}" title="${it.atrasada ? "Dato desactualizado (>2 h en jornada laboral)" : "Actualizado"}"><b>${it.etiqueta}:</b> ${av}${textoEdad(it)}</span>`;
       }).join("");
       caja.innerHTML = `<span class="frescura-tit">Sincronización:</span>${html}`;
     } catch (e) {}

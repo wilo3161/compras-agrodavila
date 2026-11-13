@@ -407,6 +407,20 @@
       "formato": "moneda"
     },
     {
+      "id": "sin_cotizar",
+      "titulo": "Sin cotizaciones",
+      "color": "ladrillo",
+      "semantica": "Alerta",
+      "formato": "entero"
+    },
+    {
+      "id": "falta_completar_cotizaciones",
+      "titulo": "Falta completar cotizaciones",
+      "color": "maiz",
+      "semantica": "En proceso",
+      "formato": "entero"
+    },
+    {
       "id": "pendiente_cotizar",
       "titulo": "Pendiente de cotizar",
       "color": "maiz",
@@ -779,7 +793,29 @@
       : Number(UMBRALES.cotizaciones_bajo_umbral);
   }
 
-  function esPendienteCotizar(fila, totalesRef) {
+  function esCotizacionUnica(fila, seg) {
+    if (seg && seg.cotizacion_unica === true) return true;
+    if (fila && fila.cotizacion_unica === true) return true;
+    return false;
+  }
+
+  function esSinCotizar(fila, totalesRef, seg) {
+    if (esCotizacionUnica(fila, seg)) return false;
+    const est = normTexto(campo(fila, "estado", "Estado (código)", "Estado"));
+    if (est !== "aprobado_campo") return false;
+    return aInt(campo(fila, "n_cot", "N° cotizaciones")) === 0;
+  }
+
+  function esFaltaCompletarCotizaciones(fila, totalesRef, seg) {
+    if (esCotizacionUnica(fila, seg)) return false;
+    const est = normTexto(campo(fila, "estado", "Estado (código)", "Estado"));
+    if (est !== "aprobado_campo") return false;
+    const n = aInt(campo(fila, "n_cot", "N° cotizaciones"));
+    return n >= 1 && n < cotizacionesExigidas(fila, totalesRef);
+  }
+
+  function esPendienteCotizar(fila, totalesRef, seg) {
+    if (esCotizacionUnica(fila, seg)) return false;
     const est = normTexto(campo(fila, "estado", "Estado (código)", "Estado"));
     if (est !== "aprobado_campo") return false;
     return aInt(campo(fila, "n_cot", "N° cotizaciones")) < cotizacionesExigidas(fila, totalesRef);
@@ -1008,7 +1044,12 @@
         falta_ok_pago: false,
         entregado_falta_pagar: false,
         vigente: false,
-        aparte: true
+        aparte: true,
+        cotizacion_unica: false,
+        motivo_cotizacion_unica: "",
+        sin_cotizar: false,
+        falta_completar_cotizaciones: false,
+        pendiente_cotizar: false
       };
     }
 
@@ -1074,6 +1115,12 @@
       }
     }
 
+    const cotUnica = esCotizacionUnica(fila, seg);
+    const motivoCotUnica = aStr((seg && seg.motivo_cotizacion_unica) || (fila && fila.motivo_cotizacion_unica));
+    const sinCot = esSinCotizar(fila, totalesRef, seg);
+    const faltaComp = esFaltaCompletarCotizaciones(fila, totalesRef, seg);
+    const pendCot = esPendienteCotizar(fila, totalesRef, seg);
+
     return {
       pedido: ped,
       linea: lin,
@@ -1099,7 +1146,12 @@
       falta_ok_pago: faltaOkPago,
       entregado_falta_pagar: !!(vigente && estadoEntrega === "Entregado" && !pagado),
       vigente,
-      aparte: false
+      aparte: false,
+      cotizacion_unica: cotUnica,
+      motivo_cotizacion_unica: motivoCotUnica,
+      sin_cotizar: sinCot,
+      falta_completar_cotizaciones: faltaComp,
+      pendiente_cotizar: pendCot
     };
   }
 
@@ -1236,7 +1288,7 @@
     };
   }
 
-  function resumirIndicadores(filas, recepciones, vehiculos, hoy) {
+  function resumirIndicadores(filas, recepciones, vehiculos, hoy, seguimiento) {
     const lista = Array.isArray(filas) ? filas : [];
     const hoyYmd = hoy ? fechaLocal(hoy) : hoyEcuador();
     const dHoy = _aDateUTC(hoyYmd);
@@ -1258,13 +1310,23 @@
     const anioActual = hoyYmd.slice(0, 4);
     const mesActual = hoyYmd.slice(0, 7);
 
-    let gastoSemana = 0, gastoMes = 0, gastoAnio = 0, ahorroDoc = 0, pendienteCot = 0;
+    let gastoSemana = 0, gastoMes = 0, gastoAnio = 0, ahorroDoc = 0;
+    let sinCotizarCnt = 0, faltaCompCnt = 0, cotUnicaCnt = 0, pendienteCot = 0;
     const pedOcDias = [];
     let entTotal = 0, entCon = 0, entTiempo = 0, entAtras = 0;
     let montoAutTotal = 0, montoAutCotOk = 0, alertasPrecio = 0;
 
     lista.forEach((r, idx) => {
       const lin = aStr(campo(r, "linea", "Línea"));
+      const oc = aStr(campo(r, "oc_codigo", "OC (código)", "Orden de compra (código)"));
+      let seg = null;
+      if (seguimiento && typeof seguimiento === "object") {
+        if (lin && seguimiento[lin]) seg = seguimiento[lin];
+        else if (oc && seguimiento[oc]) seg = seguimiento[oc];
+      } else if (r && r.seguimiento && typeof r.seguimiento === "object") {
+        seg = r.seguimiento;
+      }
+
       const rec = lin ? recs[lin] : null;
       const et = clasificarEtapa(r, rec);
       const m = montoLinea(r);
@@ -1272,7 +1334,10 @@
       totEtapa[et.id].lineas += 1;
       if (et.id === "anulado" || et.id === "rechazado") return;
 
-      if (esPendienteCotizar(r, totRef)) pendienteCot++;
+      if (esCotizacionUnica(r, seg)) cotUnicaCnt++;
+      if (esSinCotizar(r, totRef, seg)) sinCotizarCnt++;
+      if (esFaltaCompletarCotizaciones(r, totRef, seg)) faltaCompCnt++;
+      if (esPendienteCotizar(r, totRef, seg)) pendienteCot++;
       if (esOcAbierta(r, rec)) ocsAbiertasSet.add(claveOC(r));
       const vp = varPrecios[lin || ("idx_" + idx)];
       if (vp && vp.alerta) alertasPrecio++;
@@ -1403,6 +1468,9 @@
       totales_etapa: Object.fromEntries(Object.entries(totEtapa).map(([k, v]) => [k, { nombre: v.nombre, monto: r2(v.monto), lineas: v.lineas }])),
       con_oc_monto: conOcMonto,
       recibido_monto: recibidoMonto,
+      sin_cotizar: sinCotizarCnt,
+      falta_completar_cotizaciones: faltaCompCnt,
+      cotizacion_unica: cotUnicaCnt,
       pendiente_cotizar: pendienteCot,
       pagos_vencidos: pagosVenc,
       km_semana: Math.round(kmSemana * 10) / 10,
@@ -1410,6 +1478,9 @@
         gasto_comprometido_ejecutado: gastoTotal,
         con_oc_monto: conOcMonto,
         recibido_monto: recibidoMonto,
+        sin_cotizar: sinCotizarCnt,
+        falta_completar_cotizaciones: faltaCompCnt,
+        cotizacion_unica: cotUnicaCnt,
         pendiente_cotizar: pendienteCot,
         pagos_por_confirmar: pagosVenc.monto,
         pagos_por_confirmar_ocs: pagosVenc.cantidad_ocs,
@@ -1487,6 +1558,9 @@
     clasificarEtapa,
     totalesReferenciaCotizacion,
     cotizacionesExigidas,
+    esCotizacionUnica,
+    esSinCotizar,
+    esFaltaCompletarCotizaciones,
     esPendienteCotizar,
     esOcAbierta,
     ahorroDocumentadoLinea,

@@ -211,22 +211,44 @@
     throw new Error("No se encontró lectura de AgroControl disponible.");
   }
 
+  function esHorarioLaboral(d) {
+    const f = d || new Date();
+    try {
+      const p = new Intl.DateTimeFormat("en-US", { timeZone: "America/Guayaquil", weekday: "short", hour: "numeric", minute: "numeric", hour12: false }).formatToParts(f);
+      const m = {}; p.forEach(x => { m[x.type] = x.value; });
+      const dia = m.weekday || ""; // Sun, Mon, Tue, Wed, Thu, Fri, Sat
+      if (dia === "Sun") return false;
+      const min = Number(m.hour || 0) * 60 + Number(m.minute || 0);
+      return min >= 7 * 60 && min <= 18 * 60 + 30; // 07:00 a 18:30
+    } catch (e) {
+      const dia = f.getDay();
+      if (dia === 0) return false;
+      const min = f.getHours() * 60 + f.getMinutes();
+      return min >= 7 * 60 && min <= 18 * 60 + 30;
+    }
+  }
+
   async function frescuraFuentes() {
     const base = (window.AgdNube && AgdNube.resumenFrescura) ? await AgdNube.resumenFrescura() : {};
     const cWa = await corteWA();
     if (cWa && !base.whatsapp) base.whatsapp = cWa;
     const ahora = Date.now();
-    const seisHorasMs = 6 * 3600 * 1000;
+    const enLaboral = esHorarioLaboral(new Date(ahora));
+    const umbralMs = enLaboral ? (2 * 3600 * 1000) : (12 * 3600 * 1000);
+
     const evaluar = (clave, etiqueta) => {
       const iso = base[clave] || "";
       const ms = iso ? Date.parse(iso) : NaN;
       const edadHoras = !isNaN(ms) ? Math.max(0, (ahora - ms) / 3600000) : null;
+      const atrasada = edadHoras === null || (ahora - ms) > umbralMs;
       return {
         fuente: clave,
         etiqueta,
         fecha: iso,
         edadHoras,
-        atrasada: edadHoras === null || (ahora - ms) > seisHorasMs
+        enLaboral,
+        atrasada,
+        estado: atrasada ? "dato desactualizado" : "al día"
       };
     };
     return {

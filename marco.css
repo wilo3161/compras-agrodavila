@@ -3,7 +3,7 @@
    la barra de secciones, las guías y las tablas-tarjeta del teléfono. */
 :root{
   --bg:#F7F7F5; --card:#FFFFFF; --tx:#23262B; --t2:#5E6570; --bd:#E2E4E7; --tinta:#23262B;
-  --pri:#2E5E8E; --pri-osc:#234A71; --pri2:#E8EFF7; --tierra:#B5452F; --tierra2:#F8E8E4; --maiz:#C7901A; --maiz2:#FBF3E0;
+  --pri:#2E5E8E; --pri-osc:#234A71; --pri2:#E8EFF7; --tierra:#B5452F; --tierra2:#F8E8E4; --ladrillo:#B5452F; --ladrillo2:#F8E8E4; --maiz:#C7901A; --maiz2:#FBF3E0;
   --ok:#3E7A5A; --okbg:#E7F1EB; --md:#8C650F; --mdbg:#FBF3E0; --al:#B5452F; --albg:#F8E8E4; --cr:#B42318; --crbg:#FBE5E1;
   --az:#2E5E8E; --azbg:#E8EFF7;
   --sombra:0 1px 2px rgba(20,28,40,.06),0 6px 18px -6px rgba(20,28,40,.14);

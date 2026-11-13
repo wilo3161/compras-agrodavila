@@ -134,8 +134,10 @@ function procesar(crudas){
     x.entregaEst=est;
     x.aTiempo = x["F. entrega"]&&est ? (R.fechaLocal(x["F. entrega"])<=R.fechaLocal(est)) : null;
     x.reqCot = R.cotizacionesExigidas(raw, totRef);
-    x.cotOK = (x.aparte || et.id === "revision_campo") ? null : cot >= x.reqCot;
-    x.pendCot = R.esPendienteCotizar(raw, totRef);
+    const esUnica = R.esCotizacionUnica ? R.esCotizacionUnica(raw) : false;
+    x.cotUnica = esUnica;
+    x.cotOK = esUnica ? true : ((x.aparte || et.id === "revision_campo") ? null : cot >= x.reqCot);
+    x.pendCot = esUnica ? false : R.esPendienteCotizar(raw, totRef);
     x.ahorro = R.ahorroDocumentadoLinea(raw);
     const vp = varPrecios[String(raw["Línea"]||"")] || null;
     x.pctSobre = vp && vp.pct != null ? vp.pct : null;
@@ -217,7 +219,8 @@ function vKpi(){
    ["Gasto comprometido + ejecutado",fm(T.gasto_comprometido_ejecutado),"autorizado en adelante (sin anulados/rechazados)"],
    ["Con OC $",fm(T.con_oc_monto),"en proceso de entrega"],
    ["Recibido $",fm(T.recibido_monto),"entregado en finca (recibido + pagado)"],
-   ["Pendiente de cotizar",T.pendiente_cotizar,"aprobado campo con < cotiz. exigidas"],
+   ["Sin ninguna cotización", T.sin_cotizar != null ? T.sin_cotizar : 0, "aprobado campo sin proforma registrada"],
+   ["Falta completar cotizaciones", T.falta_completar_cotizaciones != null ? T.falta_completar_cotizaciones : 0, "tienen 1 de 2 / 2 de 3"],
    ["Pagos por confirmar",fm(T.pagos_por_confirmar),(T.pagos_por_confirmar_ocs||0)+" OCs vencidas · meta 0"],
    ["OC abiertas",ind.ocs_abiertas.cantidad,"meta control activo"],
    ["Pedido → N° OC",d1(ind.dias_pedido_a_oc.promedio)+" d","meta "+ind.dias_pedido_a_oc.meta+" días"],

@@ -135,7 +135,7 @@ main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
     <div class="kpi-card ac-gris"><span class="kpi-lbl">Gasto comprometido + ejecutado</span><span class="kpi-val" id="kGasto">$0</span><span class="kpi-sub" id="kGastoSub">—</span></div>
     <div class="kpi-card ac-maiz"><span class="kpi-lbl">Con OC $</span><span class="kpi-val" id="kConOc">$0</span><span class="kpi-sub" id="kConOcSub">—</span></div>
     <div class="kpi-card ac-azul"><span class="kpi-lbl">Recibido $</span><span class="kpi-val" id="kRecibido">$0</span><span class="kpi-sub" id="kRecibidoSub">—</span></div>
-    <div class="kpi-card ac-maiz"><span class="kpi-lbl">Pendiente de cotizar</span><span class="kpi-val" id="kPendCot">0</span><span class="kpi-sub" id="kPendCotSub">Aprobado campo &lt; cotiz. exigidas</span></div>
+    <div class="kpi-card ac-maiz"><span class="kpi-lbl">Por cotizar (Sin proforma / Incompletas)</span><span class="kpi-val" id="kPendCot">0 / 0</span><span class="kpi-sub" id="kPendCotSub">0 sin cotizar · 0 falta completar</span></div>
     <div class="kpi-card ac-ladrillo"><span class="kpi-lbl">Pagos por confirmar</span><span class="kpi-val" id="kPagosConf">$0</span><span class="kpi-sub" id="kPagosConfSub">0 OCs vencidas</span></div>
     <div class="kpi-card ac-grafito"><span class="kpi-lbl">Km de la semana</span><span class="kpi-val" id="kKmSem">0 km</span><span class="kpi-sub" id="kKmSemSub">Semana en curso</span></div>
   </section>
@@ -615,8 +615,10 @@ function renderTodo() {
   $("#kConOcSub").textContent = `${ind.ocs_abiertas.cantidad} OC abiertas`;
   $("#kRecibido").textContent = fmtUsd(T.recibido_monto);
   $("#kRecibidoSub").textContent = `${pctRec}% de lo ordenado + recibido`;
-  $("#kPendCot").textContent = T.pendiente_cotizar;
-  $("#kPendCotSub").textContent = `≥${R.UMBRALES.cotizaciones_sobre_umbral} cot. si ≥$${R.UMBRALES.monto_tres_cotizaciones} · ≥${R.UMBRALES.cotizaciones_bajo_umbral} si menor`;
+  const sc = T.sin_cotizar != null ? T.sin_cotizar : 0;
+  const fc = T.falta_completar_cotizaciones != null ? T.falta_completar_cotizaciones : 0;
+  $("#kPendCot").textContent = `${sc} / ${fc}`;
+  $("#kPendCotSub").textContent = `${sc} sin ninguna cotización · ${fc} falta completar (tienen 1 de 2 / 2 de 3)`;
   $("#kPagosConf").textContent = fmtUsd(T.pagos_por_confirmar);
   $("#kPagosConfSub").textContent = `${T.pagos_por_confirmar_ocs} OCs vencidas`;
   $("#kKmSem").textContent = `${num(T.km_semana).toLocaleString("es-EC", { maximumFractionDigits: 1 })} km`;

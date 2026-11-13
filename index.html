@@ -214,13 +214,15 @@ async function urgente(){
     AGRO_ERROR=false;
     SNAP=await ComprasApp.filasAgro({forzar:false}); const F=SNAP.filas||[], R=window.AgdReglas;
     const totRef = R.totalesReferenciaCotizacion(F);
-    const porCot = F.filter(r=>R.esPendienteCotizar(r, totRef)).length;
+    const sinCot = F.filter(r=>R.esSinCotizar(r, totRef)).length;
+    const faltaCot = F.filter(r=>R.esFaltaCompletarCotizaciones(r, totRef)).length;
     const vencidos = R.pagosVencidosPorOC(F).cantidad_ocs;
     const porAut = F.filter(r=>R.clasificarEtapa(r).id==="por_autorizar").length;
     const revCampo = F.filter(r=>R.clasificarEtapa(r).id==="revision_campo").length;
     FILAS_AC=[
       ["rojo","alerta","Pagos vencidos o sin registrar","Órdenes con fecha de pago pasada",vencidos,"control.html"],
-      ["maiz","control","Por cotizar","Aprobados con menos cotizaciones de las exigidas",porCot,"control.html"],
+      ["rojo","control","Sin ninguna cotización","Aprobados en campo sin proforma",sinCot,"avance.html#faltacot"],
+      ["maiz","control","Falta completar cotizaciones","Tienen 1 o 2 de las exigidas (2 o 3)",faltaCot,"avance.html#faltacot"],
       ["tierra","llave","Por autorizar","Esperan autorización",porAut,"control.html"],
       ["verde","hoja","Revisión de campo","Pedidos nuevos de las fincas",revCampo,"control.html"]];
     renderUrgente();
@@ -232,7 +234,7 @@ async function urgente(){
 }
 if(window.AgdNube && AgdNube.escucharConversaciones){
   AgdNube.escucharConversaciones(convs=>{
-    CONV_PENDIENTES=(convs||[]).filter(c=>c.estado==="pendiente"||!c.estado).length;
+    CONV_PENDIENTES=(convs||[]).filter(c=>c.estado==="pendiente").length;
     renderUrgente();
   });
 }

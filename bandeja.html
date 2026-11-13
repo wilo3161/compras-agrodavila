@@ -287,7 +287,7 @@ function formatearTiempoEspera(iso) {
 
 function pintarConversaciones() {
   const cont = $("#listaConversaciones");
-  const pend = CONVERSACIONES.filter(c => c.estado === "pendiente" || !c.estado);
+  const pend = CONVERSACIONES.filter(c => c.estado === "pendiente");
   $("#badgeCountConv").textContent = pend.length;
 
   if (!pend.length) {
@@ -450,8 +450,11 @@ function pintarRequerimientos() {
       <article class="req-item" data-req="${esc(rq.numero)}">
         <div class="req-cab">
           <div>
-            <h2 style="margin:0 0 4px;font-size:18px;font-family:var(--titulo)">Requerimiento ${esc(rq.numero)}</h2>
-            <div class="small muted">
+            <div style="display:flex;align-items:center;gap:8px">
+              <h2 style="margin:0;font-size:18px;font-family:var(--titulo)">Requerimiento ${esc(rq.numero)}</h2>
+              <span class="chip-urg ${rq.estado === 'con_oc' || rq.estado === 'cerrado' ? 'baja' : rq.estado === 'cotizado' ? 'media' : 'alta'}" style="font-size:11px">${esc(rq.estado || 'por_cotizar')}</span>
+            </div>
+            <div class="small muted" style="margin-top:4px">
               <span>Finca: <b>${esc(rq.finca || 'General')}</b></span> · 
               <span>Solicita: <b>${esc(rq.solicitante || 'Campo')}</b></span> · 
               <span>Urgencia: <b>${esc(rq.urgencia || 'Media')}</b></span>
@@ -465,9 +468,15 @@ function pintarRequerimientos() {
         <div class="small bold muted" style="margin-bottom:6px">ÍTEMS A COTIZAR (${items.length}):</div>
         <ul class="req-lista-items">
           ${items.map(it => `
-            <li>
-              <span><b>${esc(it.cantidad || '')} ${esc(it.unidad || '')}</b> ${esc(it.descripcion || '')}</span>
-              <span class="muted">${esc(it.categoria || '')}</span>
+            <li style="display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span><b>${esc(it.cantidad || '')} ${esc(it.unidad || '')}</b> ${esc(it.descripcion || '')}</span>
+                <span class="muted">${esc(it.categoria || '')}</span>
+              </div>
+              <div style="display:flex;gap:6px;font-size:12px;align-items:center">
+                <span class="chip-urg ${it.estado_item === 'con_oc' || it.estado_item === 'entregado' ? 'baja' : it.estado_item === 'cotizado' ? 'media' : 'alta'}" style="font-size:11px">${esc(it.estado_item || 'sin_cotizar')}</span>
+                ${it.pedido && it.linea ? `<span class="muted">AgroControl: <b>${esc(it.pedido)}</b> · Lín <b>${esc(it.linea)}</b> (${esc(it.confianza || it.confianza_vinculo || 'vinculado')})</span>` : '<span class="muted">Sin cruce AgroControl</span>'}
+              </div>
             </li>
           `).join('')}
         </ul>

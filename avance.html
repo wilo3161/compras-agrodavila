@@ -119,9 +119,14 @@ dialog.modal-seg::backdrop{background:rgba(15,20,28,.5)}
       <span class="kpi-sub" id="kFaltaOkSub">0 líneas esperando firma</span>
     </div>
     <div class="kpi-card ac-ladrillo">
-      <span class="kpi-lbl">Por cotizar</span>
-      <strong class="kpi-val" id="kPorCot">0</strong>
-      <span class="kpi-sub" id="kPorCotSub">0 en revisión</span>
+      <span class="kpi-lbl">Sin cotización</span>
+      <strong class="kpi-val" id="kSinCot">0</strong>
+      <span class="kpi-sub" id="kSinCotSub">0 proformas</span>
+    </div>
+    <div class="kpi-card ac-maiz">
+      <span class="kpi-lbl">Falta completar</span>
+      <strong class="kpi-val" id="kFaltaCot">0</strong>
+      <span class="kpi-sub" id="kFaltaCotSub">tienen 1 de 2 / 2 de 3</span>
     </div>
     <div class="kpi-card ac-gris">
       <span class="kpi-lbl">Autorizado sin OC</span>
@@ -245,10 +250,11 @@ dialog.modal-seg::backdrop{background:rgba(15,20,28,.5)}
               <th>Faltan</th>
               <th>Monto est.</th>
               <th>Proveedor</th>
+              <th>Acción</th>
             </tr>
           </thead>
           <tbody id="tbodyFaltaCot">
-            <tr><td colspan="10" class="muted">Sin líneas pendientes de cotizar.</td></tr>
+            <tr><td colspan="11" class="muted">Sin líneas pendientes de cotizar.</td></tr>
           </tbody>
         </table>
       </div>
@@ -264,6 +270,7 @@ dialog.modal-seg::backdrop{background:rgba(15,20,28,.5)}
     <div class="chips-rapidos" aria-label="Atajos de estado">
       <button type="button" class="chip-f" data-preset="Entregado">Marcar Entregado</button>
       <button type="button" class="chip-f" data-preset="Por retirar">Por retirar (Con OC)</button>
+      <button type="button" class="chip-f" data-preset="Cotización única">Cotización única</button>
       <button type="button" class="chip-f" data-preset="No se compró">No se compró</button>
       <button type="button" class="chip-f" data-preset="Según AgroControl">Según AgroControl</button>
     </div>
@@ -389,13 +396,19 @@ dialog.modal-seg::backdrop{background:rgba(15,20,28,.5)}
     document.getElementById("kEntFaltaSub").textContent = `${t.entregado_falta_pagar_lineas} líneas entregadas sin pago`;
     document.getElementById("kFaltaOk").textContent = usd(t.monto_falta_ok_pago);
     document.getElementById("kFaltaOkSub").textContent = `${t.falta_ok_lineas} líneas esperando OK de pago`;
-    document.getElementById("kPorCot").textContent = String(t.por_cotizar);
-    document.getElementById("kPorCotSub").textContent = `${t.cotizado_total} cotizadas / en revisión`;
+
+    const faltaCot = resumenActual.lineas.filter(l => !l.aparte && (l.estado_entrega === "Por cotizar" || l.estado_entrega === "Cotizado (en revisión)"));
+    const sinCotLineas = faltaCot.filter(l => Number(l.n_cot || 0) === 0);
+    const faltaCompLineas = faltaCot.filter(l => Number(l.n_cot || 0) > 0);
+
+    document.getElementById("kSinCot").textContent = String(sinCotLineas.length);
+    document.getElementById("kSinCotSub").textContent = "0 proformas registradas";
+    document.getElementById("kFaltaCot").textContent = String(faltaCompLineas.length);
+    document.getElementById("kFaltaCotSub").textContent = "Tienen 1 o 2 de las exigidas";
     document.getElementById("kAutSinOc").textContent = String(t.autorizado_sin_oc);
     document.getElementById("kAutSinOcSub").textContent = `${t.con_oc} con OC por entregar`;
 
     document.getElementById("cntPedidos").textContent = String(resumenActual.por_pedido.length);
-    const faltaCot = resumenActual.lineas.filter(l => !l.aparte && (l.estado_entrega === "Por cotizar" || l.estado_entrega === "Cotizado (en revisión)"));
     document.getElementById("cntFaltaCot").textContent = String(faltaCot.length);
 
     const tbodyPed = document.getElementById("tbodyPedidos");
@@ -451,6 +464,9 @@ dialog.modal-seg::backdrop{background:rgba(15,20,28,.5)}
           <td data-l="Faltan"><strong>${l.cotizaciones_faltantes}</strong></td>
           <td data-l="Monto est.">${l.monto > 0 ? usd(l.monto) : "Sin monto (regla: 2)"}</td>
           <td data-l="Proveedor">${esc(l.proveedor || "Sin elegir")}</td>
+          <td data-l="Acción">
+            <button class="btn sm btn-cot-unica" type="button" data-lin="${esc(l.linea)}" data-prod="${esc(l.producto)}" title="Justificar proveedor único o repuesto original">Cotiz. única</button>
+          </td>
         </tr>`;
       }).join("");
     }
@@ -653,6 +669,30 @@ dialog.modal-seg::backdrop{background:rgba(15,20,28,.5)}
       if (btn) abrirModalCorregir(btn.dataset.lin);
     });
 
+    document.getElementById("tbodyFaltaCot").addEventListener("click", async ev => {
+      const btn = ev.target.closest(".btn-cot-unica");
+      if (!btn) return;
+      const lin = btn.dataset.lin;
+      const prod = btn.dataset.prod || lin;
+      const motivo = prompt(`Justificar cotización única para ${prod} (${lin}):\nIndique el motivo (proveedor exclusivo, repuesto original, patente, etc.):`, "Proveedor exclusivo / repuesto original");
+      if (!motivo || !motivo.trim()) return;
+      try {
+        if (window.AgdNube && AgdNube.guardarSeguimiento) {
+          await AgdNube.guardarSeguimiento(lin, {
+            cotizacion_unica: true,
+            motivo_cotizacion_unica: motivo.trim().slice(0, 300),
+            estado: "Cotizado (en revisión)",
+            nota: `Cotización única justificada: ${motivo.trim().slice(0, 250)}`
+          });
+        }
+        seguimientoMapa = (window.AgdNube && AgdNube.leerSeguimientoLocal) ? AgdNube.leerSeguimientoLocal() : {};
+        mostrarToast(`Línea ${lin}: cotización única guardada y excluida de pendientes.`);
+        renderizarTodo();
+      } catch (err) {
+        alert("No se pudo registrar la cotización única: " + err.message);
+      }
+    });
+
     document.querySelectorAll("#dlgCorregir [data-preset]").forEach(b => {
       b.onclick = () => {
         const p = b.dataset.preset;
@@ -661,6 +701,9 @@ dialog.modal-seg::backdrop{background:rgba(15,20,28,.5)}
         if (p === "Por retirar") {
           sel.value = "Con OC, por entregar";
           if (!ta.value.trim()) ta.value = "Facturado; pendiente de retirar.";
+        } else if (p === "Cotización única") {
+          sel.value = "Cotizado (en revisión)";
+          if (!ta.value.trim()) ta.value = "Proveedor exclusivo / repuesto original.";
         } else {
           sel.value = p;
           if (p === "Según AgroControl") ta.value = "";
@@ -683,8 +726,14 @@ dialog.modal-seg::backdrop{background:rgba(15,20,28,.5)}
       const lineas = (scope === "oc" && contextoModal.lineasOc.length > 1) ? contextoModal.lineasOc : [contextoModal.linea];
       const btn = document.getElementById("dlgGuardar");
       btn.disabled = true;
+      const esCotUnica = nota.toLowerCase().includes("cotización única") || nota.toLowerCase().includes("proveedor exclusivo") || nota.toLowerCase().includes("repuesto original");
+      const payload = { estado, nota };
+      if (esCotUnica) {
+        payload.cotizacion_unica = true;
+        payload.motivo_cotizacion_unica = nota.slice(0, 300);
+      }
       try {
-        await AgdNube.guardarSeguimientoLote(lineas, { estado, nota });
+        await AgdNube.guardarSeguimientoLote(lineas, payload);
         seguimientoMapa = AgdNube.leerSeguimientoLocal();
         document.getElementById("dlgCorregir").close();
         renderizarTodo();
