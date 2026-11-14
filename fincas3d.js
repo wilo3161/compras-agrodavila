@@ -205,6 +205,9 @@ export function montarVisorFincas3D(contenedor, opciones = {}) {
     .map((f) => ({ ...f, ha: Number(porNombre[f.nombre]?.hectareas_base) || f.ha }))
     .filter((f) => (soloImbabura ? f.zona === "Imbabura" : true));
   const haTotal = fincasVisibles.reduce((acc, f) => acc + f.ha, 0);
+  // Sin datos de AgroControl (sin sesión o lectura fallida) se muestra «—», nunca «$0,00» que parecería un dato real.
+  const sinDatos = !(opciones.lineas || []).length;
+  const usd = (m) => (sinDatos ? "—" : formatearUsd(m));
   const datosFincas = procesarDatosFincas(fincasVisibles, opciones);
 
   let fincaActivaId = opciones.fincaInicial ? (fincasVisibles.find((f) => f.nombre === opciones.fincaInicial || f.codigo === opciones.fincaInicial)?.codigo || "") : "";
@@ -309,7 +312,7 @@ export function montarVisorFincas3D(contenedor, opciones = {}) {
           </div>
           <div style="border:1px solid ${esOscuro ? PALETA.bordeOscuro : PALETA.borde};padding:10px 12px;border-radius:8px;">
             <span style="font-size:0.75rem;color:${PALETA.textoSecundario};text-transform:uppercase;">Gasto compras</span>
-            <strong style="display:block;font-size:1.25rem;color:${PALETA.azul};font-family:'Bricolage Grotesque',sans-serif;">${formatearUsd(totGasto)}</strong>
+            <strong style="display:block;font-size:1.25rem;color:${PALETA.azul};font-family:'Bricolage Grotesque',sans-serif;">${usd(totGasto)}</strong>
           </div>
         </div>
 
@@ -333,7 +336,7 @@ export function montarVisorFincas3D(contenedor, opciones = {}) {
                   <strong style="display:block;font-size:0.95rem;">${esc(item.nombre)}</strong>
                   <span style="font-size:0.8rem;color:${PALETA.textoSecundario};">${esc(item.zona)} · ${item.ha} ha · ${esc(item.cultivos.join(", "))}</span>
                 </div>
-                ${tieneAlertas ? `<span class="badge-alerta-3d">${df.alertas.length} alerta(s)</span>` : `<span style="font-size:0.82rem;font-weight:600;color:${PALETA.azul};">${formatearUsd(df.gastoTotal)}</span>`}
+                ${tieneAlertas ? `<span class="badge-alerta-3d">${df.alertas.length} alerta(s)</span>` : `<span style="font-size:0.82rem;font-weight:600;color:${PALETA.azul};">${usd(df.gastoTotal)}</span>`}
               </button>
             `;
           }).join("")}
@@ -368,7 +371,7 @@ export function montarVisorFincas3D(contenedor, opciones = {}) {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;">
           <div style="border:1px solid ${esOscuro ? PALETA.bordeOscuro : PALETA.borde};padding:10px;border-radius:8px;">
             <span style="font-size:0.72rem;color:${PALETA.textoSecundario};text-transform:uppercase;">Gasto AgroControl</span>
-            <strong style="display:block;font-size:1.15rem;color:${PALETA.azul};font-family:'Bricolage Grotesque',sans-serif;">${formatearUsd(f.gastoTotal)}</strong>
+            <strong style="display:block;font-size:1.15rem;color:${PALETA.azul};font-family:'Bricolage Grotesque',sans-serif;">${usd(f.gastoTotal)}</strong>
             <span style="font-size:0.76rem;color:${PALETA.textoSecundario};">${f.lineas.length} líneas de pedido</span>
           </div>
           <div style="border:1px solid ${esOscuro ? PALETA.bordeOscuro : PALETA.borde};padding:10px;border-radius:8px;">
