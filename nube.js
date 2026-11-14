@@ -937,7 +937,12 @@
   const escucharRecepciones = (cb, alError) => _escucharColeccion("recepciones", cb, alError);
   const escucharMantenimientos = (cb, alError) => _escucharColeccion("mantenimientos", cb, alError);
   const escucharActivos = (cb, alError) => _escucharColeccion("activos", cb, alError);
-  const escucharVehiculos = (cb, alError) => _escucharColeccion("vehiculos", cb, alError);
+  // Los viajes repetidos quedan marcados «duplicado» (no se borran): la app no los muestra ni los suma.
+  const escucharVehiculos = (cb, alError) => _escucharColeccion(
+    "vehiculos",
+    lista => cb((lista || []).filter(v => v && v.estado !== "duplicado")),
+    alError
+  );
 
   async function conciliarRecepcion(recepcionId, asignacion) {
     if (!recepcionId || !asignacion) return false;
