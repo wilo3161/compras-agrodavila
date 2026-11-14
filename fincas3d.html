@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fincas 3D · Compras AgroDávila</title>
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--tx);font-family:var(--letra);font-size:15px;line-height:1.5}
+main{max-width:1440px;margin:0 auto;padding:16px 16px 40px;height:calc(100vh - 60px);display:flex;flex-direction:column}
+.cab-fincas{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.cab-fincas h1{margin:0;font-size:clamp(20px,2.6vw,26px);line-height:1.2}
+.cab-fincas p{margin:2px 0 0;color:var(--t2);font-size:13px}
+.contenedor-visor-fincas{flex:1;min-height:480px;border-radius:18px;overflow:hidden;border:1px solid var(--bd);box-shadow:var(--sombra);background:var(--card)}
+@media (max-width: 860px) {
+  main{height:auto;min-height:100vh;padding:12px 12px 60px}
+  .contenedor-visor-fincas{min-height:85vh}
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="cab-fincas">
+    <div>
+      <h1>Fincas de AgroDávila · Maqueta 3D</h1>
+      <p id="subtitulo-fincas">Superficie agrícola a escala, cultivos de espárrago y pitahaya, riego por goteo e inventario en bodega.</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <a class="btn sm" href="index.html">← Inicio</a>
+      <a class="btn sm p" href="gerencia.html">Tablero Gerencial</a>
+    </div>
+  </div>
+
+  <div id="contenedor-fincas-3d" class="contenedor-visor-fincas" role="region" aria-label="Visor 3D de fincas agrícolas">
+    <div style="display:grid;place-items:center;height:100%;color:var(--t2);font-size:14px;">
+      Cargando maqueta agrícola de fincas…
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { montarVisorFincas3D } from "./fincas3d.js";
+
+const DATOS_EJEMPLO = {
+  lineas: [
+    { finca: "El Carmen", producto: "Fertilizante NPK 10-30-10", monto_total: 1850.0, estado: "Entregado" },
+    { finca: "El Carmen", producto: "Goteros autocompensados 2 L/h", monto_total: 720.0, estado: "Entregado" },
+    { finca: "El Carmen", producto: "Filtro de arena 3 pulgadas", monto_total: 1200.0, estado: "Con OC, por entregar" },
+    { finca: "El Carmen", producto: "Guantes de nitrilo y EPP", monto_total: 240.0, estado: "Entregado" },
+    { finca: "Puerto Cayo", producto: "Postes de hormigón para pitahaya", monto_total: 3400.0, estado: "Entregado" },
+    { finca: "Puerto Cayo", producto: "Cinta de riego por goteo 16mm", monto_total: 1950.0, estado: "Entregado" },
+    { finca: "Puerto Cayo", producto: "Bomba sumergible 7.5 HP", monto_total: 2800.0, estado: "Con OC, por entregar" },
+    { finca: "Puerto Cayo", producto: "Fungicida biológico Trichoderma", monto_total: 980.0, estado: "Por cotizar" },
+    { finca: "Coñaqui", producto: "Urea granular 46%", monto_total: 1450.0, estado: "Entregado" },
+    { finca: "Coñaqui", producto: "Válvulas reguladoras de presión", monto_total: 820.0, estado: "Entregado" },
+    { finca: "Coñaqui", producto: "Repuestos para tractor Massey", monto_total: 680.0, estado: "Entregado" },
+    { finca: "Eliana", producto: "Nitrato de calcio soluble", monto_total: 1100.0, estado: "Entregado" },
+    { finca: "Eliana", producto: "Herramientas de corte y cosecha", monto_total: 450.0, estado: "Entregado" },
+    { finca: "Andrés López", producto: "Insecticida biológico Bacillus", monto_total: 1350.0, estado: "Entregado" },
+    { finca: "Andrés López", producto: "Mallas sombra al 50%", monto_total: 890.0, estado: "Entregado" },
+    { finca: "Otoburo", producto: "Sulfato de potasio soluble", monto_total: 1600.0, estado: "Entregado" },
+    { finca: "Otoburo", producto: "Microaspersores para vivero", monto_total: 540.0, estado: "Entregado" }
+  ],
+  ordenes: [
+    { finca: "Puerto Cayo", activo: "Bomba Pozo 1", estado: "Atrasado", dias_atraso: 3, frecuencia: "Preventivo" },
+    { finca: "El Carmen", activo: "Tractor John Deere", estado: "Programado", dias_atraso: 0, frecuencia: "Preventivo" },
+    { finca: "Andrés López", activo: "Cabezal de Riego 2", estado: "En ejecución", dias_atraso: 0, frecuencia: "Correctivo" }
+  ],
+  recepciones: [
+    { finca: "Puerto Cayo", producto: "Cinta de riego 16mm (10 rollos)", numero_guia: "001-0294", fecha: "2026-11-12", estado_conciliacion: "por_conciliar" },
+    { finca: "El Carmen", producto: "Fertilizante NPK (40 sacos)", numero_guia: "002-8812", fecha: "2026-11-11", estado_conciliacion: "emparejada" },
+    { finca: "Otoburo", producto: "Sulfato de potasio (25 sacos)", numero_guia: "001-4401", fecha: "2026-11-10", estado_conciliacion: "emparejada" }
+  ],
+  activos: [
+    { finca: "Puerto Cayo", codigo: "BOM-PC-01", maquina_equipo: "Bomba Pozo 1", tipo: "Bomba" },
+    { finca: "El Carmen", codigo: "TRAC-EC-01", maquina_equipo: "Tractor John Deere", tipo: "Tractor" },
+    { finca: "Coñaqui", codigo: "CAB-CQ-01", maquina_equipo: "Cabezal Riego Principal", tipo: "Riego" },
+    { finca: "Otoburo", codigo: "GEN-OT-01", maquina_equipo: "Generador Diésel", tipo: "Generador" }
+  ]
+};
+
+(async function () {
+  const params = new URLSearchParams(window.location.search);
+  const esDemo = params.get("demo") === "1" || params.get("ejemplo") === "1";
+
+  let lineas = [];
+  let recepciones = [];
+  let ordenes = [];
+  let activos = [];
+
+  // Datos de ejemplo SOLO con ?demo=1 o ?ejemplo=1 y con aviso visible. Fuera de eso, nunca se inventa nada:
+  // sin sesión se pide iniciarla y, si la lectura falla, se dice; las fincas se dibujan sin cifras.
+  const sub = document.getElementById("subtitulo-fincas");
+  const avisar = (txt) => { if (sub) sub.innerHTML += ` <strong style="color:var(--pri);">${txt}</strong>`; };
+  let seguimiento = {};
+  if (esDemo) {
+    // Mismo formato que AgroControl, para que la demo pase por el cálculo real (AgdReglas).
+    lineas = DATOS_EJEMPLO.lineas.map((l, i) => ({
+      pedido: "DEMO", linea: `DEMO-${i + 1}`, finca: l.finca, producto: l.producto, categoria: l.categoria || "",
+      cantidad: 1, precio_sel: l.monto_total, estado: l.estado === "Por cotizar" ? "aprobado_campo" : "aprobado",
+      f_autorizacion: l.estado === "Por cotizar" ? "" : "2026-11-10", oc_creada: l.estado === "Por cotizar" ? "" : "2026-11-10",
+      f_entrega: l.estado === "Entregado" ? "2026-11-12" : "", n_cot: 3,
+    }));
+    recepciones = DATOS_EJEMPLO.recepciones;
+    ordenes = DATOS_EJEMPLO.ordenes;
+    activos = DATOS_EJEMPLO.activos;
+    avisar("[Datos de demostración: no son reales]");
+  } else {
+    let sesionActiva = false;
+    if (window.ComprasApp && ComprasApp.sesion) {
+      try { sesionActiva = Boolean(await ComprasApp.sesion({ permitirNube: true })); } catch (e) {}
+    }
+    if (!sesionActiva) {
+      avisar("· Inicia sesión para ver las cifras de cada finca.");
+    } else {
+      try {
+        const res = await ComprasApp.filasAgro({ silencioso: true });
+        lineas = (res && res.filas) || [];
+      } catch (e) { lineas = []; }
+      if (!lineas.length) avisar("· No se pudieron leer los datos de AgroControl; intenta de nuevo en un momento.");
+      if (window.AgdNube) {
+        // La app solo ofrece «escuchar…» (tiempo real): se toma la primera lectura de cada colección.
+        const unaVez = (escuchar) => new Promise((ok) => {
+          if (typeof escuchar !== "function") return ok([]);
+          const t = setTimeout(() => ok([]), 8000);
+          try { escuchar((lista) => { clearTimeout(t); ok(lista || []); }, () => { clearTimeout(t); ok([]); }); }
+          catch (e) { clearTimeout(t); ok([]); }
+        });
+        [recepciones, ordenes, activos] = await Promise.all([
+          unaVez(AgdNube.escucharRecepciones), unaVez(AgdNube.escucharMantenimientos), unaVez(AgdNube.escucharActivos)]);
+        // Igual que el tablero: las compras de repuestos de AgroControl no son órdenes de trabajo.
+        ordenes = (ordenes || []).filter((o) => o && o.fuente !== "agrocontrol");
+        try { if (AgdNube.leerSeguimientoLocal) seguimiento = AgdNube.leerSeguimientoLocal() || {}; } catch (e) {}
+      }
+    }
+  }
+
+  const visor = montarVisorFincas3D(document.getElementById("contenedor-fincas-3d"), {
+    seguimiento,
+    lineas,
+    recepciones,
+    ordenes,
+    activos,
+    onSeleccionarFinca: (nombre) => {
+      if (window.history && window.history.replaceState) {
+        const url = new URL(window.location);
+        if (nombre) url.hash = nombre;
+        else url.hash = "";
+        window.history.replaceState(null, "", url);
+      }
+    }
+  });
+
+  window.__visorFincas3D = visor;
+})();
+</script>
+</body>
+</html>
