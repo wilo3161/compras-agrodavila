@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cotizar · Compras AgroDávila</title>
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--tx);font-family:var(--letra);font-size:15px;line-height:1.45}
+main{max-width:1180px;margin:0 auto;padding:16px 16px 90px}
+h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
+.sub{margin:2px 0 0;color:var(--t2);font-size:13px}
+.resumen{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:14px 0 10px;padding:14px 16px;border-radius:16px;background:var(--card);border:1px solid var(--bd);box-shadow:var(--sombra)}
+.resumen .grande{font-size:clamp(20px,3vw,26px);font-weight:700;color:var(--pri)}
+.filtros{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filtros select,.filtros input{min-height:40px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:6px 10px;font:inherit;font-size:14px}
+.pestanas{display:flex;gap:6px;margin:6px 0 14px}
+.pestanas button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer}
+.pestanas button.activa{background:var(--pri);border-color:var(--pri);color:#fff}
+.rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.tarjeta{background:var(--card);border:1px solid var(--bd);border-radius:18px;box-shadow:var(--sombra);padding:16px;display:flex;flex-direction:column;gap:10px;transition:opacity .35s ease,transform .35s ease}
+.tarjeta.sale{opacity:0;transform:translateY(-8px) scale(.98)}
+.tarjeta h2{margin:0;font-size:18px;line-height:1.25}
+.contacto{font-size:13px;color:var(--t2)}
+.contacto.ok{color:var(--az,#2E5E8E)}
+.contacto.mal{color:var(--ladrillo,#B5452F)}
+.vende{font-size:13px;line-height:1.4}
+.vende b{color:var(--t2);font-weight:600}
+.etq{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;padding:2px 8px;border-radius:999px;background:var(--crbg,#F6E7E3);color:var(--ladrillo,#B5452F);margin-left:6px;vertical-align:middle}
+.etq.zona{background:var(--azbg,#E6EEF6);color:var(--az,#2E5E8E)}
+ul.items{list-style:none;margin:0;padding:0;border-top:1px solid var(--bd)}
+ul.items li{display:flex;gap:8px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--bd)}
+ul.items li .txt{flex:1;min-width:0}
+ul.items li .prod{font-weight:600;font-size:14px}
+ul.items li .det{font-size:12px;color:var(--t2)}
+.mini{border:1px solid var(--bd);background:transparent;color:var(--t2);border-radius:8px;min-width:34px;min-height:34px;font-size:15px;cursor:pointer}
+.mini:hover{border-color:var(--ladrillo,#B5452F);color:var(--ladrillo,#B5452F)}
+.acciones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
+.acciones .btn{justify-content:center}
+.acciones .ancho{grid-column:1/-1}
+.vacio{padding:40px 16px;text-align:center;color:var(--t2);background:var(--card);border:1px dashed var(--bd);border-radius:16px}
+.aviso{padding:10px 12px;border-radius:12px;background:var(--crbg,#F6E7E3);color:var(--ladrillo,#B5452F);font-size:13px}
+.capa{position:fixed;inset:0;background:rgba(20,24,30,.55);display:none;align-items:flex-start;justify-content:center;z-index:50;overflow:auto;padding:24px 10px}
+.capa.ver{display:flex}
+.dialogo{background:var(--card);color:var(--tx);border-radius:18px;max-width:860px;width:100%;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.dialogo h3{margin:0 0 8px;font-size:18px}
+.lista-prov{max-height:55vh;overflow:auto;margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.lista-prov button{text-align:left;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:12px;padding:10px;cursor:pointer;font:inherit;font-size:14px}
+.lista-prov button:hover{border-color:var(--pri)}
+.lista-prov small{display:block;color:var(--t2);font-size:12px}
+.toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#23262B;color:#fff;border-radius:12px;padding:10px 14px;display:none;gap:12px;align-items:center;z-index:60;box-shadow:0 8px 30px rgba(0,0,0,.3);font-size:14px;max-width:92vw}
+.toast.ver{display:flex}
+.toast button{background:transparent;border:1px solid #fff;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;font:inherit}
+.est{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px}
+.est.aprobada,.est.enviando{background:var(--mdbg,#F5EBD4);color:var(--maiz,#C7901A)}
+.est.enviada{background:var(--azbg,#E6EEF6);color:var(--az,#2E5E8E)}
+.est.error{background:var(--crbg,#F6E7E3);color:var(--ladrillo,#B5452F)}
+/* Hoja de la solicitud (vista previa, PDF y PNG) */
+#hoja{width:794px;max-width:100%;margin:0 auto;background:#fff;color:#1F2328;font-family:Figtree,Arial,sans-serif;padding:36px 40px;border:1px solid #D9DEE5}
+#hoja .mem{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #23262B;padding-bottom:10px;margin-bottom:16px}
+#hoja .mem .marca{font-size:26px;font-weight:800;letter-spacing:.04em;color:#23262B}
+#hoja .mem .rs{font-size:12px;color:#59636E;margin-top:2px}
+#hoja .mem .der{text-align:right;font-size:12px;color:#59636E}
+#hoja h4{margin:0 0 12px;font-size:18px;letter-spacing:.06em;color:#2E5E8E}
+#hoja p{margin:6px 0;font-size:13.5px}
+#hoja table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+#hoja th{background:#23262B;color:#fff;text-align:left;padding:7px 8px;font-weight:600}
+#hoja td{border-bottom:1px solid #D9DEE5;padding:7px 8px;vertical-align:top}
+#hoja .pide{background:#F5F6F8;border-radius:8px;padding:10px 12px;font-size:13px}
+#hoja .firma{margin-top:22px;font-size:13px}
+#hoja .firma b{display:block;font-size:14px}
+@media (max-width:620px){ .acciones{grid-template-columns:1fr} #hoja{padding:22px 18px} }
+</style>
+</head>
+<body>
+<main>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+    <div>
+      <h1>Cotizar</h1>
+      <p class="sub" id="subtitulo">Revisa cada tarjeta, ajústala si hace falta y envíala con un clic.</p>
+    </div>
+  </div>
+
+  <div class="resumen" id="resumen" hidden>
+    <div><span class="grande" id="contador">—</span><div class="sub" id="contador-sub"></div></div>
+    <div class="filtros">
+      <select id="f-finca" aria-label="Filtrar por finca"><option value="">Todas las fincas</option></select>
+      <label style="display:flex;gap:6px;align-items:center;font-size:14px"><input type="checkbox" id="f-urg"> Solo urgentes</label>
+    </div>
+  </div>
+
+  <div class="pestanas" role="tablist">
+    <button type="button" class="activa" data-tab="cotizar" role="tab">Por cotizar</button>
+    <button type="button" data-tab="enviadas" role="tab">Enviadas</button>
+  </div>
+
+  <section id="vista-cotizar"><div class="vacio">Cargando lo que falta cotizar…</div></section>
+  <section id="vista-enviadas" hidden></section>
+</main>
+
+<div class="capa" id="capa-prov" role="dialog" aria-modal="true" aria-labelledby="t-prov">
+  <div class="dialogo">
+    <h3 id="t-prov">Cambiar proveedor</h3>
+    <div class="sub" id="prov-ayuda"></div>
+    <input id="prov-buscar" type="search" placeholder="Buscar proveedor por nombre o producto…" style="width:100%;min-height:42px;margin-top:8px;border-radius:10px;border:1px solid var(--bd);padding:8px 10px;font:inherit;background:var(--card);color:var(--tx)">
+    <div class="lista-prov" id="prov-lista"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px"><button type="button" class="btn sm" data-cerrar>Cancelar</button></div>
+  </div>
+</div>
+
+<div class="capa" id="capa-vista" role="dialog" aria-modal="true" aria-labelledby="t-vista">
+  <div class="dialogo">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <h3 id="t-vista" style="margin:0">Vista previa de la solicitud</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn sm" id="bajar-png">🖼 Imagen PNG</button>
+        <button type="button" class="btn sm" id="bajar-pdf">📄 PDF</button>
+        <button type="button" class="btn sm p" id="vista-enviar">✅ Aprobar y enviar</button>
+        <button type="button" class="btn sm" data-cerrar>Cerrar</button>
+      </div>
+    </div>
+    <div id="vista-hoja" style="overflow:auto"></div>
+  </div>
+</div>
+
+<div id="hoja-fuente" aria-hidden="true" style="position:fixed;left:-10000px;top:0;width:794px"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-txt"></span><button type="button" id="toast-deshacer">Deshacer</button></div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const R = window.AgdReglas;
+  const params = new URLSearchParams(location.search);
+  const DEMO = params.get("demo") === "1";
+  const COSTA = ["Puerto Cayo", "El Carmen"];
+  const EMPRESA = { comercial: "AGRODÁVILA", razon: "DÁVILA PALADINES ANÍBAL ROLANDO", ruc: "1708534753001" };
+  const FIRMA = { nombre: "Ing. Wilson Pérez", cargo: "Analista de Compras y Logística", whatsapp: "0981892023" };
+
+  const S = { filas: [], cots: {}, catalogo: [], seg: {}, estado: {}, solicitudes: [], tarjetas: [], ajustes: {}, finca: "", urg: false };
+
+  const campo = (f, ...ks) => { for (const k of ks) { if (f[k] !== undefined && f[k] !== null && f[k] !== "") return f[k]; } return ""; };
+  const linea = (f) => String(campo(f, "linea", "Línea"));
+  const norm = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const PALABRAS_SOC = new Set(["sa", "s", "a", "cia", "ltda", "sas", "scc", "c", "sociedad", "anonima", "compania", "de", "la", "los", "el", "y"]);
+  const claveProv = (n) => norm(n).split(" ").filter((p) => !PALABRAS_SOC.has(p)).join(" ");
+  const mismoProv = (a, b) => { const x = claveProv(a), y = claveProv(b); return !!x && !!y && (x === y || x.includes(y) || y.includes(x)); };
+  const zonaFinca = (f) => (COSTA.includes(f) ? "Costa" : "Imbabura");
+  const hoyIso = () => new Date().toISOString().slice(0, 10);
+
+  /* ───────── Datos ───────── */
+  async function cargar() {
+    if (DEMO) { cargarDemo(); return pintar(); }
+    let ses = false;
+    try { ses = !!(window.ComprasApp && await ComprasApp.sesion({ permitirNube: true })); } catch (e) {}
+    if (!ses) { $("#vista-cotizar").innerHTML = `<div class="vacio">Inicia sesión para ver lo que falta cotizar.<br><br><a class="btn p" href="index.html">Ir a iniciar sesión</a></div>`; return; }
+    try { S.filas = ((await ComprasApp.filasAgro({ silencioso: true })) || {}).filas || []; } catch (e) { S.filas = []; }
+    if (!S.filas.length) { $("#vista-cotizar").innerHTML = `<div class="vacio">No se pudieron leer los datos de AgroControl. Intenta de nuevo en un momento.</div>`; return; }
+    S.cots = (await AgdNube.leerCotizacionesPorLinea()) || {};
+    S.catalogo = (await AgdNube.leerCatalogoProveedores()) || [];
+    S.seg = AgdNube.leerSeguimientoLocal() || {};
+    AgdNube.escucharSeguimiento((m) => { S.seg = m || {}; pintar(); });
+    AgdNube.escucharCotizar((m) => { S.estado = m || {}; pintar(); });
+    AgdNube.escucharSolicitudesCotizacion((l) => { S.solicitudes = l || []; pintarEnviadas(); });
+    pintar();
+  }
+
+  function cargarDemo() {
+    $("#subtitulo").innerHTML = `<strong style="color:var(--ladrillo,#B5452F)">DEMOSTRACIÓN · estos datos no son reales</strong>`;
+    const fila = (pedido, l, finca, producto, categoria, cantidad, unidad, n, urg) => ({ pedido, linea: l, finca, producto, categoria, cantidad, unidad, n_cot: n, estado: n ? "aprobado_campo" : "aprobado_campo", urgencia: urg || "MEDIA", f_rev_campo: "2026-11-10" });
+    S.filas = [
+      fila("PED-DEMO-1", "PED-DEMO-1-1", "Otoburo", "SERENADE", "Control biológico", 4, "L", 0, "ALTA"),
+      fila("PED-DEMO-1", "PED-DEMO-1-2", "Otoburo", "METHOMIL - INSECTICIDA", "Insecticidas, acaricidas y molusquicidas", 5, "KG", 1),
+      fila("PED-DEMO-2", "PED-DEMO-2-1", "Puerto Cayo", "CODO DE 90 DE 50MM", "Riego e hidráulica", 20, "UND", 0),
+      fila("PED-DEMO-2", "PED-DEMO-2-2", "Puerto Cayo", "ABRAZADERA 1/2", "Ferretería y fijación", 30, "UND", 0),
+    ];
+    S.catalogo = [
+      { nombre: "Proveedor Agro Demo", telefono: "0990000001", chat: "", zona: "Imbabura", categorias: ["Control biológico", "Insecticidas, acaricidas y molusquicidas", "Fungicidas y bactericidas"], productos: ["SERENADE", "METHOMIL - INSECTICIDA"], tipicos: ["SERENADE", "METHOMIL"] },
+      { nombre: "Agroquímicos Demo 2", telefono: "", chat: "", zona: "Imbabura", categorias: ["Insecticidas, acaricidas y molusquicidas", "Control biológico"], productos: ["METHOMIL"], tipicos: ["METHOMIL"] },
+      { nombre: "Riego Demo Manta", telefono: "0990000003", chat: "", zona: "Costa", categorias: ["Riego e hidráulica", "Ferretería y fijación"], productos: ["CODO DE 90 DE 50MM", "ABRAZADERA 1/2"], tipicos: ["CODO 50MM", "ABRAZADERA"] },
+      { nombre: "Eléctricos Demo", telefono: "0990000004", chat: "", zona: "Costa", categorias: ["Material eléctrico e iluminación"], productos: ["CABLE"], tipicos: ["CABLE"] },
+    ];
+  }
+
+  /* ───────── Qué falta cotizar y a quién pedírselo ───────── */
+  function pendientes() {
+    const tot = R.totalesReferenciaCotizacion(S.filas);
+    const out = [];
+    for (const f of S.filas) {
+      const lin = linea(f);
+      if (!lin) continue;
+      const et = R.clasificarEtapa(f, null) || {};
+      if (et.id === "anulado" || et.id === "rechazado") continue;
+      const seg = S.seg[lin];
+      const est = String((seg || {}).estado || "");
+      if (est === "No se compró" || est === "Entregado") continue;
+      if (!DEMO && !R.esPendienteCotizar(f, tot, seg)) continue;
+      const st = S.estado[lin] || {};
+      if (st.estado === "descartada") continue;
+      const tiene = Number(campo(f, "n_cot", "N° cotizaciones")) || 0;
+      const exige = DEMO ? 3 : R.cotizacionesExigidas(f, tot);
+      const enviados = (st.proveedores_enviados || []).map((x) => x.proveedor);
+      const faltan = Math.max(0, exige - tiene - enviados.length);
+      if (faltan <= 0) continue;
+      const ya = (S.cots[lin] || []).map((c) => c[0]).concat(enviados);
+      out.push({
+        f, linea: lin, pedido: String(campo(f, "pedido", "Pedido")), finca: String(campo(f, "finca", "Finca")),
+        producto: String(campo(f, "producto", "Producto")), categoria: String(campo(f, "categoria", "Categoría")),
+        cantidad: campo(f, "cantidad", "Cantidad"), unidad: String(campo(f, "unidad", "Unidad")),
+        urgente: /alta|urgent/i.test(String(campo(f, "urgencia", "Urgencia"))), tiene, exige, faltan, ya, enviados,
+      });
+    }
+    return out;
+  }
+
+  function puntaje(p, it) {
+    if (!it.categoria || !(p.categorias || []).includes(it.categoria)) return -1;  // nunca a quien no vende esa categoría
+    if (it.ya.some((n) => mismoProv(n, p.nombre))) return -1;                     // ya cotizó o ya se le pidió
+    let s = 10 - (p.categorias.indexOf(it.categoria) * 1.5);
+    const tok = new Set(norm(it.producto).split(" ").filter((t) => t.length > 3));
+    const prods = (p.productos || []).map(norm).join(" ");
+    for (const t of tok) if (prods.includes(t)) s += 4;
+    const z = zonaFinca(it.finca);
+    s += p.zona === z ? 4 : (p.zona === "Nacional" ? 1 : -3);
+    if (p.telefono || p.chat) s += 2;
+    if (p.en_agrocontrol) s += 1;
+    return s;
+  }
+
+  function armarTarjetas() {
+    const items = pendientes();
+    const porProv = new Map();
+    const sinProv = [];
+    for (const it of items) {
+      if (S.finca && it.finca !== S.finca) continue;
+      if (S.urg && !it.urgente) continue;
+      const cand = S.catalogo.map((p) => [puntaje(p, it), p]).filter(([s]) => s >= 0).sort((a, b) => b[0] - a[0]).slice(0, Math.min(3, it.faltan));
+      if (!cand.length) { if (!it.enviados.length) sinProv.push(it); continue; }  // ya pedida y sin más candidatos: esperando respuesta
+      for (const [, p] of cand) {
+        if (!porProv.has(p.nombre)) porProv.set(p.nombre, { prov: p, items: [] });
+        porProv.get(p.nombre).items.push(it);
+      }
+    }
+    const tarjetas = [...porProv.values()].map((t) => ({ id: claveProv(t.prov.nombre), ...t }));
+    if (sinProv.length) tarjetas.push({ id: "__sin__", prov: null, items: sinProv });
+    // ajustes de la persona: ítems quitados, proveedor cambiado
+    for (const t of tarjetas) {
+      const a = S.ajustes[t.id] || {};
+      if (a.prov) t.prov = a.prov;
+      if (a.quitados) t.items = t.items.filter((i) => !a.quitados.includes(i.linea));
+    }
+    tarjetas.sort((a, b) => (b.items.some((i) => i.urgente) - a.items.some((i) => i.urgente)) || (b.items.length - a.items.length));
+    return { tarjetas: tarjetas.filter((t) => t.items.length), lineas: new Set(items.map((i) => i.linea)).size };
+  }
+
+  /* ───────── Pintar ───────── */
+  function pintar() {
+    if (!S.filas.length) return;
+    const fincas = [...new Set(S.filas.map((f) => String(campo(f, "finca", "Finca"))).filter(Boolean))].sort();
+    const sel = $("#f-finca");
+    if (sel.options.length <= 1) fincas.forEach((f) => sel.insertAdjacentHTML("beforeend", `<option>${esc(f)}</option>`));
+    const { tarjetas, lineas } = armarTarjetas();
+    S.tarjetas = tarjetas;
+    $("#resumen").hidden = false;
+    $("#contador").textContent = lineas ? `Te falta cotizar: ${lineas} línea${lineas === 1 ? "" : "s"}` : "¡Todo cotizado! 🎉";
+    $("#contador-sub").textContent = lineas ? `${tarjetas.filter((t) => t.prov).length} proveedores por contactar` : "No hay líneas pendientes de cotización.";
+    const cont = $("#vista-cotizar");
+    if (!tarjetas.length) { cont.innerHTML = `<div class="vacio">No hay nada pendiente con este filtro. ✅</div>`; return; }
+    cont.innerHTML = `<div class="rejilla">${tarjetas.map(htmlTarjeta).join("")}</div>`;
+  }
+
+  function htmlTarjeta(t) {
+    const p = t.prov;
+    const wa = p && (p.telefono || p.chat);
+    const urg = t.items.some((i) => i.urgente);
+    const cabeza = p
+      ? `<h2>${esc(p.nombre)}${urg ? `<span class="etq">URGENTE</span>` : ""}${p.zona ? `<span class="etq zona">${esc(p.zona)}</span>` : ""}</h2>
+         <div class="contacto ${wa ? "ok" : "mal"}">${wa ? `✅ WhatsApp: ${esc(p.telefono || p.chat)}` : "⚠️ Sin WhatsApp: escribe el número al enviar"}</div>
+         <div class="vende"><b>Vende:</b> ${esc((p.categorias || []).slice(0, 3).join(" · "))}${(p.tipicos || []).length ? `<br><b>Le compramos:</b> ${esc(p.tipicos.slice(0, 5).join(", "))}` : ""}</div>`
+      : `<h2>Sin proveedor sugerido</h2><div class="aviso">Estos productos no tienen categoría o ningún proveedor del catálogo la vende. Elige uno con «Cambiar proveedor».</div>`;
+    const items = t.items.map((i) => `
+      <li data-linea="${esc(i.linea)}">
+        <div class="txt"><div class="prod">${esc(i.producto)}${i.urgente ? ` <span class="etq">URGENTE</span>` : ""}</div>
+        <div class="det">${esc(i.cantidad)} ${esc(i.unidad)} · ${esc(i.finca)} · ${esc(i.linea)} · tiene ${i.tiene} de ${i.exige} cotizaciones</div></div>
+        <button type="button" class="mini" title="Quitar de esta tarjeta" data-acc="quitar" data-t="${esc(t.id)}" data-l="${esc(i.linea)}">✕</button>
+        <button type="button" class="mini" title="Ya se compró o no se va a comprar" data-acc="menu" data-t="${esc(t.id)}" data-l="${esc(i.linea)}">⋯</button>
+      </li>`).join("");
+    return `<article class="tarjeta" data-t="${esc(t.id)}">${cabeza}
+      <ul class="items">${items}</ul>
+      <div class="acciones">
+        ${p ? `<button type="button" class="btn p ancho" data-acc="vista" data-t="${esc(t.id)}">👁 Vista previa y enviar</button>` : ""}
+        <button type="button" class="btn sm" data-acc="cambiar" data-t="${esc(t.id)}">🔁 Cambiar proveedor</button>
+        ${p ? `<button type="button" class="btn sm" data-acc="yaenvie" data-t="${esc(t.id)}">✔ Ya lo envié yo</button>` : ""}
+      </div></article>`;
+  }
+
+  function pintarEnviadas() {
+    const cont = $("#vista-enviadas");
+    const lista = (S.solicitudes || []).slice().sort((a, b) => String(b.aprobada_en || "").localeCompare(String(a.aprobada_en || ""))).slice(0, 60);
+    if (!lista.length) { cont.innerHTML = `<div class="vacio">Aún no has enviado solicitudes desde aquí.</div>`; return; }
+    const nombre = { aprobada: "Por enviar", enviando: "Enviando…", enviada: "Enviada ✓", error: "Error", cancelada: "Cancelada" };
+    cont.innerHTML = `<div class="rejilla">${lista.map((s) => `
+      <article class="tarjeta"><h2>${esc(s.proveedor)} <span class="est ${esc(s.estado)}">${esc(nombre[s.estado] || s.estado)}</span></h2>
+      <div class="det sub">${esc((s.items || []).length)} producto(s) · aprobada ${esc(String(s.aprobada_en || "").slice(0, 16).replace("T", " "))}${s.enviada_en ? ` · enviada ${esc(String(s.enviada_en).slice(11, 16))}` : ""}</div>
+      <div class="vende">${esc((s.items || []).map((i) => i.producto).join(", "))}</div>
+      ${s.estado === "error" ? `<div class="aviso">${esc(s.error || "No se pudo enviar.")}</div><button type="button" class="btn sm" data-acc="reintentar" data-s="${esc(s.id)}">↻ Reintentar</button>` : ""}
+      </article>`).join("")}</div>`;
+  }
+
+  /* ───────── Hoja de la solicitud (misma para vista previa, PDF y PNG) ───────── */
+  function htmlHoja(t, tel) {
+    const filas = t.items.map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.producto)}</td><td>${esc(i.cantidad)}</td><td>${esc(i.unidad)}</td><td>${esc(i.finca)}</td></tr>`).join("");
+    const fecha = new Date().toLocaleDateString("es-EC", { day: "2-digit", month: "long", year: "numeric" });
+    return `<div id="hoja">
+      <div class="mem"><div><div class="marca">${EMPRESA.comercial}</div><div class="rs">${EMPRESA.razon} · RUC ${EMPRESA.ruc}</div></div>
+      <div class="der">${esc(fecha)}<br>Compras y Logística</div></div>
+      <h4>SOLICITUD DE COTIZACIÓN</h4>
+      <p><b>Para:</b> ${esc(t.prov.nombre)}${tel ? ` · ${esc(tel)}` : ""}</p>
+      <p>Estimados, por favor su cotización de los siguientes productos:</p>
+      <table><thead><tr><th>N.°</th><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Entrega en</th></tr></thead><tbody>${filas}</tbody></table>
+      <div class="pide">Por favor indicar: <b>precio unitario</b> (IVA aparte), <b>disponibilidad o tiempo de entrega</b>, <b>forma de pago</b> y <b>validez de la oferta</b>.</div>
+      <div class="firma">Saludos cordiales,<b>${FIRMA.nombre}</b>${FIRMA.cargo} · ${EMPRESA.comercial}<br>WhatsApp ${FIRMA.whatsapp}</div>
+    </div>`;
+  }
+
+  const cargarScript = (src) => new Promise((ok, mal) => { if (document.querySelector(`script[src="${src}"]`)) return ok(); const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = mal; document.head.appendChild(s); });
+  async function lienzo() {
+    await cargarScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+    // La hoja vive fuera de pantalla con ancho A4 fijo (794 px): la imagen sale igual en el celular y en la PC.
+    return window.html2canvas($("#hoja-fuente #hoja"), { scale: 1080 / 794, backgroundColor: "#ffffff", width: 794, windowWidth: 794 });
+  }
+  async function bajarPng() {
+    const c = await lienzo();
+    const a = document.createElement("a"); a.download = `Solicitud_${claveProv(S.vista.prov.nombre).replace(/ /g, "_")}.png`; a.href = c.toDataURL("image/png"); a.click();
+  }
+  async function bajarPdf() {
+    await cargarScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    const c = await lienzo();
+    const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+    const ancho = 190, alto = c.height * ancho / c.width;
+    pdf.addImage(c.toDataURL("image/png"), "PNG", 10, 10, ancho, Math.min(alto, 277));
+    pdf.save(`Solicitud_${claveProv(S.vista.prov.nombre).replace(/ /g, "_")}.pdf`);
+  }
+
+  /* ───────── Acciones (cada una se puede deshacer 8 s) ───────── */
+  let deshacer = null, relojToast = null;
+  function avisar(txt, fnDeshacer) {
+    deshacer = fnDeshacer || null;
+    $("#toast-txt").textContent = txt;
+    $("#toast-deshacer").style.display = fnDeshacer ? "" : "none";
+    $("#toast").classList.add("ver");
+    clearTimeout(relojToast);
+    relojToast = setTimeout(() => { $("#toast").classList.remove("ver"); deshacer = null; }, 8000);
+  }
+  function salir(id, luego) {
+    const el = document.querySelector(`.tarjeta[data-t="${CSS.escape(id)}"]`);
+    if (el) { el.classList.add("sale"); setTimeout(luego, 330); } else luego();
+  }
+  const tarjeta = (id) => S.tarjetas.find((t) => t.id === id);
+
+  async function registrarEnvio(t, solicitudId) {
+    const antes = {};
+    for (const it of t.items) {
+      const st = S.estado[it.linea] || {};
+      antes[it.linea] = JSON.parse(JSON.stringify(st));
+      const env = (st.proveedores_enviados || []).concat([{ proveedor: t.prov.nombre, fecha: hoyIso(), solicitud_id: solicitudId || "" }]);
+      const completa = env.length + it.tiene >= it.exige;
+      const nuevo = { estado: completa ? "enviada" : "pendiente", proveedores_enviados: env };
+      S.estado[it.linea] = Object.assign({}, st, nuevo);
+      if (!DEMO) await AgdNube.guardarCotizar(it.linea, nuevo);
+    }
+    return antes;
+  }
+  async function revertir(antes, solicitudId) {
+    for (const [lin, st] of Object.entries(antes)) {
+      S.estado[lin] = st;
+      if (!DEMO) await AgdNube.guardarCotizar(lin, { estado: st.estado || "pendiente", proveedores_enviados: st.proveedores_enviados || [] });
+    }
+    if (solicitudId && !DEMO) { try { await AgdNube.marcarSolicitudCotizacion(solicitudId, { estado: "cancelada" }); } catch (e) {} }
+    pintar();
+  }
+
+  async function enviar(t) {
+    let tel = t.prov.telefono || "";
+    if (!t.prov.telefono && !t.prov.chat) {
+      tel = (prompt(`¿Número de WhatsApp de ${t.prov.nombre}? (ej. 0991234567)`) || "").replace(/\D/g, "");
+      if (tel.length < 9) { avisar("Sin número no se puede enviar. Puedes usar «Ya lo envié yo»."); return; }
+    }
+    let sid = "";
+    if (!DEMO) {
+      sid = await AgdNube.crearSolicitudCotizacion({
+        proveedor: t.prov.nombre, telefono: tel, chat: t.prov.chat || "",
+        items: t.items.map((i) => ({ linea: i.linea, pedido: i.pedido, producto: i.producto, cantidad: String(i.cantidad), unidad: i.unidad, finca: i.finca, urgente: !!i.urgente })),
+        // La imagen de la vista previa (1080 px) viaja con la solicitud: la PC la manda dentro del chat y aparte el PDF.
+        png: (S.vista === t && S.vistaPng && S.vistaPng.length < 750000) ? S.vistaPng : "",
+      });
+    }
+    const antes = await registrarEnvio(t, sid);
+    cerrar();
+    salir(t.id, pintar);
+    avisar(`Se envía a ${t.prov.nombre} por WhatsApp · lo verás en «Enviadas»`, () => revertir(antes, sid));
+  }
+
+  async function yaEnvie(t) {
+    const antes = await registrarEnvio(t, "");
+    salir(t.id, pintar);
+    avisar(`Marcado como enviado a ${t.prov.nombre}`, () => revertir(antes, ""));
+  }
+
+  function quitar(tid, lin) {
+    const a = S.ajustes[tid] = S.ajustes[tid] || {};
+    a.quitados = (a.quitados || []).concat([lin]);
+    pintar();
+    avisar("Producto quitado de esta tarjeta", () => { a.quitados = a.quitados.filter((x) => x !== lin); pintar(); });
+  }
+
+  async function menuItem(tid, lin) {
+    const op = prompt("¿Qué pasó con este producto?\n1 = Ya lo compré con otro proveedor\n2 = No se va a comprar\n(Escribe 1 o 2)");
+    if (op !== "1" && op !== "2") return;
+    const antes = JSON.parse(JSON.stringify(S.estado[lin] || {}));
+    let datos;
+    if (op === "1") {
+      const con = (prompt("¿Con qué proveedor lo compraste?") || "").trim();
+      if (!con) return;
+      datos = { estado: "descartada", motivo: "Ya comprado con otro proveedor", comprado_con: con };
+    } else {
+      datos = { estado: "descartada", motivo: "No se va a comprar" };
+    }
+    S.estado[lin] = Object.assign({}, antes, datos);
+    if (!DEMO) await AgdNube.guardarCotizar(lin, datos);
+    if (op === "2" && !DEMO) { try { await AgdNube.guardarSeguimiento(lin, { estado: "No se compró", nota: "Descartado desde Cotizar" }); } catch (e) {} }
+    pintar();
+    avisar(op === "1" ? `Descartado: comprado con ${datos.comprado_con}` : "Descartado: no se va a comprar", async () => {
+      S.estado[lin] = antes;
+      if (!DEMO) await AgdNube.guardarCotizar(lin, { estado: antes.estado || "pendiente", motivo: "", comprado_con: "" });
+      pintar();
+    });
+  }
+
+  function abrirCambiar(tid) {
+    const t = tarjeta(tid);
+    S.cambiando = t;
+    const cats = [...new Set(t.items.map((i) => i.categoria).filter(Boolean))];
+    $("#prov-ayuda").textContent = cats.length ? `Estos productos son de: ${cats.join(", ")}. Arriba salen los que venden eso.` : "Elige el proveedor.";
+    $("#prov-buscar").value = "";
+    listarProv("");
+    $("#capa-prov").classList.add("ver");
+    setTimeout(() => $("#prov-buscar").focus(), 50);
+  }
+  function listarProv(q) {
+    const t = S.cambiando; const cats = new Set(t.items.map((i) => i.categoria));
+    const qq = norm(q);
+    const lista = S.catalogo
+      .map((p) => ({ p, vende: (p.categorias || []).filter((c) => cats.has(c)).length }))
+      .filter(({ p }) => !qq || norm(p.nombre).includes(qq) || (p.productos || []).some((x) => norm(x).includes(qq)))
+      .sort((a, b) => b.vende - a.vende || a.p.nombre.localeCompare(b.p.nombre)).slice(0, 40);
+    $("#prov-lista").innerHTML = lista.map(({ p, vende }, n) => `<button type="button" data-n="${n}">
+      <b>${esc(p.nombre)}</b> ${vende ? "" : `<span class="etq">no vende esto</span>`}
+      <small>${esc((p.categorias || []).slice(0, 3).join(" · "))} · ${esc(p.zona || "")} · ${p.telefono || p.chat ? "con WhatsApp" : "sin WhatsApp"}</small></button>`).join("") || `<div class="sub">Sin resultados.</div>`;
+    $("#prov-lista").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => elegirProv(lista[+b.dataset.n])));
+  }
+  function elegirProv({ p, vende }) {
+    const t = S.cambiando;
+    const cats = [...new Set(t.items.map((i) => i.categoria).filter(Boolean))];
+    if (!vende && cats.length && !confirm(`${p.nombre} no vende ${cats.join(", ")}.\n¿Seguro que quieres pedirle a este proveedor?`)) return;
+    const previo = (S.ajustes[t.id] || {}).prov;
+    S.ajustes[t.id] = Object.assign(S.ajustes[t.id] || {}, { prov: p });
+    cerrar(); pintar();
+    avisar(`Ahora esta tarjeta es para ${p.nombre}`, () => { S.ajustes[t.id].prov = previo; pintar(); });
+  }
+
+  async function abrirVista(tid) {
+    const t = tarjeta(tid);
+    S.vista = t;
+    S.vistaPng = "";
+    $("#hoja-fuente").innerHTML = htmlHoja(t, t.prov.telefono).replace('id="hoja"', 'id="hoja" style="width:794px;max-width:none"');
+    $("#vista-hoja").innerHTML = `<div class="sub" style="padding:20px;text-align:center">Preparando la vista previa…</div>`;
+    $("#capa-vista").classList.add("ver");
+    try {
+      const c = await lienzo();
+      S.vistaPng = c.toDataURL("image/png");
+      $("#vista-hoja").innerHTML = `<img alt="Solicitud de cotización para ${esc(t.prov.nombre)}" src="${c.toDataURL("image/png")}" style="width:100%;height:auto;border:1px solid var(--bd);border-radius:8px;display:block">`;
+    } catch (e) {
+      $("#vista-hoja").innerHTML = htmlHoja(t, t.prov.telefono);  // sin internet para la librería: se muestra la hoja tal cual
+    }
+  }
+  function cerrar() { document.querySelectorAll(".capa").forEach((c) => c.classList.remove("ver")); }
+
+  /* ───────── Eventos ───────── */
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-acc],[data-cerrar],[data-tab]");
+    if (!b) return;
+    if (b.hasAttribute("data-cerrar")) return cerrar();
+    if (b.dataset.tab) {
+      document.querySelectorAll(".pestanas button").forEach((x) => x.classList.toggle("activa", x === b));
+      $("#vista-cotizar").hidden = b.dataset.tab !== "cotizar";
+      $("#vista-enviadas").hidden = b.dataset.tab !== "enviadas";
+      if (b.dataset.tab === "enviadas") pintarEnviadas();
+      return;
+    }
+    const t = b.dataset.t ? tarjeta(b.dataset.t) : null;
+    try {
+      b.disabled = true;
+      switch (b.dataset.acc) {
+        case "quitar": quitar(b.dataset.t, b.dataset.l); break;
+        case "menu": await menuItem(b.dataset.t, b.dataset.l); break;
+        case "cambiar": abrirCambiar(b.dataset.t); break;
+        case "vista": abrirVista(b.dataset.t); break;
+        case "yaenvie": if (t) await yaEnvie(t); break;
+        case "reintentar": if (!DEMO) await AgdNube.marcarSolicitudCotizacion(b.dataset.s, { estado: "aprobada", error: "" }); avisar("Se reintentará el envío"); break;
+      }
+    } catch (err) {
+      avisar("No se pudo guardar: " + (err && err.message ? err.message : err));
+    } finally { b.disabled = false; }
+  });
+  $("#vista-enviar").addEventListener("click", async (e) => { e.target.disabled = true; try { await enviar(S.vista); } catch (err) { avisar("No se pudo enviar: " + (err.message || err)); } finally { e.target.disabled = false; } });
+  $("#bajar-png").addEventListener("click", () => bajarPng().catch(() => avisar("No se pudo generar la imagen.")));
+  $("#bajar-pdf").addEventListener("click", () => bajarPdf().catch(() => avisar("No se pudo generar el PDF.")));
+  $("#prov-buscar").addEventListener("input", (e) => listarProv(e.target.value));
+  $("#toast-deshacer").addEventListener("click", async () => { const f = deshacer; deshacer = null; $("#toast").classList.remove("ver"); if (f) await f(); });
+  $("#f-finca").addEventListener("change", (e) => { S.finca = e.target.value; pintar(); });
+  $("#f-urg").addEventListener("change", (e) => { S.urg = e.target.checked; pintar(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrar(); });
+
+  cargar();
+})();
+</script>
+</body>
+</html>

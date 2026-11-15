@@ -1100,6 +1100,59 @@
     return { ok: true, local: false, cantidad: lista.length, datos: carga };
   }
 
+  /* ── Cotizar (15/11/2026): catálogo de proveedores, estado por línea y solicitudes aprobadas ── */
+  async function _leerDocJson(ruta) {
+    await inicializar();
+    if (!db || !usuarioActual) return null;
+    try {
+      const s = await modFs.getDoc(modFs.doc(db, `${RAIZ}/${ruta}`));
+      if (!s.exists()) return null;
+      return JSON.parse((s.data() || {}).json || "null");
+    } catch (e) { return null; }
+  }
+  const leerCatalogoProveedores = () => _leerDocJson("agrocontrol/catalogo_proveedores");
+  const leerCotizacionesPorLinea = () => _leerDocJson("agrocontrol/cotizaciones");
+
+  async function escucharCotizar(cb, alError) {
+    return _escucharColeccion("cotizar", (lista) => {
+      const mapa = {};
+      (lista || []).forEach((x) => { mapa[x.id] = x; });
+      cb(mapa);
+    }, alError);
+  }
+
+  async function guardarCotizar(lineas, datos) {
+    await inicializar();
+    if (!db || !usuarioActual) throw new Error("Inicia sesión para guardar.");
+    const correo = String(usuarioActual.email || "");
+    const ahora = new Date().toISOString();
+    const lista = Array.from(new Set((Array.isArray(lineas) ? lineas : [lineas]).map((x) => String(x || "").trim()).filter(Boolean)));
+    await Promise.all(lista.map((lin) => modFs.setDoc(
+      modFs.doc(db, `${RAIZ}/cotizar/${lin}`),
+      Object.assign({}, datos, { actualizado_por: correo, actualizado_en: ahora }),
+      { merge: true }
+    )));
+    return lista.length;
+  }
+
+  async function crearSolicitudCotizacion(datos) {
+    await inicializar();
+    if (!db || !usuarioActual) throw new Error("Inicia sesión para enviar.");
+    const correo = String(usuarioActual.email || "").toLowerCase();
+    const id = `sol_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const carga = Object.assign({}, datos, { estado: "aprobada", aprobada_por: correo, aprobada_en: new Date().toISOString() });
+    await modFs.setDoc(modFs.doc(db, `${RAIZ}/solicitudes_cotizacion/${id}`), carga);
+    return id;
+  }
+
+  async function marcarSolicitudCotizacion(id, cambio) {
+    await inicializar();
+    if (!db || !usuarioActual) throw new Error("Inicia sesión.");
+    await modFs.updateDoc(modFs.doc(db, `${RAIZ}/solicitudes_cotizacion/${id}`), cambio);
+  }
+
+  const escucharSolicitudesCotizacion = (cb, alError) => _escucharColeccion("solicitudes_cotizacion", cb, alError);
+
   /* ── Mi gestión (solo correo principal de Wilo o lista config/acceso.gestion) ── */
   async function puedeVerGestion() {
     await inicializar();
@@ -1143,6 +1196,13 @@
   }
 
   window.AgdNube = {
+    leerCatalogoProveedores,
+    leerCotizacionesPorLinea,
+    escucharCotizar,
+    guardarCotizar,
+    crearSolicitudCotizacion,
+    marcarSolicitudCotizacion,
+    escucharSolicitudesCotizacion,
     escucharSeguimiento,
     guardarSeguimiento,
     guardarSeguimientoLote,
