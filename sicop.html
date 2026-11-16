@@ -173,6 +173,10 @@ h1{margin:0 0 4px;font-size:26px}
       ${o.completo ? "" : `<div class="aviso">${I("alerta")} De esta orden no tengo el precio sin IVA de todos los productos (falta entrar con tu usuario de AgroControl o la cotización no lo tiene). Toma el valor sin IVA de la proforma.</div>`}
       <div class="total">${o.completo ? `<span>Subtotal ${dinero(o.subtotal)}</span><span>IVA ${dinero(o.iva)}</span>` : ""}<span>Total que debe mostrar SICOP: <b>${dinero(o.total)}</b></span></div>
       <div class="sub" style="text-align:right">Compara este total con el de SICOP <b>antes</b> de tocar «Procesar Orden».</div>
+      <div class="sub" style="display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:10px">
+        <span>Para el ayudante de la PC del trabajo (llena la orden y se detiene antes de guardar):</span>
+        <button type="button" class="btn sm" data-ayudante="${esc(o.oc)}" ${o.completo && !noCreado ? "" : "disabled"}>Copiar orden para el ayudante</button>
+        ${o.completo && !noCreado ? "" : `<span class="sug">${noCreado ? "primero hay que crear el proveedor en SICOP" : "falta el precio sin IVA de algún producto"}</span>`}</div>
     </article>`;
   }
 
@@ -191,6 +195,24 @@ h1{margin:0 0 4px;font-size:26px}
   document.addEventListener("click", async (e) => {
     const tab = e.target.closest("[data-tab]");
     if (tab) { S.tab = tab.dataset.tab; document.querySelectorAll("[data-tab]").forEach((x) => x.classList.toggle("activa", x === tab)); return pintar(); }
+    const ay = e.target.closest("[data-ayudante]");
+    if (ay) {
+      const o = ordenes().find((x) => x.oc === ay.dataset.ayudante); if (!o) return;
+      const motivo = (S.motivo[o.oc] != null ? S.motivo[o.oc] : "COMPRA DE " + o.items.slice(0, 3).map((i) => i.producto).join(", ") + (o.items.length > 3 ? " Y OTROS" : "")).toUpperCase();
+      const r2 = (v) => Math.round(v * 100) / 100;
+      // Orden lista para el ayudante: mismos datos y mismo orden que la pantalla de SICOP. Sin contraseñas ni datos bancarios.
+      const datos = { formato: "agd-oc-sicop/1", oc_agrocontrol: o.oc, pedido: o.pedido, finca: o.finca, generado: new Date().toISOString(),
+        fecha_orden: hoyEc(), tipo: o.servicio ? "Servicio" : "Compra",
+        proveedor: { agrocontrol: o.prov, sicop: o.m && o.m.nombre_en_sicop ? o.m.nombre_en_sicop : o.prov, ruc: (o.m && o.m.ruc) || "", comprobado_en_sicop: !!(o.m && /^s[ií]/i.test(o.m.en_sicop || "")) },
+        pago_agrocontrol: o.pago, dias_credito_agrocontrol: o.pago === "Crédito" ? Number(o.credito || 0) : 0,
+        observacion: [`FINCA ${o.finca.toUpperCase()}`, motivo],
+        productos: o.items.map((i) => ({ linea: i.linea, producto: i.producto, medida: i.medida, clasificacion_sugerida: i.clase, cantidad: i.cant, valor_unitario_sin_iva: Number(i.base.toFixed(4)), iva: i.pct > 0, iva_pct: i.pct })),
+        subtotal: r2(o.subtotal), iva: r2(o.iva), total_que_debe_mostrar_sicop: r2(o.total),
+        regla: "Llenar y DETENERSE antes de guardar. Wilo compara el total y guarda él." };
+      try { await navigator.clipboard.writeText(JSON.stringify(datos, null, 1)); avisar("Orden copiada para el ayudante (" + o.oc + ")"); }
+      catch (err) { avisar("No se pudo copiar: " + (err.message || err)); }
+      return;
+    }
     const cp = e.target.closest("[data-cp]");
     if (cp) {
       try { await navigator.clipboard.writeText(cp.dataset.cp); avisar("Copiado: " + cp.dataset.cp.replace(/\n/g, " / ")); }
