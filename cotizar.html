@@ -134,6 +134,12 @@ ul.items li .det{font-size:12px;color:var(--t2)}
   const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const I = (n) => (window.AgdGuia && AgdGuia.ico ? AgdGuia.ico(n) : "");
   const R = window.AgdReglas;
+  const dec = (tipo, d) => { try { if (!SOLO_LECTURA && window.AgdNube && AgdNube.registrarDecision) AgdNube.registrarDecision(tipo, d); } catch (e) {} };
+  const resumenTarjeta = (t, provAjuste) => ({ origen: "cotizar", finca: [...new Set(t.items.map((i) => i.finca))].join(", "), categorias: [...new Set(t.items.map((i) => i.categoria).filter(Boolean))].slice(0, 6),
+    sin_cambios: !provAjuste && !((S.ajustes[t.id] || {}).quitados || []).length,
+    cambios: [].concat(provAjuste ? ["proveedor"] : [], ((S.ajustes[t.id] || {}).quitados || []).length ? ["quitó productos"] : []),
+    propuesto: { proveedor: t.provSugerido || (t.prov || {}).nombre || "" },
+    decidido: { proveedor: (t.prov || {}).nombre || "", lineas: t.items.map((i) => i.linea).slice(0, 40), productos: t.items.map((i) => i.producto).slice(0, 25), quitados: ((S.ajustes[t.id] || {}).quitados || []).slice(0, 20) } });
   const params = new URLSearchParams(location.search);
   const DEMO = params.get("demo") === "1";
   const COSTA = ["Puerto Cayo", "El Carmen"];
@@ -267,6 +273,7 @@ ul.items li .det{font-size:12px;color:var(--t2)}
     // ajustes de la persona: ítems quitados, proveedor cambiado
     for (const t of tarjetas) {
       const a = S.ajustes[t.id] || {};
+      t.provSugerido = t.prov ? t.prov.nombre : "";   // lo que sugirió el agente, antes del cambio manual
       if (a.prov) t.prov = a.prov;
       if (a.quitados) t.items = t.items.filter((i) => !a.quitados.includes(i.linea));
       if (t.prov) t.items = t.items.filter((i) => !i.ya.some((n) => mismoProv(n, t.prov.nombre)));
@@ -444,6 +451,7 @@ ul.items li .det{font-size:12px;color:var(--t2)}
     }
     // El cambio manual de proveedor ya se usó: sin esto la tarjeta reaparecía igual tras enviar.
     const provAjuste = (S.ajustes[t.id] || {}).prov || null;
+    dec("cotizacion_enviada", Object.assign(resumenTarjeta(t, provAjuste), { solicitud_id: sid }));
     if (provAjuste) delete S.ajustes[t.id].prov;
     cerrar();
     salir(t.id, pintar);
@@ -453,6 +461,7 @@ ul.items li .det{font-size:12px;color:var(--t2)}
   async function yaEnvie(t) {
     const antes = await registrarEnvio(t, "");
     const provAjuste = (S.ajustes[t.id] || {}).prov || null;
+    dec("cotizacion_enviada_a_mano", resumenTarjeta(t, provAjuste));
     if (provAjuste) delete S.ajustes[t.id].prov;
     salir(t.id, pintar);
     avisar(`Marcado como enviado a ${t.prov.nombre}`, () => deshacerEnvio(antes, "", t.id, provAjuste));
@@ -479,6 +488,9 @@ ul.items li .det{font-size:12px;color:var(--t2)}
     }
     S.estado[lin] = Object.assign({}, antes, datos);
     if (!SOLO_LECTURA) await AgdNube.guardarCotizar(lin, datos);
+    { const tj = tarjeta(tid) || {}, it = (tj.items || []).find((i) => i.linea === lin) || {};
+      dec("linea_descartada", { origen: "cotizar", linea: lin, producto: it.producto || "", categoria: it.categoria || "", finca: it.finca || "",
+        motivo: datos.motivo, comprado_con: datos.comprado_con || "", proveedor_sugerido: (tj.prov || {}).nombre || "" }); }
     if (op === "2" && !SOLO_LECTURA) { try { await AgdNube.guardarSeguimiento(lin, { estado: "No se compró", nota: "Descartado desde Cotizar" }); } catch (e) {} }
     pintar();
     avisar(op === "1" ? `Descartado: comprado con ${datos.comprado_con}` : "Descartado: no se va a comprar", async () => {

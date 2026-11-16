@@ -84,6 +84,27 @@
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#te-capa").classList.contains("ver")) cerrar(); });
   }
   let ENVIANDO = false, FOCO_PREVIO = null;
+  /* Lección para el agente: diferencia entre la tarjeta como la propuso y como la persona la dejó */
+  function resumenDecision(est) {
+    let o = {}; try { o = JSON.parse(est.original); } catch (e) { o = { prov: {}, items: [], texto: "" }; }
+    const nom = (i) => plano(i.producto);
+    const antes = (o.items || []).filter((i) => String(i.producto).trim()), ahora = est.items.filter((i) => String(i.producto).trim());
+    const quit = antes.filter((a) => !ahora.some((b) => nom(b) === nom(a))).map((i) => i.producto);
+    const agr = ahora.filter((b) => !antes.some((a) => nom(a) === nom(b))).map((i) => i.producto);
+    const cant = ahora.map((b) => { const a = antes.find((x) => nom(x) === nom(b)); return a && String(a.cantidad) !== String(b.cantidad) ? `${b.producto}: ${a.cantidad} → ${b.cantidad}` : null; }).filter(Boolean);
+    const cambios = [];
+    if ((o.prov || {}).nombre !== est.prov.nombre) cambios.push("proveedor");
+    if (quit.length) cambios.push("quitó productos");
+    if (agr.length) cambios.push("agregó productos");
+    if (cant.length) cambios.push("cambió cantidades");
+    if (est.textoTocado) cambios.push("editó el mensaje");
+    return { origen: est.op.origen || "whatsapp", clase: est.tipo, finca: est.finca || "", rubros: (est.rubrosOrig || []).slice(0, 4),
+      sin_cambios: !cambios.length, cambios,
+      propuesto: { proveedor: (o.prov || {}).nombre || "", chat: (o.prov || {}).chat || "", productos: antes.map((i) => i.producto).slice(0, 25) },
+      decidido: { proveedor: est.prov.nombre, chat: est.prov.chat || "", quitados: quit.slice(0, 15), agregados: agr.slice(0, 15), cantidades: cant.slice(0, 15),
+        mensaje: est.textoTocado ? String(est.texto).slice(0, 500) : "" } };
+  }
+  const dec = (tipo, d) => { try { if (window.AgdNube && AgdNube.registrarDecision) AgdNube.registrarDecision(tipo, d); } catch (e) {} };
   function cerrar(forzar) {
     if (ENVIANDO && !forzar) return;   // mientras sale el envío no se cierra: evita el doble envío
     const c = $("#te-capa"); if (c) c.classList.remove("ver"); E = null;
@@ -283,6 +304,7 @@
         png, origen: est.op.origen || "whatsapp" };
       if (!window.AgdNube) throw new Error("La nube no está disponible: revisa la conexión.");
       const sid = await AgdNube.crearSolicitudCotizacion(sol);
+      dec("tarjeta_enviada", Object.assign(resumenDecision(est), { solicitud_id: sid }));
       const op = est.op; ENVIANDO = false; cerrar(true);
       if (op.alEnviar) op.alEnviar({ solicitud_id: sid, texto: sol.texto, items, proveedor: sol.proveedor, chat: sol.chat });
     } catch (e) {
@@ -308,7 +330,7 @@
     if (a === "png") return bajarPng();
     if (a === "pdf") return bajarPdf();
     if (a === "enviar") return enviar();
-    if (a === "yaenvie") { const op = E.op; const t = E.texto; cerrar(); if (op.alYaEnviado) op.alYaEnviado({ texto: t }); return; }
+    if (a === "yaenvie") { const op = E.op; const t = E.texto; dec("tarjeta_enviada_a_mano", resumenDecision(E)); cerrar(); if (op.alYaEnviado) op.alYaEnviado({ texto: t }); return; }
     if (a === "cambiar") {
       const c = $("#te-elegir");
       if (c.innerHTML) { c.innerHTML = ""; return; }
@@ -333,7 +355,7 @@
     if (!E) return;
     const el = e.target;
     if (el.id === "te-buscar") { $("#te-lista").innerHTML = listaProv(el.value); return; }
-    if (el.id === "te-txt") { E.texto = el.value; if (!E.editado) { E.editado = true; } return refrescarFalta(); }
+    if (el.id === "te-txt") { E.texto = el.value; E.textoTocado = true; if (!E.editado) { E.editado = true; } return refrescarFalta(); }
     if (el.id === "te-tel") { E.prov.telefono = el.value; return refrescarFalta(); }
     if (el.dataset.k) { E.items[Number(el.dataset.i)][el.dataset.k] = el.value; rehacerTexto(); }
   }

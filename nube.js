@@ -1221,6 +1221,38 @@
 
   const escucharSolicitudesCotizacion = (cb, alError) => _escucharColeccion("solicitudes_cotizacion", cb, alError);
 
+  /* ── Bitácora de decisiones (16/11/2026) ──
+     Cada acción manual (aprobar, corregir, descartar, cambiar proveedor…) queda escrita con lo que el agente
+     propuso y lo que la persona decidió. De ahí aprende el agente. Nunca frena la acción: si no hay red, la
+     decisión espera en este equipo y se sube en el siguiente intento. Solo se agrega; no se edita ni se borra. */
+  const LS_DEC = "agd_decisiones_pend";
+  function _decPendientes() { try { return JSON.parse(localStorage.getItem(LS_DEC) || "[]"); } catch (e) { return []; } }
+  function _decGuardar(l) { try { localStorage.setItem(LS_DEC, JSON.stringify(l.slice(-200))); } catch (e) {} }
+  async function _decSubir() {
+    await inicializar();
+    if (!db || !usuarioActual) return;
+    const correo = String(usuarioActual.email || "").toLowerCase();
+    let cola = _decPendientes();
+    while (cola.length) {
+      const d = cola[0];
+      try { await modFs.setDoc(modFs.doc(db, `${RAIZ}/decisiones/${d.id}`), Object.assign({}, d.datos, { por: correo })); }
+      catch (e) { if (e && e.code === "permission-denied") { cola.shift(); _decGuardar(cola); continue; } break; }   // sin red: se reintenta luego
+      cola.shift(); _decGuardar(cola);
+    }
+  }
+  function registrarDecision(tipo, datos) {
+    try {
+      const limpio = JSON.parse(JSON.stringify(datos || {}, (k, v) => (typeof v === "string" && v.length > 600 ? v.slice(0, 600) + "…" : v)));
+      const doc = Object.assign({}, limpio, { tipo: String(tipo).slice(0, 60), en: new Date().toISOString() });
+      Object.keys(doc).slice(18).forEach((k) => { if (!["tipo", "en"].includes(k)) delete doc[k]; });   // tope de campos de la regla
+      const cola = _decPendientes();
+      cola.push({ id: `dec_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, datos: doc });
+      _decGuardar(cola);
+      _decSubir().catch(() => {});
+    } catch (e) { /* registrar nunca rompe la acción */ }
+  }
+  const leerEstadoAgente = () => _leerDocJson("agrocontrol/agente_estado");
+
   /* ── Subir a AgroControl (15/11/2026): cargas por ítem que arma la PC y Wilo revisa ── */
   const escucharCargas = (cb, alError) => _escucharColeccion("cargas_agrocontrol", cb, alError);
   const _cacheArchivos = {};
@@ -1295,6 +1327,8 @@
     marcarSolicitudCotizacion,
     escucharSolicitudesCotizacion,
     cancelarSolicitudCotizacion,
+    registrarDecision,
+    leerEstadoAgente,
     escucharSeguimiento,
     guardarSeguimiento,
     guardarSeguimientoLote,

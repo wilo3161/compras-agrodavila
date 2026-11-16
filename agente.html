@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agente · Compras AgroDávila</title>
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+main{max-width:980px;margin:0 auto;padding:20px 16px 40px}
+h1{margin:0 0 4px;font-size:26px}
+h2{font-size:17px;margin:28px 0 10px}
+.sub{color:var(--t2);font-size:14px;line-height:1.45}
+.bloque{background:var(--card);border:1px solid var(--bd);border-radius:var(--radio);box-shadow:var(--sombra);padding:4px 16px}
+.tarea{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:8px 20px;padding:14px 0;border-bottom:1px solid var(--bd)}
+.tarea:last-child{border-bottom:0}
+.tarea .nom{font-weight:700;font-size:15px}
+.escalon{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;background:var(--pri2);color:var(--pri);margin-left:6px;white-space:nowrap}
+.escalon.lista{background:var(--okbg);color:var(--ok)}
+.medida{font-variant-numeric:tabular-nums;font-size:14px}
+.medida b{font-size:20px;font-family:var(--titulo)}
+.racha{height:8px;border-radius:999px;background:var(--bg);border:1px solid var(--bd);overflow:hidden;margin-top:6px}
+.racha i{display:block;height:100%;background:var(--pri);border-radius:999px;transition:width 600ms var(--sale,ease)}
+.regla{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--bd)}
+.regla:last-child{border-bottom:0}
+.regla .txt{font-weight:600;line-height:1.35}
+.regla .acc{display:flex;gap:8px;flex-wrap:wrap}
+.regla.sale{opacity:0;transform:translateX(24px);transition:opacity 280ms,transform 280ms}
+.veces{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700;background:var(--mdbg);color:var(--md);margin-right:6px}
+.veces.firme{background:var(--okbg);color:var(--ok)}
+.item{padding:10px 0;border-bottom:1px solid var(--bd);font-size:14px;line-height:1.4}
+.item:last-child{border-bottom:0}
+.item .cl{color:var(--t2);font-size:12px;font-weight:700;text-transform:none}
+.vacio{padding:22px 4px;color:var(--t2);font-size:14px;line-height:1.5}
+.toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#23262B;color:#fff;border-radius:12px;padding:10px 14px;display:none;gap:12px;align-items:center;z-index:60;font-size:14px;max-width:92vw}
+.toast.ver{display:flex}
+@media (max-width:760px){.tarea{grid-template-columns:1fr}.regla{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Agente de compras</h1>
+  <p class="sub" id="subtitulo">Aprende de lo que tú decides: cada vez que apruebas, corriges o descartas algo, queda como lección. Nada sale a un proveedor ni entra a AgroControl sin tu aprobación.</p>
+
+  <h2>Cómo va en cada tarea</h2>
+  <div class="bloque" id="tareas"><div class="esqueleto" role="status" style="padding:12px 0"><span class="lector">Cargando…</span><i></i><i></i></div></div>
+  <p class="sub" id="nota-racha" style="margin-top:8px"></p>
+
+  <h2>Reglas que propone <span id="n-reglas" class="sub"></span></h2>
+  <div class="bloque" id="reglas"></div>
+
+  <h2>Lo que ya sabe</h2>
+  <div class="bloque" id="sabe"></div>
+
+  <h2>Tus últimas decisiones</h2>
+  <div class="bloque" id="ultimas"></div>
+  <p class="sub" id="pie" style="margin-top:14px"></p>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-txt"></span></div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const I = (n) => (window.AgdGuia && AgdGuia.ico ? AgdGuia.ico(n) : "");
+  const params = new URLSearchParams(location.search);
+  const LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  const PRUEBA = LOCAL ? params.get("prueba") : null;   // solo en la PC de desarrollo; no escribe en la nube
+  const LS_RES = "agd_reglas_resueltas";
+  let E = null, reloj = null;
+  const NOMBRE_CAMBIO = { forma_pago: "forma de pago", precio_base: "precio", con_iva: "si lleva IVA", iva_pct: "% de IVA", proveedor: "proveedor" };
+  const cambio = (c) => NOMBRE_CAMBIO[c] || c;
+  const resueltas = () => { try { return JSON.parse(localStorage.getItem(LS_RES) || "[]"); } catch (e) { return []; } };
+  function avisar(t) { $("#toast-txt").textContent = t; $("#toast").classList.add("ver"); clearTimeout(reloj); reloj = setTimeout(() => $("#toast").classList.remove("ver"), 6000); }
+  const hace = (iso) => { const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000); return !isFinite(m) ? "" : m < 2 ? "hace un momento" : m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
+  const fechaEc = (iso) => { try { return new Date(iso.length <= 16 ? iso + ":00Z" : iso).toLocaleString("es-EC", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Guayaquil" }); } catch (e) { return iso; } };
+
+  async function cargar() {
+    try {
+      if (PRUEBA) { E = await (await fetch(PRUEBA)).json(); $("#subtitulo").insertAdjacentHTML("afterend", `<p class="sub" style="color:var(--ladrillo)"><strong>PRUEBA LOCAL · no se guarda nada</strong></p>`); }
+      else {
+        let ses = false; try { ses = !!(window.ComprasApp && await ComprasApp.sesion({ permitirNube: true })); } catch (e) {}
+        if (!ses) { $("#tareas").innerHTML = `<div class="vacio">Inicia sesión para ver cómo va el agente.<br><br><a class="btn p" href="index.html">Ir a iniciar sesión</a></div>`; return; }
+        E = await AgdNube.leerEstadoAgente();
+      }
+    } catch (e) { E = null; }
+    if (!E) { $("#tareas").innerHTML = `<div class="vacio">Todavía no hay un resumen del agente. Se arma solo cada 30 minutos mientras la PC de la casa está encendida. Si entraste solo con tu usuario de AgroControl, conecta también tu cuenta de Google en Inicio.</div>`; return; }
+    pintar();
+  }
+
+  function pintar() {
+    const meta = E.racha_para_subir || 20;
+    $("#tareas").innerHTML = (E.tareas || []).map((t) => {
+      const pct = t.pct == null ? null : Math.round(t.pct * 100);
+      return `<div class="tarea">
+        <div><span class="nom">${esc(t.tarea)}</span><span class="escalon${t.lista_para_mas_autonomia ? " lista" : ""}">${esc(t.lista_para_mas_autonomia ? "Lista para más autonomía" : t.escalon)}</span>
+          <div class="sub">${esc(t.riesgo)}</div>
+          ${(t.que_corriges || []).length ? `<div class="sub" style="margin-top:4px">Lo que más le corriges: ${t.que_corriges.map((c) => `${esc(cambio(c.cambio))} (${c.veces})`).join(" · ")}</div>` : ""}</div>
+        <div class="medida">${t.medibles ? `<b>${pct} %</b> aprobado sin cambios · ${t.sin_cambios} de ${t.medibles}` : `<span class="sub">Aún sin decisiones tuyas: no se puede medir.</span>`}
+          <div class="racha" role="progressbar" aria-valuemin="0" aria-valuemax="${meta}" aria-valuenow="${Math.min(t.racha, meta)}" aria-label="Racha de aciertos de ${esc(t.tarea)}"><i style="width:${Math.min(100, Math.round(t.racha / meta * 100))}%"></i></div>
+          <div class="sub" style="margin-top:4px">Racha: ${t.racha} de ${meta} seguidas sin cambios</div></div>
+      </div>`;
+    }).join("") || `<div class="vacio">Sin tareas registradas.</div>`;
+    $("#nota-racha").textContent = `Una tarea queda «lista para más autonomía» cuando lleva ${meta} propuestas seguidas aprobadas sin cambios. Subir de escalón siempre lo decides tú.`;
+
+    const hechas = new Set(resueltas());
+    const props = (E.propuestas || []).filter((p) => !hechas.has(p.id));
+    $("#n-reglas").textContent = props.length ? `· ${props.length} por decidir` : "";
+    $("#reglas").innerHTML = props.length ? props.map((p) => `<div class="regla" data-r="${esc(p.id)}">
+        <div><div class="txt">${esc(p.texto)}</div>
+          <div class="sub"><span class="veces${p.firme ? " firme" : ""}">${p.veces} ${p.veces === 1 ? "vez" : "veces"}</span>${p.firme ? "Lo repetiste: puede ser una regla." : "Lo hiciste una vez: todavía es una observación."}${(p.ejemplos || []).length ? ` · ${esc(p.ejemplos.join("; "))}` : ""}</div></div>
+        <div class="acc"><button type="button" class="btn p" data-acc="aceptar">${I("check")} Sí, es una regla</button><button type="button" class="btn" data-acc="rechazar">${I("cerrar")} No</button></div>
+      </div>`).join("")
+      : `<div class="vacio">Todavía no propone reglas. Aparecen cuando repites la misma corrección: por ejemplo, poner la misma forma de pago a un proveedor, o cambiar siempre el mismo proveedor por otro.</div>`;
+
+    $("#sabe").innerHTML = (E.sabe || []).map((s) => `<div class="item"><span class="cl">${esc(s.clase)}</span><br>${esc(s.texto)}${s.fuente ? ` <span class="sub">· ${esc(s.fuente)}</span>` : ""}</div>`).join("") || `<div class="vacio">Aún no tiene reglas guardadas.</div>`;
+
+    $("#ultimas").innerHTML = (E.ultimas || []).map((u) => `<div class="item"><span class="cl">${esc(fechaEc(u.en))} · ${esc(u.tarea || u.tipo)}</span><br>${esc(u.que || "")}
+        ${u.sin_cambios === true ? ` <span class="escalon lista">sin cambios</span>` : (u.cambios || []).length ? ` <span class="sub">· corregiste: ${esc(u.cambios.map(cambio).join(", "))}</span>` : ""}${u.motivo ? ` <span class="sub">· ${esc(u.motivo)}</span>` : ""}</div>`).join("")
+      || `<div class="vacio">Aún no hay decisiones registradas. Empiezan a contarse desde hoy: aprueba o corrige una carga en «Subir a AgroControl», o envía una tarjeta en «Cotizar» o «WhatsApp».</div>`;
+
+    $("#pie").textContent = `${E.total_decisiones || 0} decisiones registradas${E.primera ? " desde el " + E.primera.split("-").reverse().join("/") : ""} · resumen actualizado ${hace(E.generado)}.`;
+    if (window.AgdMov) ["#tareas", "#reglas", "#sabe", "#ultimas"].forEach((s) => AgdMov.entrar($(s), "1"));
+  }
+
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-acc]"); if (!b) return;
+    const fila = b.closest("[data-r]"); const p = (E.propuestas || []).find((x) => x.id === fila.dataset.r); if (!p) return;
+    const acepta = b.dataset.acc === "aceptar";
+    if (!PRUEBA && window.AgdNube && AgdNube.registrarDecision) {
+      AgdNube.registrarDecision(acepta ? "regla_aceptada" : "regla_rechazada", { origen: "agente", regla_id: p.id, clase: p.clase, texto: p.texto, datos: p.datos, veces: p.veces });
+    }
+    try { localStorage.setItem(LS_RES, JSON.stringify(resueltas().concat([p.id]).slice(-300))); } catch (x) {}
+    fila.classList.add("sale");
+    setTimeout(pintar, 300);
+    avisar(acepta ? "Regla aceptada: el agente la aplica en su próxima revisión (máximo 30 minutos)." : "Entendido: no es una regla. No la volverá a proponer.");
+  });
+  cargar();
+})();
+</script>
+</body>
+</html>

@@ -74,6 +74,8 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
   const PRUEBA = LOCAL ? params.get("prueba") : null;   // solo en la PC de desarrollo; no escribe en la nube
   const SOLO_LECTURA = DEMO || !!PRUEBA;
   const I = (n) => (window.AgdGuia && AgdGuia.ico ? AgdGuia.ico(n) : "");
+  const dec = (tipo, d) => { try { if (!SOLO_LECTURA && window.AgdNube && AgdNube.registrarDecision) AgdNube.registrarDecision(tipo, d); } catch (e) {} };
+  const refCarga = (c) => ({ origen: "subir", carga: c.id, linea: c.linea, pedido: c.pedido, producto: c.producto_agrocontrol, archivo: c.archivo_nombre || "" });
   const CHEQUEOS = [["proveedor", "Proveedor"], ["producto", "Producto"], ["precio", "Precio"], ["iva", "IVA"], ["pago", "Forma de pago"]];
   const S = { cargas: [], archivos: {}, tab: "por_revisar", chequeos: {}, editado: {} };
   const dinero = (v, d = 2) => (v == null || v === "" || isNaN(v)) ? "—" : "$" + Number(v).toLocaleString("es-EC", { minimumFractionDigits: d, maximumFractionDigits: 4 });
@@ -316,8 +318,13 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
       if (b.dataset.acc === "aprobar") {
         const cambios = Object.assign({}, S.editado[c.id] || {}, { estado: "aprobada", precio_final: precioFinal(c) });
         if (valor(c, "con_iva") === true) { const pc = valor(c, "iva_pct"); cambios.iva_pct = (pc == null || pc === "") ? 15 : Number(pc) || 0; }
+        // Lección para el agente: qué propuso y qué quedó aprobado
+        const propuesto = { proveedor: c.proveedor_agrocontrol || "", precio_base: c.precio_base ?? null, con_iva: c.con_iva ?? null, iva_pct: c.iva_pct ?? null, forma_pago: c.forma_pago || "" };
+        const decidido = { proveedor: valor(c, "proveedor_agrocontrol") || "", precio_base: Number(valor(c, "precio_base")), con_iva: valor(c, "con_iva"), iva_pct: cambios.iva_pct ?? valor(c, "iva_pct") ?? null, forma_pago: valor(c, "forma_pago") || "", precio_final: cambios.precio_final };
+        const cambiados = Object.keys(propuesto).filter((k) => String(propuesto[k] ?? "") !== String(decidido[k] ?? ""));
         art.classList.add("sale");
         const antes = await guardar(c, cambios);
+        dec("carga_aprobada", Object.assign(refCarga(c), { proveedor_proforma: c.proveedor_proforma || "", sin_cambios: !cambiados.length, cambios: cambiados, propuesto, decidido }));
         setTimeout(pintar, 330);
         avisar(`Aprobada: ${c.linea} a ${dinero(cambios.precio_final)} · queda lista para subir`, async () => { await guardar(c, Object.assign(antes, { estado: "por_revisar" })); pintar(); });
       } else if (b.dataset.acc === "descartar") {
@@ -332,12 +339,14 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
         if (motivo === "Otro") { motivo = (window.prompt ? (prompt("Escribe el motivo") || "") : "").trim() || "Otro"; }
         art.classList.add("sale");
         await guardar(c, { estado: "descartada", motivo_descarte: motivo });
+        dec("carga_descartada", Object.assign(refCarga(c), { motivo, proveedor: c.proveedor_agrocontrol || "", proveedor_proforma: c.proveedor_proforma || "", item_proforma: c.item_proforma || "", precio_base: c.precio_base ?? null }));
         setTimeout(pintar, 330);
         avisar(`Descartada: ${c.linea}`, async () => { await guardar(c, { estado: "por_revisar", motivo_descarte: "" }); pintar(); });
       } else if (b.dataset.acc === "alerta_ok" || b.dataset.acc === "alerta_corregida") {
         const nuevo = b.dataset.acc;
         art.classList.add("sale");
         await guardar(c, { estado: nuevo });
+        dec(nuevo === "alerta_ok" ? "alerta_esta_bien" : "alerta_corregida", Object.assign(refCarga(c), { proveedor: c.proveedor_agrocontrol || "", precio_agrocontrol: c.precio_agrocontrol ?? null, precio_proforma: c.precio_base ?? null, iva_pct: c.iva_pct ?? null, item_proforma: c.item_proforma || "" }));
         setTimeout(pintar, 330);
         avisar(nuevo === "alerta_ok" ? `Marcada como correcta: ${c.linea}` : `Marcada como corregida: ${c.linea} · la próxima revisión lo confirma`,
           async () => { await guardar(c, { estado: "alerta" }); pintar(); });

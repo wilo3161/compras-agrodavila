@@ -98,6 +98,9 @@
     "gestion.html": {
       resumen: ["Evidencia de gestión", "Consolida ahorro documentado, proveedores nuevos incorporados, cumplimiento de cotizaciones y mejora en tiempos de ciclo desde el 04/11/2026."]
     },
+    "agente.html": {
+      vista: ["Agente de compras", "Aquí ves cómo va aprendiendo: cuántas de sus propuestas apruebas sin cambios, qué reglas propone a partir de tus correcciones y qué sabe ya. Tú decides qué es regla y cuándo le das más autonomía."]
+    },
     "subir.html": {
       vista: ["Subir a AgroControl", "Cada tarjeta es una cotización por producto con su proforma completa. Compara proveedor, producto, precio, IVA y forma de pago con la imagen, márcalos y aprueba. Nada se guarda en AgroControl sin tu aprobación."]
     },
@@ -179,6 +182,7 @@
     ];
     const secundarios = [
       ["subir.html", "subir", "Subir a AgroControl"],
+      ["agente.html", "foco", "Agente"],
       ["checklist.html", "checklist", "Checklist"],
       ["control.html", "control", "Control"],
       ["whatsapp.html", "whatsapp", "WhatsApp"],
