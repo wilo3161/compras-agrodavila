@@ -325,7 +325,17 @@ let aviso=null; window.addEventListener("beforeinstallprompt",e=>{ e.preventDefa
 $("#bInst").onclick=async()=>{ if(!aviso) return; aviso.prompt(); const r=await aviso.userChoice; if(r.outcome==="accepted") marcar("instalar"); aviso=null; $("#bInst").classList.add("hide"); };
 const esIOS=/iphone|ipad|ipod/i.test(navigator.userAgent), instalada=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone;
 if(esIOS&&!instalada) $("#instIOS").textContent="Para instalarla en el iPhone: botón Compartir de Safari → «Agregar a inicio».";
-iniciar();
+// Clave por código QR: el enlace trae la clave en «#clave=…» (esa parte nunca viaja al servidor).
+// Se guarda en este teléfono y se borra de la barra de direcciones al instante.
+(async () => {
+  const m = location.hash.match(/clave=([^&]+)/);
+  if (m) {
+    history.replaceState(null, "", location.pathname);
+    try { await ComprasApp.abrirDatos(decodeURIComponent(m[1]), true); alert("Listo: la clave de datos quedó guardada en este teléfono."); }
+    catch (x) { alert("El código QR no abrió los datos: " + (x.message || x)); }
+  }
+  iniciar();
+})();
 </script>
 </body>
 </html>

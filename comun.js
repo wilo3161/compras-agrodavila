@@ -161,7 +161,10 @@
     // se prueba la clave tal cual y, si no abre, esas variantes (solo cambia cómo se escribió, no la clave).
     const f0 = String(frase || "");
     const t = f0.trim();
-    const variantes = [...new Set([f0, t, t.charAt(0).toLowerCase() + t.slice(1), t.toLowerCase()])].filter(Boolean);
+    // Guiones largos o especiales que pone el teclado (‐ ‑ ‒ – — ― −) vuelven a ser «-», y se quitan espacios.
+    const norm = t.replace(/[‐-―−﹘﹣－]/g, "-").replace(/\s+/g, "");
+    const variantes = [...new Set([f0, t, t.charAt(0).toLowerCase() + t.slice(1), t.toLowerCase(),
+      norm, norm.toLowerCase()])].filter(Boolean);
     let k = null, json = null, ultimo = null;
     for (const v of variantes) {
       try { k = await claveDesdeFrase(v, b64(pq.sal), pq.iter); json = await descifrar(pq, k); break; }
