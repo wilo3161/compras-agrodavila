@@ -23,6 +23,19 @@
     try { CATALOGO = (window.AgdNube && await AgdNube.leerCatalogoProveedores()) || []; } catch (e) { CATALOGO = []; }
     return CATALOGO;
   }
+  /* Base de productos de AgroControl (nombre, categoría, unidad usual, ingrediente) para buscar al agregar. */
+  let PRODS = null;
+  async function productos() {
+    if (PRODS) return PRODS;
+    let l = [];
+    try { l = (window.AgdNube && AgdNube.leerCatalogoProductos && await AgdNube.leerCatalogoProductos()) || []; } catch (e) { l = []; }
+    const m = new Map();
+    l.forEach((p) => { const n = String(p[0] || "").trim(); if (n && !m.has(plano(n))) m.set(plano(n), { n, c: p[1] || "", u: p[2] || "", i: p[3] || "", k: plano(n + " " + (p[3] || "")), ag: true }); });
+    // Lo que los proveedores han vendido o cotizado (base histórica y proformas) también sirve para buscar.
+    (CATALOGO || []).forEach((pr) => (pr.productos || []).forEach((x) => { const n = String(x || "").trim(); if (n && !m.has(plano(n))) m.set(plano(n), { n, c: "", u: "", i: "", k: plano(n), ag: false }); }));
+    PRODS = [...m.values()];
+    return PRODS;
+  }
   function fichaDe(nombre, chat) {
     const n = plano(nombre), c = plano(chat);
     return (CATALOGO || []).find((p) => (c && (p.chats || []).some((x) => plano(x) === c)) || (n && plano(p.nombre) === n)) || null;
@@ -58,6 +71,9 @@
   .te-ok{background:var(--pri2,#E8EFF7);border-radius:10px;padding:8px 10px;margin-top:8px;font-size:13px}
   .te-lista{max-height:260px;overflow:auto;border:1px solid var(--bd,#E2E4E7);border-radius:10px;margin-top:6px}
   .te-lista button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--bd,#E2E4E7);background:transparent;color:inherit;padding:9px 10px;font:inherit;cursor:pointer}
+  .te-lista button:hover,.te-lista button:focus-visible{background:var(--pri2,#E8EFF7);outline:none}
+  .te-sug{margin:-2px 0 2px 28px;max-height:230px}
+  .te-buscar{margin-top:6px;width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--pri,#2E5E8E);border-radius:8px;background:transparent;color:inherit;font:inherit}
   .te-vista{margin-top:10px;overflow:auto;border:1px solid var(--bd,#E2E4E7);border-radius:10px;background:#fff}
   .te-vista img{display:block;width:100%;height:auto}
   .te-burbuja{background:#DCF8C6;color:#111;border-radius:10px;padding:10px 12px;white-space:pre-wrap;font-size:14px;max-width:520px;margin:10px}
@@ -81,7 +97,11 @@
       <div id="te-fuente" aria-hidden="true" style="position:fixed;left:-10000px;top:0;width:794px"></div>`;
     document.body.appendChild(d);
     // Tocar fuera NO cierra: se perdería lo editado. Se cierra con ✕, «Cancelar» o Escape.
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#te-capa").classList.contains("ver")) cerrar(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || !$("#te-capa").classList.contains("ver")) return;
+      if ($("#te-sug")) return quitarSug();      // primero se cierran las sugerencias, no la tarjeta
+      cerrar();
+    });
   }
   let ENVIANDO = false, FOCO_PREVIO = null;
   /* Lección para el agente: diferencia entre la tarjeta como la propuso y como la persona la dejó */
@@ -144,10 +164,10 @@
       </div>
       <div style="margin-top:10px"><b>Para:</b> ${esc(E.prov.nombre || "— elige proveedor —")}
         ${rubros.map((r) => `<span class="te-chip">${esc(r)}</span>`).join("")}${fi && otraZona(fi) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}
-        <div class="te-sub">${E.prov.chat ? `Chat de WhatsApp: «${esc(E.prov.chat)}»` : E.prov.telefono ? `WhatsApp ${esc(E.prov.telefono)}` : `<span style="color:var(--ladrillo,#B5452F)">Sin chat de WhatsApp: escribe el número abajo.</span>`}</div>
+        ${E.prov.nombre ? `<div class="te-sub">${E.prov.chat ? `Chat de WhatsApp: «${esc(E.prov.chat)}»` : E.prov.telefono ? `WhatsApp ${esc(E.prov.telefono)}` : `<span style="color:var(--ladrillo,#B5452F)">Sin chat de WhatsApp: escribe el número abajo.</span>`}</div>
         ${!E.prov.chat ? `<input id="te-tel" inputmode="tel" placeholder="Número del proveedor, ej. 0991234567" value="${esc(E.prov.telefono || "")}" style="margin-top:6px;width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--bd,#E2E4E7);border-radius:8px;background:transparent;color:inherit;font:inherit">` : ""}
-        <button class="te-btn sm" type="button" data-te="cambiar" style="margin-top:6px">${I("refrescar")} Cambiar proveedor</button>
-        <div id="te-elegir"></div>
+        <button class="te-btn sm" type="button" data-te="cambiar" style="margin-top:6px">${I("refrescar")} Cambiar proveedor</button>` : ""}
+        <div id="te-elegir">${!E.prov.nombre || E.buscando ? htmlBuscador() : ""}</div>
       </div>
       <div class="te-tabla"><div class="te-fila cab"><span></span><span>Producto${esCot() ? "" : " (opcional)"}</span><span>Cantidad</span><span>Unidad</span><span></span></div>
         ${E.items.map((i, n) => `<div class="te-fila">
@@ -256,13 +276,43 @@
     const rO = E.rubrosOrig || [];
     // rO[0] es el rubro principal de lo que se pide (el del proveedor original).
     const afin = (p) => { const r = p.rubros || []; return !rO.length ? 0 : r.includes(rO[0]) ? 0 : r.some((x) => rO.includes(x)) ? 3 : (r.includes("Por clasificar") || !r.length ? 6 : 9); };
-    const orden = (p) => afin(p) + (otraZona(p) ? 1.5 : 0) + ((p.chats || []).length ? 0 : p.telefono ? 0.4 : 0.8);
-    const l = (CATALOGO || []).filter((p) => !qq || plano(p.nombre + " " + (p.chats || []).join(" ") + " " + (p.rubros || []).join(" ") + " " + (p.ciudad || "") + " " + (p.zona || "")).includes(qq))
+    const pedidos = E.items.map((i) => plano(i.producto)).filter((x) => x.length > 2);
+    const vendio = (p) => { if (p._v === undefined || p._vk !== pedidos.join("|")) { const s = (p.productos || []).map(plano); p._vk = pedidos.join("|"); p._v = pedidos.filter((x) => s.some((y) => y === x || y.includes(x) || x.includes(y))).length; } return p._v; };
+    const orden = (p) => afin(p) + (otraZona(p) ? 1.5 : 0) + ((p.chats || []).length ? 0 : p.telefono ? 0.4 : 0.8) - (vendio(p) ? 4 + vendio(p) : 0);
+    const pals = qq.split(" ").filter(Boolean);
+    const l = (CATALOGO || []).filter((p) => { if (!pals.length) return true; if (p._k === undefined) p._k = plano(p.nombre + " " + (p.chats || []).join(" ") + " " + (p.rubros || []).join(" ") + " " + (p.ciudad || "") + " " + (p.zona || "") + " " + (p.productos || []).join(" ")); return pals.every((w) => p._k.includes(w)); })
       .sort((a, b) => orden(a) - orden(b) || a.nombre.localeCompare(b.nombre)).slice(0, 50);
     return l.map((p) => `<button type="button" data-te="elegir" data-n="${CATALOGO.indexOf(p)}"><b>${esc(p.nombre)}</b>
-      ${otraZona(p) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}${mismoRubro(p) ? "" : `<span class="te-chip alerta">no vende lo mismo</span>`}
+      ${vendio(p) ? `<span class="te-chip">ya vendió ${vendio(p) === 1 ? "1 de estos productos" : vendio(p) + " de estos productos"}</span>` : ""}${otraZona(p) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}${mismoRubro(p) ? "" : `<span class="te-chip alerta">no vende lo mismo</span>`}
       <span class="te-sub" style="display:block">${esc((p.rubros || []).join(" · "))}${(p.chats || []).length ? " · con WhatsApp" : p.telefono ? " · con teléfono" : " · sin WhatsApp"}${p.ciudad ? " · " + esc(p.ciudad) : p.zona ? " · " + esc(p.zona) : ""}</span></button>`).join("")
       || `<div class="te-sub" style="padding:10px">Ningún proveedor con ese nombre.</div>`;
+  }
+  function htmlBuscador() {
+    return `<input id="te-buscar" class="te-buscar" autocomplete="off" placeholder="Buscar proveedor por nombre, chat, rubro o producto (ej.: fertilizantes, glufosinato)" aria-label="Buscar proveedor">
+      <div class="te-sub" style="margin-top:4px">${(CATALOGO || []).length} proveedores en la base. Primero salen los que ya vendieron estos productos y los de la zona de la finca.</div>
+      <div class="te-lista" id="te-lista">${listaProv("")}</div>
+      ${!E.prov.nombre ? `<div class="te-sub" style="margin-top:6px">¿No está en la lista? Escribe su nombre y su número: <input id="te-nuevo" placeholder="Nombre del proveedor" style="margin-top:4px;width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--bd,#E2E4E7);border-radius:8px;background:transparent;color:inherit;font:inherit">
+        <input id="te-tel" inputmode="tel" placeholder="Número, ej. 0991234567" value="${esc(E.prov.telefono || "")}" style="margin-top:4px;width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--bd,#E2E4E7);border-radius:8px;background:transparent;color:inherit;font:inherit">
+        <button class="te-btn sm" type="button" data-te="usarnuevo" style="margin-top:4px">Usar este proveedor</button></div>` : ""}`;
+  }
+  /* ── Sugerencias de producto: salen debajo de la fila mientras se escribe ── */
+  function quitarSug() { const s = $("#te-sug"); if (s) s.remove(); }
+  function sugerir(inp) {
+    if (!PRODS || !inp) return quitarSug();
+    const n = Number(inp.dataset.i), q = plano(inp.value), pal = q.split(" ").filter(Boolean);
+    const fi = fichaDe(E.prov.nombre, E.prov.chat), suyos = new Set(((fi && fi.productos) || []).map(plano));
+    const ya = new Set(E.items.map((i, k) => (k === n ? "" : plano(i.producto))).filter(Boolean));
+    let l = PRODS.filter((p) => !ya.has(plano(p.n)) && (pal.length ? pal.every((w) => p.k.includes(w)) : suyos.has(plano(p.n))));
+    if (pal.length && l.length === 1 && plano(l[0].n) === q) l = [];   // ya está escrito tal cual: nada que sugerir
+    const peso = (p) => (suyos.has(plano(p.n)) ? 0 : 2) + (q && plano(p.n).startsWith(q) ? 0 : 1) + (p.ag ? 0 : 0.5);
+    l = l.sort((a, b) => peso(a) - peso(b) || a.n.localeCompare(b.n)).slice(0, 12);
+    quitarSug();
+    if (!l.length) return;
+    const d = document.createElement("div"); d.id = "te-sug"; d.className = "te-lista te-sug"; d.setAttribute("role", "listbox");
+    d.innerHTML = l.map((p) => `<button type="button" role="option" data-te="sug" data-i="${n}" data-p="${PRODS.indexOf(p)}"><b>${esc(p.n)}</b>
+      ${suyos.has(plano(p.n)) ? `<span class="te-chip">este proveedor lo ha vendido</span>` : ""}
+      <span class="te-sub" style="display:block">${esc([p.c, p.i, p.u ? "se pide en " + p.u : "", p.ag ? "" : "visto en proformas"].filter(Boolean).join(" · "))}</span></button>`).join("");
+    inp.closest(".te-fila").after(d);
   }
   /* Copiar la imagen o el mensaje al portapapeles (para pegar con Ctrl+V donde haga falta) */
   const _nota = (t) => { const x = $("#te-falta"); if (x) x.textContent = t; };
@@ -331,7 +381,20 @@
     const a = el.dataset.te;
     if (a === "cerrar") return cerrar();
     if (a === "quitar") { E.items.splice(Number(el.dataset.i), 1); if (!E.items.length) E.items.push({ producto: "", cantidad: "", unidad: "" }); E.texto = E.editado ? E.texto : textoAuto(); return pintar(); }
-    if (a === "agregar") { E.items.push({ producto: "", cantidad: "1", unidad: "u", finca: E.finca || "" }); pintar(); const ins = document.querySelectorAll(".te-tabla [data-k=producto]"); ins[ins.length - 1].focus(); return; }
+    if (a === "agregar") { E.items.push({ producto: "", cantidad: "1", unidad: "", finca: E.finca || "" }); pintar(); const ins = document.querySelectorAll(".te-tabla [data-k=producto]"); const u = ins[ins.length - 1]; u.placeholder = "Escribe para buscar en la base de productos"; u.focus(); productos().then(() => { if (E && document.activeElement === u) sugerir(u); }); return; }
+    if (a === "sug") {
+      const p = PRODS[Number(el.dataset.p)], it = E.items[Number(el.dataset.i)]; if (!p || !it) return;
+      it.producto = p.n; if (p.u && (!String(it.unidad).trim() || it.unidad === "u")) it.unidad = p.u;
+      E.texto = E.editado ? E.texto : textoAuto(); pintar();
+      const c = document.querySelector(`.te-tabla [data-k=cantidad][data-i="${el.dataset.i}"]`); if (c) { c.focus(); c.select(); }
+      return;
+    }
+    if (a === "usarnuevo") {
+      const nom = String(($("#te-nuevo") || {}).value || "").trim(); if (!nom) { _nota("Escribe el nombre del proveedor."); return; }
+      E.prov = { nombre: nom, chat: "", telefono: String(($("#te-tel") || {}).value || "").trim() }; E.buscando = false;
+      E.texto = E.editado ? E.texto : textoAuto(); E.avisoProv = `${nom} no está en la base de proveedores: se enviará al número que escribiste.`;
+      return pintar();
+    }
     if (a === "rehacer") { E.editado = false; E.avisoProv = ""; E.texto = textoAuto(); return pintar(); }
     if (a === "vista") return vista();
     if (a === "copiarimg") return copiarImagen();
@@ -344,15 +407,15 @@
     if (a === "yaenvie") { const op = E.op; const t = E.texto; dec("tarjeta_enviada_a_mano", resumenDecision(E)); cerrar(); if (op.alYaEnviado) op.alYaEnviado({ texto: t }); return; }
     if (a === "cambiar") {
       const c = $("#te-elegir");
-      if (c.innerHTML) { c.innerHTML = ""; return; }
-      c.innerHTML = `<input id="te-buscar" placeholder="Buscar por nombre, chat o rubro (ej.: fertilizantes)" style="margin-top:6px;width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--bd,#E2E4E7);border-radius:8px;background:transparent;color:inherit;font:inherit">
-        <div class="te-lista" id="te-lista">${listaProv("")}</div>`;
-      $("#te-buscar").focus();
+      E.buscando = !E.buscando;
+      c.innerHTML = E.buscando ? htmlBuscador() : "";
+      if (E.buscando) $("#te-buscar").focus();
       return;
     }
     if (a === "elegir") {
       const p = CATALOGO[Number(el.dataset.n)];
-      E.prov = { nombre: p.nombre, chat: (p.chats || [])[0] || p.chat || "", telefono: p.telefono || "" };
+      E.prov = { nombre: p.nombre, chat: (p.chats || [])[0] || p.chat || "", telefono: p.telefono || "" }; E.buscando = false;
+      if (!(E.rubrosOrig || []).length) E.rubrosOrig = (p.rubros || []).filter((r) => r !== "Por clasificar");   // sin proveedor original: el rubro lo fija el primero que se elige
       E.texto = E.editado ? E.texto : textoAuto();
       const av = [];
       if (otraZona(p)) av.push(`${p.nombre} es de ${p.zona} y la entrega es en ${zonaFinca() === "Costa" ? "la Costa" : "Imbabura"}: pregunta el costo del flete antes de aprobar.`);
@@ -368,7 +431,13 @@
     if (el.id === "te-buscar") { $("#te-lista").innerHTML = listaProv(el.value); return; }
     if (el.id === "te-txt") { E.texto = el.value; E.textoTocado = true; if (!E.editado) { E.editado = true; } return refrescarFalta(); }
     if (el.id === "te-tel") { E.prov.telefono = el.value; return refrescarFalta(); }
-    if (el.dataset.k) { E.items[Number(el.dataset.i)][el.dataset.k] = el.value; rehacerTexto(); }
+    if (el.dataset.k) { E.items[Number(el.dataset.i)][el.dataset.k] = el.value; rehacerTexto(); if (el.dataset.k === "producto") productos().then(() => { if (E && document.activeElement === el) sugerir(el); }); }
+  }
+  function enFoco(e) {
+    if (!E) return;
+    const el = e.target;
+    if (el.dataset && el.dataset.k === "producto") { productos().then(() => { if (E && document.activeElement === el) sugerir(el); }); return; }
+    if (!(el.closest && el.closest("#te-sug"))) quitarSug();
   }
 
   /** Abre la tarjeta. envio = { tipo:"cotizacion"|"mensaje", proveedor:{nombre,chat,telefono}, items:[{producto,cantidad,unidad,finca,linea,pedido}],
@@ -385,6 +454,7 @@
       finca: envio.finca || "", fincaId: envio.fincaId || "", texto: envio.texto || "", editado: false, avisoProv: "", op: op || {},
     };
     if (!E.items.length) E.items.push({ producto: "", cantidad: "", unidad: "" });
+    productos();   // se va cargando la base de productos para el buscador
     // Si el chat no vino, se busca en el catálogo (chats verificados por Claude)
     const fi = fichaDe(E.prov.nombre, E.prov.chat);
     if (fi && !E.prov.chat) E.prov.chat = (fi.chats || [])[0] || fi.chat || "";
@@ -402,5 +472,6 @@
 
   document.addEventListener("click", enEvento);
   document.addEventListener("input", enInput);
+  document.addEventListener("focusin", enFoco);
   window.AgdTarjeta = { abrir, cerrar, _estado: () => E };
 })();
