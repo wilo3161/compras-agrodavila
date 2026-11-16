@@ -142,6 +142,28 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     });
   }
 
+  /* Hoja de carga: los datos tal como van en el formulario «Agregar Cotización» de AgroControl, cada uno con su
+     botón de copiar. La imagen de la proforma se copia y se pega allá con Ctrl+V. Guardar siempre lo hace la persona. */
+  function htmlHojaCarga(c) {
+    const con = valor(c, "con_iva") === true;
+    const dato = (et, v, k) => `<div class="fila"><span class="et">${et}</span><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>${esc(v)}</b>
+      <button type="button" class="btn sm" data-cp="${esc(v)}">Copiar</button></span></div>`;
+    return `<div class="chequeo" style="margin-top:10px">
+      <b>Para subirla a AgroControl</b>
+      <div class="sub" style="margin:4px 0 8px">Abre el pedido <span style="font-weight:700;color:var(--tx)">${esc(c.pedido)}</span> → producto <span style="font-weight:700;color:var(--tx)">${esc(c.producto_agrocontrol)}</span> → «Agregar Cotización» y llena con estos datos. Al guardar, AgroControl te muestra un resumen: compáralo con esta hoja.</div>
+      ${dato("Proveedor", valor(c, "proveedor_agrocontrol") || "")}
+      ${dato("Precio unitario base", String(valor(c, "precio_base") ?? ""))}
+      <div class="fila"><span class="et">¿Lleva IVA?</span><span><b>${con ? "Con IVA · " + esc(valor(c, "iva_pct") ?? 15) + " %" : "Sin IVA"}</b></span></div>
+      <div class="fila"><span class="et">Precio final</span><span><b>${dinero(c.precio_final ?? precioFinal(c))}</b> por unidad</span></div>
+      <div class="fila"><span class="et">Tipo de pago</span><span><b>${esc(valor(c, "forma_pago") || "")}</b></span></div>
+      <div class="acciones">
+        <button type="button" class="btn p" data-copiarimg="${esc(c.archivo_id)}">${I("imagen")} Copiar la proforma (pegar con Ctrl+V)</button>
+        <a class="btn" href="https://agrocontrol-agd.netlify.app" target="_blank" rel="noopener">${I("flecha")} Abrir AgroControl</a>
+      </div>
+      <div class="sub">Cuando la guardes, el agente la detecta solo, comprueba el precio y la pasa a «Subidas».</div>
+    </div>`;
+  }
+
   function htmlAlerta(c) {
     const fila = (et, html) => `<div class="fila"><span class="et">${et}</span><span>${html}</span></div>`;
     const abierta = c.estado === "alerta";
@@ -193,6 +215,11 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
                   <div class="falta sub" style="width:100%;color:var(--ladrillo,#B5452F)">${esc(faltan(c))}</div>
                   <button type="button" class="btn" data-acc="descartar">${I("cerrar")} Descartar</button>` : ""}
           ${["aprobada", "descartada", "error"].includes(c.estado) ? `<button type="button" class="btn" data-acc="revisar">${I("deshacer")} Volver a revisar</button>` : ""}
+        </div>
+        ${c.estado === "error" && c.error ? `<div class="aviso">${I("alerta")} ${esc(c.error)}</div>` : ""}
+        ${c.nota_agente ? `<div class="sub" style="margin-top:6px">${I("check")} ${esc(c.nota_agente)}</div>` : ""}
+        ${c.estado === "aprobada" ? htmlHojaCarga(c) : ""}
+        <div class="acciones" style="margin-top:0">
         </div>
         ${c.revisado_por ? `<div class="sub" style="margin-top:6px">Revisado por ${esc(c.revisado_por)} · ${esc(String(c.revisado_en || "").slice(0, 16).replace("T", " "))}</div>` : ""}
       </div></article>`;
@@ -248,6 +275,29 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
   }
 
   document.addEventListener("click", async (e) => {
+    const cp = e.target.closest("[data-cp]");
+    if (cp) {
+      try { await navigator.clipboard.writeText(cp.dataset.cp); avisar("Copiado: " + cp.dataset.cp); }
+      catch (err) { avisar("No se pudo copiar solo. Cópialo a mano: " + cp.dataset.cp); }
+      return;
+    }
+    const ci = e.target.closest("[data-copiarimg]");
+    if (ci) {
+      try {
+        const a = await archivo(ci.dataset.copiarimg);
+        if (!a) throw new Error("no se pudo leer la proforma");
+        if (a.mime === "application/pdf") { avisar("Esta proforma es un PDF: ábrela, descárgala y adjúntala en AgroControl."); return; }
+        if (!navigator.clipboard || !window.ClipboardItem) throw new Error("este navegador no deja copiar imágenes");
+        // El portapapeles solo acepta PNG: la imagen se convierte antes de copiarla.
+        const img = new Image(); img.src = a.url; await img.decode();
+        const cv = document.createElement("canvas"); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+        cv.getContext("2d").drawImage(img, 0, 0);
+        const blob = await new Promise((ok) => cv.toBlob(ok, "image/png"));
+        await navigator.clipboard.write([new window.ClipboardItem({ "image/png": blob })]);
+        avisar("Proforma copiada: en AgroControl, toca el recuadro de pegar y presiona Ctrl+V.");
+      } catch (err) { avisar("No se pudo copiar la proforma (" + (err.message || err) + "). Ábrela con un toque y guárdala."); }
+      return;
+    }
     const ap = e.target.closest("[data-abrirpdf]");
     if (ap) {
       const a = await archivo(ap.dataset.abrirpdf); if (!a) return;
