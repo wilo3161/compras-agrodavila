@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Subir a AgroControl · Compras AgroDávila</title>
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--tx);font-family:var(--letra);font-size:15px;line-height:1.45}
+main{max-width:1180px;margin:0 auto;padding:16px 16px 90px}
+h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
+.sub{margin:2px 0 0;color:var(--t2);font-size:13px}
+.pestanas{display:flex;gap:6px;margin:14px 0;flex-wrap:wrap}
+.pestanas button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer}
+.pestanas button.activa{background:var(--pri);border-color:var(--pri);color:#fff}
+.carga{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;background:var(--card);border:1px solid var(--bd);border-radius:18px;box-shadow:var(--sombra);padding:16px;margin-bottom:16px;transition:opacity .35s,transform .35s}
+.carga.sale{opacity:0;transform:translateY(-8px)}
+.visor{border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:#fff;min-height:240px;display:flex;align-items:center;justify-content:center}
+.visor img{width:100%;height:auto;display:block;cursor:zoom-in}
+.visor iframe{width:100%;height:520px;border:0}
+.visor .cargando{color:#59636E;font-size:13px;padding:30px}
+.datos h2{margin:0 0 4px;font-size:18px}
+.fila{display:grid;grid-template-columns:150px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);align-items:center;font-size:14px}
+.fila .et{color:var(--t2);font-size:13px}
+.fila input,.fila select{width:100%;min-height:38px;border-radius:9px;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:5px 9px;font:inherit;font-size:14px}
+.ivas{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ivas label{display:flex;gap:4px;align-items:center;border:1px solid var(--bd);border-radius:999px;padding:4px 10px;cursor:pointer;font-size:14px}
+.ivas input[type=number]{width:72px}
+.final{font-size:20px;font-weight:700;color:var(--pri)}
+.aviso{padding:8px 10px;border-radius:10px;background:var(--crbg,#F6E7E3);color:var(--ladrillo,#B5452F);font-size:13px;margin-top:6px}
+.chequeo{margin-top:10px;padding:10px;border-radius:12px;background:var(--azbg,#E6EEF6)}
+.chequeo b{display:block;font-size:13px;margin-bottom:6px}
+.chequeo label{display:inline-flex;gap:6px;align-items:center;margin:3px 10px 3px 0;font-size:14px;cursor:pointer}
+.chequeo input{width:20px;height:20px}
+.acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.est{font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--mdbg,#F5EBD4);color:var(--maiz,#C7901A);vertical-align:middle}
+.est.aprobada{background:var(--azbg,#E6EEF6);color:var(--az,#2E5E8E)}
+.est.descartada,.est.error{background:var(--crbg,#F6E7E3);color:var(--ladrillo,#B5452F)}
+.vacio{padding:40px 16px;text-align:center;color:var(--t2);background:var(--card);border:1px dashed var(--bd);border-radius:16px}
+.toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#23262B;color:#fff;border-radius:12px;padding:10px 14px;display:none;gap:12px;align-items:center;z-index:60;font-size:14px;max-width:92vw}
+.toast.ver{display:flex}
+.toast button{background:transparent;border:1px solid #fff;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;font:inherit}
+.zoom{position:fixed;inset:0;background:rgba(15,18,22,.92);display:none;z-index:70;overflow:auto;cursor:zoom-out}
+.zoom.ver{display:block}
+.zoom img{display:block;max-width:none;width:min(1600px,200vw);margin:20px auto}
+@media (max-width:860px){.carga{grid-template-columns:1fr}.fila{grid-template-columns:120px 1fr}.visor iframe{height:420px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Subir a AgroControl</h1>
+  <p class="sub" id="subtitulo">Cada tarjeta es una cotización por producto, con la proforma completa. Compara cada dato con la imagen y aprueba. Nada se guarda en AgroControl sin tu aprobación.</p>
+  <div class="pestanas" role="tablist">
+    <button type="button" class="activa" data-tab="por_revisar">Por revisar <span id="n-por_revisar"></span></button>
+    <button type="button" data-tab="aprobada">Aprobadas, listas para subir <span id="n-aprobada"></span></button>
+    <button type="button" data-tab="subida">Subidas <span id="n-subida"></span></button>
+    <button type="button" data-tab="descartada">Descartadas <span id="n-descartada"></span></button>
+  </div>
+  <section id="lista"><div class="vacio">Cargando…</div></section>
+</main>
+<div class="zoom" id="zoom" title="Toca para cerrar"><img id="zoom-img" alt="Proforma ampliada"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-txt"></span><button type="button" id="toast-deshacer">Deshacer</button></div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const params = new URLSearchParams(location.search);
+  const LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  const DEMO = params.get("demo") === "1";
+  const PRUEBA = LOCAL ? params.get("prueba") : null;   // solo en la PC de desarrollo; no escribe en la nube
+  const SOLO_LECTURA = DEMO || !!PRUEBA;
+  const CHEQUEOS = [["proveedor", "Proveedor"], ["producto", "Producto"], ["precio", "Precio"], ["iva", "IVA"], ["pago", "Forma de pago"]];
+  const S = { cargas: [], archivos: {}, tab: "por_revisar", chequeos: {}, editado: {} };
+  const dinero = (v, d = 2) => (v == null || v === "" || isNaN(v)) ? "—" : "$" + Number(v).toLocaleString("es-EC", { minimumFractionDigits: d, maximumFractionDigits: 4 });
+
+  async function cargar() {
+    if (PRUEBA || DEMO) {
+      const d = await (await fetch(PRUEBA || "_demo_cargas.json")).json();
+      S.cargas = d.cargas || []; S.archivos = d.archivos || {};
+      $("#subtitulo").innerHTML = `<strong style="color:var(--ladrillo,#B5452F)">${DEMO ? "DEMOSTRACIÓN" : "PRUEBA LOCAL con datos reales"} · no se guarda nada</strong>`;
+      return pintar();
+    }
+    let ses = false;
+    try { ses = !!(window.ComprasApp && await ComprasApp.sesion({ permitirNube: true })); } catch (e) {}
+    if (!ses) { $("#lista").innerHTML = `<div class="vacio">Inicia sesión para revisar las cargas.<br><br><a class="btn p" href="index.html">Ir a iniciar sesión</a></div>`; return; }
+    AgdNube.escucharCargas((l) => { S.cargas = l || []; pintar(); });
+  }
+
+  async function archivo(id) {
+    if (S.archivos[id]) return S.archivos[id];
+    if (SOLO_LECTURA) return null;
+    try { return await AgdNube.leerArchivoCarga(id); } catch (e) { return null; }
+  }
+
+  function valor(c, k) { const e = S.editado[c.id] || {}; return k in e ? e[k] : c[k]; }
+  function precioFinal(c) {
+    const base = Number(valor(c, "precio_base")); const con = valor(c, "con_iva"); const pct = Number(valor(c, "iva_pct")) || 0;
+    if (!base || con == null) return null;
+    return Math.round(base * (1 + (con ? pct : 0) / 100) * 10000) / 10000;
+  }
+
+  function pintar() {
+    for (const t of ["por_revisar", "aprobada", "subida", "descartada"]) {
+      const n = S.cargas.filter((c) => (t === "subida" ? ["subida", "subiendo", "en_formulario"].includes(c.estado) : c.estado === t)).length;
+      $(`#n-${t}`).textContent = n ? `(${n})` : "";
+    }
+    const lista = S.cargas.filter((c) => (S.tab === "subida" ? ["subida", "subiendo", "en_formulario"].includes(c.estado) : c.estado === S.tab))
+      .sort((a, b) => String(a.pedido).localeCompare(String(b.pedido)) || String(a.linea).localeCompare(String(b.linea)));
+    const cont = $("#lista");
+    if (!lista.length) { cont.innerHTML = `<div class="vacio">${S.tab === "por_revisar" ? "No hay cargas por revisar. ✅" : "Nada aquí por ahora."}</div>`; return; }
+    cont.innerHTML = lista.map(htmlCarga).join("");
+    lista.forEach(async (c) => {
+      const a = await archivo(c.archivo_id);
+      const v = document.querySelector(`[data-visor="${CSS.escape(c.id)}"]`);
+      if (!v) return;
+      if (!a) { v.innerHTML = `<div class="cargando">No se pudo cargar la proforma (${esc(c.archivo_nombre)}).</div>`; return; }
+      v.innerHTML = a.mime === "application/pdf"
+        ? `<iframe title="Proforma ${esc(c.archivo_nombre)}" src="${a.url}"></iframe>`
+        : `<img alt="Proforma ${esc(c.archivo_nombre)}" src="${a.url}" data-zoom="1">`;
+    });
+  }
+
+  function htmlCarga(c) {
+    const ed = c.estado === "por_revisar";
+    const ch = S.chequeos[c.id] || {};
+    const listo = CHEQUEOS.every(([k]) => ch[k]) && valor(c, "forma_pago") && valor(c, "proveedor_agrocontrol") && valor(c, "con_iva") != null && Number(valor(c, "precio_base")) > 0;
+    const pf = precioFinal(c);
+    const fila = (et, html) => `<div class="fila"><span class="et">${et}</span><span>${html}</span></div>`;
+    const pago = valor(c, "forma_pago") || "";
+    const con = valor(c, "con_iva");
+    return `<article class="carga" data-c="${esc(c.id)}">
+      <div class="visor" data-visor="${esc(c.id)}"><div class="cargando">Cargando proforma…</div></div>
+      <div class="datos">
+        <h2>${esc(c.producto_agrocontrol)} <span class="est ${esc(c.estado)}">${esc({ por_revisar: "Por revisar", aprobada: "Aprobada", descartada: "Descartada", subida: "Subida ✓", subiendo: "Subiendo…", en_formulario: "En AgroControl, sin guardar", error: "Error" }[c.estado] || c.estado)}</span></h2>
+        <div class="sub">${esc(c.pedido)} · ${esc(c.linea)} · ${esc(c.finca)} · pide ${esc(c.cantidad_pedido ?? "")}</div>
+        ${fila("En la proforma", `${esc(c.item_proforma)}${c.cantidad_proforma ? ` · ${esc(c.cantidad_proforma)} ${esc(c.unidad)}` : ""}`)}
+        ${fila("Proveedor", ed ? `<input data-k="proveedor_agrocontrol" value="${esc(valor(c, "proveedor_agrocontrol") || "")}" placeholder="Nombre como está en AgroControl"><div class="sub">En la proforma: ${esc(c.proveedor_proforma)}${c.ruc ? ` · RUC ${esc(c.ruc)}` : ""}${c.numero_proforma ? ` · N.° ${esc(c.numero_proforma)}` : ""}</div>` : esc(valor(c, "proveedor_agrocontrol")))}
+        ${fila("Precio base", ed ? `<input data-k="precio_base" type="number" step="0.0001" min="0" value="${esc(valor(c, "precio_base") ?? "")}">` : dinero(valor(c, "precio_base"), 2))}
+        ${fila("IVA", ed ? `<div class="ivas"><label><input type="radio" name="iva-${esc(c.id)}" data-k="con_iva" value="0" ${con === false ? "checked" : ""}> Sin IVA</label><label><input type="radio" name="iva-${esc(c.id)}" data-k="con_iva" value="1" ${con === true ? "checked" : ""}> Con IVA</label><input data-k="iva_pct" type="number" min="0" max="30" value="${esc(valor(c, "iva_pct") ?? 15)}" ${con ? "" : "disabled"}> %</div>` : (con ? `Con IVA ${esc(valor(c, "iva_pct"))} %` : "Sin IVA"))}
+        ${fila("Precio final", `<span class="final">${dinero(pf)}</span>`)}
+        ${fila("Forma de pago", ed ? `<select data-k="forma_pago"><option value="">Elige…</option>${["Contado", "Cheque", "Crédito"].map((x) => `<option ${pago === x ? "selected" : ""}>${x}</option>`).join("")}</select>` : esc(pago))}
+        ${fila("Proforma", `${dinero(c.subtotal_proforma)} + IVA ${dinero(c.iva_proforma)} = <b>${dinero(c.total_proforma)}</b> · ${esc(c.origen)}`)}
+        ${(c.avisos || []).map((a) => `<div class="aviso">⚠️ ${esc(a)}</div>`).join("")}
+        ${ed ? `<div class="chequeo"><b>Compara con la imagen y marca lo que está bien:</b>${CHEQUEOS.map(([k, n]) => `<label><input type="checkbox" data-chk="${k}" ${ch[k] ? "checked" : ""}> ${n}</label>`).join("")}</div>` : ""}
+        <div class="acciones">
+          ${ed ? `<button type="button" class="btn p" data-acc="aprobar" ${listo ? "" : "disabled"}>✅ Aprobar para subir</button>
+                  <button type="button" class="btn" data-acc="descartar">❌ Descartar</button>` : ""}
+          ${["aprobada", "descartada", "error"].includes(c.estado) ? `<button type="button" class="btn" data-acc="revisar">↩ Volver a revisar</button>` : ""}
+        </div>
+        ${c.revisado_por ? `<div class="sub" style="margin-top:6px">Revisado por ${esc(c.revisado_por)} · ${esc(String(c.revisado_en || "").slice(0, 16).replace("T", " "))}</div>` : ""}
+      </div></article>`;
+  }
+
+  /* ───────── Acciones ───────── */
+  let deshacer = null, reloj = null;
+  function avisar(t, fn) {
+    deshacer = fn || null; $("#toast-txt").textContent = t; $("#toast-deshacer").style.display = fn ? "" : "none";
+    $("#toast").classList.add("ver"); clearTimeout(reloj); reloj = setTimeout(() => { $("#toast").classList.remove("ver"); deshacer = null; }, 8000);
+  }
+  async function guardar(c, cambios) {
+    const antes = {}; Object.keys(cambios).forEach((k) => { antes[k] = c[k] === undefined ? null : c[k]; });
+    Object.assign(c, cambios);
+    if (!SOLO_LECTURA) await AgdNube.actualizarCarga(c.id, cambios);
+    return antes;
+  }
+  const carga = (el) => S.cargas.find((x) => x.id === el.closest("[data-c]").dataset.c);
+
+  document.addEventListener("input", (e) => {
+    const el = e.target; if (!el.closest("[data-c]")) return;
+    const c = carga(el);
+    if (el.dataset.chk) { (S.chequeos[c.id] = S.chequeos[c.id] || {})[el.dataset.chk] = el.checked; return pintarBoton(c); }
+    if (!el.dataset.k) return;
+    const ed = S.editado[c.id] = S.editado[c.id] || {};
+    if (el.dataset.k === "con_iva") { ed.con_iva = el.value === "1"; const pct = el.closest(".ivas").querySelector("[data-k=iva_pct]"); pct.disabled = !ed.con_iva; }
+    else if (el.dataset.k === "precio_base" || el.dataset.k === "iva_pct") ed[el.dataset.k] = el.value === "" ? null : Number(el.value);
+    else ed[el.dataset.k] = el.value;
+    // un cambio en un dato obliga a volver a marcar su chequeo
+    const mapa = { proveedor_agrocontrol: "proveedor", precio_base: "precio", con_iva: "iva", iva_pct: "iva", forma_pago: "pago" };
+    if (mapa[el.dataset.k] && S.chequeos[c.id]) { S.chequeos[c.id][mapa[el.dataset.k]] = false; const cb = el.closest("[data-c]").querySelector(`[data-chk=${mapa[el.dataset.k]}]`); if (cb) cb.checked = false; }
+    const f = el.closest("[data-c]").querySelector(".final"); if (f) f.textContent = dinero(precioFinal(c));
+    pintarBoton(c);
+  });
+  function pintarBoton(c) {
+    const ch = S.chequeos[c.id] || {};
+    const ok = CHEQUEOS.every(([k]) => ch[k]) && valor(c, "forma_pago") && valor(c, "proveedor_agrocontrol") && valor(c, "con_iva") != null && Number(valor(c, "precio_base")) > 0;
+    const b = document.querySelector(`[data-c="${CSS.escape(c.id)}"] [data-acc=aprobar]`); if (b) b.disabled = !ok;
+  }
+
+  document.addEventListener("click", async (e) => {
+    const z = e.target.closest("[data-zoom]"); if (z) { $("#zoom-img").src = z.src; $("#zoom").classList.add("ver"); return; }
+    if (e.target.closest("#zoom")) { $("#zoom").classList.remove("ver"); return; }
+    const tab = e.target.closest("[data-tab]");
+    if (tab) { S.tab = tab.dataset.tab; document.querySelectorAll("[data-tab]").forEach((x) => x.classList.toggle("activa", x === tab)); return pintar(); }
+    const b = e.target.closest("[data-acc]"); if (!b) return;
+    const c = carga(b); const art = b.closest(".carga");
+    try {
+      b.disabled = true;
+      if (b.dataset.acc === "aprobar") {
+        const cambios = Object.assign({}, S.editado[c.id] || {}, { estado: "aprobada", precio_final: precioFinal(c) });
+        art.classList.add("sale");
+        const antes = await guardar(c, cambios);
+        setTimeout(pintar, 330);
+        avisar(`Aprobada: ${c.linea} a ${dinero(cambios.precio_final)} · queda lista para subir`, async () => { await guardar(c, Object.assign(antes, { estado: "por_revisar" })); pintar(); });
+      } else if (b.dataset.acc === "descartar") {
+        const motivo = (prompt("¿Por qué se descarta? (por ejemplo: no es el mismo producto, precio vencido)") || "").trim();
+        if (!motivo) return;
+        art.classList.add("sale");
+        await guardar(c, { estado: "descartada", motivo_descarte: motivo });
+        setTimeout(pintar, 330);
+        avisar(`Descartada: ${c.linea}`, async () => { await guardar(c, { estado: "por_revisar", motivo_descarte: "" }); pintar(); });
+      } else if (b.dataset.acc === "revisar") {
+        await guardar(c, { estado: "por_revisar" }); delete S.chequeos[c.id]; pintar();
+      }
+    } catch (err) { avisar("No se pudo guardar: " + (err && err.message ? err.message : err)); }
+    finally { b.disabled = false; }
+  });
+  $("#toast-deshacer").addEventListener("click", async () => { const f = deshacer; deshacer = null; $("#toast").classList.remove("ver"); if (f) await f(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#zoom").classList.remove("ver"); });
+  cargar();
+})();
+</script>
+</body>
+</html>

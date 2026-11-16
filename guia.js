@@ -29,6 +29,7 @@
     gerencia: '<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10Z"/>',
     avance: '<path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="m4 6 1 1 2-2"/><path d="m4 12 1 1 2-2"/><path d="m4 18 1 1 2-2"/>',
     gestion: '<path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/>',
+    subir: '<path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 20h16"/>',
     cotizar: '<path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7Z"/>',
     fincas3d: '<path d="m12 3-9 4.5 9 4.5 9-4.5L12 3Z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/>',
     mas: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>'
@@ -88,6 +89,9 @@
     },
     "gestion.html": {
       resumen: ["Evidencia de gestión", "Consolida ahorro documentado, proveedores nuevos incorporados, cumplimiento de cotizaciones y mejora en tiempos de ciclo desde el 04/11/2026."]
+    },
+    "subir.html": {
+      vista: ["Subir a AgroControl", "Cada tarjeta es una cotización por producto con su proforma completa. Compara proveedor, producto, precio, IVA y forma de pago con la imagen, márcalos y aprueba. Nada se guarda en AgroControl sin tu aprobación."]
     },
     "cotizar.html": {
       vista: ["Cotizar con tarjetas", "Cada tarjeta es un proveedor con lo que le vamos a pedir. Quita lo que no va, cambia de proveedor si hace falta, mira la vista previa y envía con un clic. Lo enviado o descartado sale de la lista."]
@@ -166,6 +170,7 @@
       ["bandeja.html", "bandeja", "Bandeja"]
     ];
     const secundarios = [
+      ["subir.html", "subir", "Subir a AgroControl"],
       ["checklist.html", "checklist", "Checklist"],
       ["control.html", "control", "Control"],
       ["whatsapp.html", "whatsapp", "WhatsApp"],

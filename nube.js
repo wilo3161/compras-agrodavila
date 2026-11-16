@@ -1153,6 +1153,26 @@
 
   const escucharSolicitudesCotizacion = (cb, alError) => _escucharColeccion("solicitudes_cotizacion", cb, alError);
 
+  /* ── Subir a AgroControl (15/11/2026): cargas por ítem que arma la PC y Wilo revisa ── */
+  const escucharCargas = (cb, alError) => _escucharColeccion("cargas_agrocontrol", cb, alError);
+  const _cacheArchivos = {};
+  async function leerArchivoCarga(id) {
+    if (_cacheArchivos[id]) return _cacheArchivos[id];
+    await inicializar();
+    if (!db || !usuarioActual) return null;
+    const s = await modFs.getDoc(modFs.doc(db, `${RAIZ}/cargas_archivos/${id}`));
+    if (!s.exists()) return null;
+    const d = s.data() || {};
+    _cacheArchivos[id] = d.b64 ? { nombre: d.nombre || "", mime: d.mime || "", url: `data:${d.mime};base64,${d.b64}` } : null;
+    return _cacheArchivos[id];
+  }
+  async function actualizarCarga(id, cambios) {
+    await inicializar();
+    if (!db || !usuarioActual) throw new Error("Inicia sesión.");
+    await modFs.updateDoc(modFs.doc(db, `${RAIZ}/cargas_agrocontrol/${id}`),
+      Object.assign({}, cambios, { revisado_por: String(usuarioActual.email || ""), revisado_en: new Date().toISOString() }));
+  }
+
   /* ── Mi gestión (solo correo principal de Wilo o lista config/acceso.gestion) ── */
   async function puedeVerGestion() {
     await inicializar();
@@ -1196,6 +1216,9 @@
   }
 
   window.AgdNube = {
+    escucharCargas,
+    leerArchivoCarga,
+    actualizarCarga,
     leerCatalogoProveedores,
     leerCotizacionesPorLinea,
     escucharCotizar,
