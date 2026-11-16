@@ -157,8 +157,17 @@
   async function leerPaquete() { const r = await fetch("datos_wa.enc.json", { cache: "no-cache" }); if (!r.ok) throw new Error("No se encontró el paquete de datos."); return r.json(); }
   async function abrirDatos(frase, recordar) {
     const pq = await leerPaquete();
-    const k = await claveDesdeFrase(frase, b64(pq.sal), pq.iter);
-    const json = await descifrar(pq, k);
+    // El teléfono suele poner la primera letra en mayúscula o agregar un espacio al final:
+    // se prueba la clave tal cual y, si no abre, esas variantes (solo cambia cómo se escribió, no la clave).
+    const f0 = String(frase || "");
+    const t = f0.trim();
+    const variantes = [...new Set([f0, t, t.charAt(0).toLowerCase() + t.slice(1), t.toLowerCase()])].filter(Boolean);
+    let k = null, json = null, ultimo = null;
+    for (const v of variantes) {
+      try { k = await claveDesdeFrase(v, b64(pq.sal), pq.iter); json = await descifrar(pq, k); break; }
+      catch (e) { ultimo = e; k = null; }
+    }
+    if (!k) throw ultimo || new Error("Clave de datos incorrecta.");
     if (recordar) { try { localStorage.setItem(LS_CLAVE, a64(await crypto.subtle.exportKey("raw", k))); } catch (e) {} }
     else { try { sessionStorage.setItem(LS_CLAVE, a64(await crypto.subtle.exportKey("raw", k))); } catch (e) {} }
     return json;
@@ -167,7 +176,7 @@
     try {
       const plano = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(pq.iv) }, k, b64(pq.datos));
       return JSON.parse(new TextDecoder().decode(plano));
-    } catch (e) { throw new Error("Clave de datos incorrecta."); }
+    } catch (e) { throw new Error("Clave de datos incorrecta. Revise que esté escrita igual, en minúsculas."); }
   }
   async function datosWA() {
     let raw = null; try { raw = localStorage.getItem(LS_CLAVE) || sessionStorage.getItem(LS_CLAVE); } catch (e) {}
