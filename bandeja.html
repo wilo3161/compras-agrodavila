@@ -285,6 +285,24 @@ function formatearTiempoEspera(iso) {
   return { texto: `esperando ${dias} d (${horas} h)`, esLadrillo: true };
 }
 
+/* Un cambio que llega de la nube NO debe borrar lo que se está escribiendo:
+   - si hay un cuadro de texto con el cursor adentro, el repintado espera a que se salga de él;
+   - al repintar, los textos que la persona ya tocó se vuelven a poner en su lugar. */
+const _pintarPend = new Set();
+function _escribiendo() { const a = document.activeElement; return !!(a && /^(TEXTAREA|INPUT|SELECT)$/.test(a.tagName) && a.closest("main")); }
+function pintarSinPerderTexto(...fns) {
+  if (_escribiendo()) { fns.forEach(f => _pintarPend.add(f)); return; }
+  const tocados = {};
+  document.querySelectorAll("main textarea[id]").forEach(t => { if (t.dataset.tocado) tocados[t.id] = t.value; });
+  fns.forEach(f => { try { f(); } catch (e) { console.warn(e); } });
+  Object.entries(tocados).forEach(([id, v]) => { const t = document.getElementById(id); if (t && !t.disabled) { t.value = v; t.dataset.tocado = "1"; } });
+}
+document.addEventListener("input", e => { if (e.target && e.target.tagName === "TEXTAREA") e.target.dataset.tocado = "1"; });
+document.addEventListener("focusout", () => setTimeout(() => {
+  if (!_pintarPend.size || _escribiendo()) return;
+  const fns = [..._pintarPend]; _pintarPend.clear(); pintarSinPerderTexto(...fns);
+}, 200));
+
 function pintarConversaciones() {
   const cont = $("#listaConversaciones");
   const pend = CONVERSACIONES.filter(c => c.estado === "pendiente");
@@ -697,8 +715,7 @@ async function iniciarBandeja() {
   // Escuchar conversaciones en tiempo real
   AgdNube.escucharConversaciones(convs => {
     CONVERSACIONES = convs || [];
-    pintarConversaciones();
-    pintarHistorial();
+    pintarSinPerderTexto(pintarConversaciones, pintarHistorial);
   }, err => {
     console.warn("Error al escuchar conversaciones:", err);
     $("#listaConversaciones").innerHTML = `<div class="vacio-box"><h3>Error de lectura</h3><p>${esc(err.message)}</p></div>`;
@@ -707,8 +724,7 @@ async function iniciarBandeja() {
   // Escuchar bandeja de requerimientos en tiempo real
   AgdNube.escucharBandeja(reqs => {
     REQUERIMIENTOS = reqs || [];
-    pintarRequerimientos();
-    pintarHistorial();
+    pintarSinPerderTexto(pintarRequerimientos, pintarHistorial);
   }, err => {
     console.warn("Error al escuchar bandeja:", err);
     $("#listaRequerimientos").innerHTML = `<div class="vacio-box"><h3>Error de lectura</h3><p>${esc(err.message)}</p></div>`;

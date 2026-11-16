@@ -210,8 +210,8 @@
     await cargarScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
     const c = await lienzo();
     const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
-    const ancho = 190, alto = c.height * ancho / c.width;
-    pdf.addImage(c.toDataURL("image/png"), "PNG", 10, 10, ancho, Math.min(alto, 277));
+    if (window.AgdMov && AgdMov.pdfPaginado) AgdMov.pdfPaginado(pdf, c, $("#te-fuente #te-hoja"));   // varias páginas si la lista es larga
+    else { const ancho = 190, alto = c.height * ancho / c.width; pdf.addImage(c.toDataURL("image/png"), "PNG", 10, 10, ancho, Math.min(alto, 277)); }
     pdf.save(nombreArchivo() + ".pdf");
   }
 

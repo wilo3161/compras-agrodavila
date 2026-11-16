@@ -260,7 +260,9 @@ function saludo(s){
 async function iniciar(){
   // Con mala señal la nube puede tardar: a los 8 s se muestra el ingreso en vez de dejar la pantalla esperando.
   let s=null; try{ s=await Promise.race([ComprasApp.sesion({permitirNube:true}), new Promise(r=>setTimeout(()=>r(null),8000))]); }catch(e){}
-  if(!s){ ver("pLogin"); if(!window.supabase) err($("#eLogin"),"No se pudo cargar la app completa (sin conexión). Revise el internet y vuelva a abrirla."); $("#correo").focus(); return; }
+  if(!s){ ver("pLogin");
+    try{ const en=window.AgdNube&&AgdNube.estado&&AgdNube.estado(); if(en&&en.error_ingreso) err($("#eLogin"),en.error_ingreso); else if(en&&en.conectado&&en.autorizado===false) err($("#eLogin"),`El correo ${en.correo} no está autorizado para Compras AgroDávila.`); }catch(e){}
+    if(!window.supabase) err($("#eLogin"),"No se pudo cargar la app completa (sin conexión). Revise el internet y vuelva a abrirla."); $("#correo").focus(); return; }
   if(!ComprasApp.tieneClave() && !sessionStorage.getItem("agd_sin_wa") && !(s&&s.nube)){ ver("pClave"); $("#frase").focus(); return; }
   ver("pMenu"); saludo(s); pintarPasos(); mostrarCorte(); urgente();
   if(window.AgdGuia && AgdGuia.renderizarFrescura) AgdGuia.renderizarFrescura();
@@ -304,7 +306,11 @@ function pintarMatrizVivo(d){
 }
 function pintarEstadoNube(est){
   const el=$("#estadoNube"), bt=$("#bNube"), tx=$("#txtNube"); if(!el||!bt||!tx) return;
-  if(est && est.conectado){
+  if(est && est.conectado && est.autorizado===false){
+    el.textContent=`El correo ${est.correo||""} no tiene permiso en la nube: nada se está sincronizando. Desconéctelo y entre con el correo autorizado.`;
+    tx.textContent="Desconectar sincronización";
+    bt.classList.remove("p");
+  }else if(est && est.conectado){
     el.textContent=`Sincronizado en la nube como ${est.correo||"usuario conectado"}.`;
     tx.textContent="Desconectar sincronización";
     bt.classList.remove("p");

@@ -385,5 +385,32 @@ window.AgdMov = (function () {
     el.classList.remove("late"); void el.offsetWidth; el.classList.add("late");
   }
   const esqueleto = (n) => `<div class="esqueleto" role="status" aria-live="polite"><span class="lector">Cargando…</span>${"<i></i>".repeat(n || 3)}</div>`;
-  return { entrar, latir, esqueleto };
+  /** Pone la imagen de una hoja en un PDF A4 con tantas páginas como hagan falta (antes una lista larga
+   *  se aplastaba en una sola). `hoja` es el elemento dibujado: se corta entre filas de la tabla, nunca a media fila. */
+  function pdfPaginado(pdf, lienzo, hoja) {
+    const ANCHO = 190, ALTO = 277, MARGEN = 10;
+    const pxPorMm = lienzo.width / ANCHO, altoPag = Math.floor(ALTO * pxPorMm);
+    let cortes = [];
+    try {
+      const base = hoja.getBoundingClientRect(), esc = lienzo.width / base.width;
+      cortes = [...hoja.querySelectorAll("tr, p, .pide, .firma, h4, .mem")].map((el) => Math.round((el.getBoundingClientRect().bottom - base.top) * esc)).sort((a, b) => a - b);
+    } catch (e) { cortes = []; }
+    let y = 0, pagina = 0;
+    while (y < lienzo.height - 2) {
+      let fin = Math.min(y + altoPag, lienzo.height);
+      if (fin < lienzo.height) {
+        const seguro = cortes.filter((c) => c > y + altoPag * 0.4 && c <= fin).pop();   // el último borde de fila que cabe
+        if (seguro) fin = seguro;
+      }
+      const trozo = document.createElement("canvas"); trozo.width = lienzo.width; trozo.height = fin - y;
+      const ctx = trozo.getContext("2d"); ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, trozo.width, trozo.height);
+      ctx.drawImage(lienzo, 0, y, lienzo.width, fin - y, 0, 0, lienzo.width, fin - y);
+      if (pagina > 0) pdf.addPage();
+      pdf.addImage(trozo.toDataURL("image/png"), "PNG", MARGEN, MARGEN, ANCHO, (fin - y) / pxPorMm);
+      y = fin; pagina += 1;
+      if (pagina > 30) break;   // tope de seguridad
+    }
+    return pagina;
+  }
+  return { entrar, latir, esqueleto, pdfPaginado };
 })();

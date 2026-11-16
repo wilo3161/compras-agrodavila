@@ -25,7 +25,8 @@
       try {
         await AgdNube.inicializar();
         const est = AgdNube.estado();
-        if (est && est.conectado) return { user: { email: est.correo || "" }, nube: true };
+        // Una cuenta de Google sin permiso en la nube NO cuenta como sesión
+        if (est && est.conectado && est.autorizado !== false) return { user: { email: est.correo || "" }, nube: true };
       } catch (e) {}
     }
     return null;
@@ -56,16 +57,30 @@
     return s;
   }
 
+  /* Lee una tabla completa de 1000 en 1000. El orden lleva «id» como desempate: sin él, dos filas con la misma
+     fecha en el borde de una página podían salir repetidas o faltar al pasar de 1000 (sin dar error).
+     Verificado el 16/11/2026: las 8 tablas tienen «id»; si alguna dejara de tenerlo, se lee sin desempate. */
+  const _sinId = new Set();
   async function todo(tabla, orden) {
     let r = [], desde = 0;
     for (;;) {
-      let q = sb().from(tabla).select("*").range(desde, desde + 999);
-      if (orden) q = q.order(orden, { ascending: true });
-      const { data, error } = await q;
+      const armar = (conId) => {
+        let q = sb().from(tabla).select("*").range(desde, desde + 999);
+        if (orden) q = q.order(orden, { ascending: true });
+        if (conId) q = q.order("id", { ascending: true });
+        return q;
+      };
+      let { data, error } = await armar(!_sinId.has(tabla));
+      if (error && !_sinId.has(tabla) && (error.code === "42703" || /column .*id.* does not exist/i.test(error.message || ""))) {
+        _sinId.add(tabla); desde = 0; r = [];
+        ({ data, error } = await armar(false));
+      }
       if (error) throw new Error(tabla + ": " + error.message);
       r = r.concat(data || []); if (!data || data.length < 1000) break; desde += 1000;
     }
-    return r;
+    // Seguro adicional: ninguna fila repetida por id
+    const vistos = new Set();
+    return r.filter((f) => { if (f == null || f.id == null) return true; if (vistos.has(f.id)) return false; vistos.add(f.id); return true; });
   }
 
   const p2 = n => String(n).padStart(2, "0");

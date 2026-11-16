@@ -436,6 +436,15 @@ $("#fProv").addEventListener("submit", async e => {
   let id = $("#p_id").value.trim();
   if (!id) {
     id = norm(nombre).replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40) || ("prov_" + Date.now());
+    // Proveedor NUEVO con un nombre que ya existe: antes se fusionaba y pisaba la ficha anterior sin avisar.
+    const repetido = LISTA.find(p => String(p.id || "") === id);
+    if (repetido) {
+      const pisar = confirm(`Ya existe un proveedor llamado «${repetido.nombre || nombre}».
+
+Aceptar = actualizar ESA ficha con estos datos.
+Cancelar = guardarlo como un proveedor aparte.`);
+      if (!pisar) { let n = 2; while (LISTA.some(p => String(p.id || "") === `${id}_${n}`)) n += 1; id = `${id}_${n}`; }
+    }
   }
   const cats = $("#p_categorias").value.split(",").map(s => s.trim()).filter(Boolean);
   const datos = {

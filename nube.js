@@ -89,12 +89,15 @@
         } catch (e) {
           db = modFs.getFirestore(app);
         }
-        try { await modAuth.getRedirectResult(auth); } catch (e) {}
+        // Si el regreso de Google falló (pasa en iPhone cuando se bloquea la ventana), se guarda el motivo para mostrarlo.
+        try { await modAuth.getRedirectResult(auth); } catch (e) { errorIngreso = mensajeIngreso(e); }
         await new Promise(resolve => {
           let resuelto = false;
           modAuth.onAuthStateChanged(auth, u => {
             usuarioActual = u || null;
+            if (!u) accesoNube = null;
             notificarEstado();
+            if (u) verificarAcceso().then(() => notificarEstado());   // sesión guardada: se confirma el permiso en segundo plano
             if (!resuelto) { resuelto = true; resolve(); }
           });
         });
@@ -107,9 +110,38 @@
     return promesaInicio;
   }
 
+  /* ── Permiso real en la nube (16/11/2026) ──
+     Entrar con Google no basta: el correo debe estar en la lista de acceso. Antes la app decía «Sincronizado»
+     aunque Firestore rechazara todo. null = aún sin comprobar; true/false = comprobado contra el servidor. */
+  let accesoNube = null, errorIngreso = "";
+  async function verificarAcceso() {
+    if (!db || !usuarioActual) return null;
+    try {
+      const ref = modFs.doc(db, `${RAIZ}/agrocontrol/catalogo_proveedores`);
+      await (modFs.getDocFromServer ? modFs.getDocFromServer(ref) : modFs.getDoc(ref));
+      accesoNube = true;
+    } catch (e) {
+      // Solo «permiso denegado» es un no rotundo; sin internet no se sabe todavía.
+      accesoNube = (e && e.code === "permission-denied") ? false : accesoNube;
+    }
+    return accesoNube;
+  }
+  function mensajeIngreso(err) {
+    const c = String((err && err.code) || "");
+    return c === "auth/popup-closed-by-user" || c === "auth/cancelled-popup-request" ? "Se cerró la ventana de Google antes de terminar. Vuelva a tocar «Entrar con Google»."
+      : c === "auth/popup-blocked" ? "El navegador bloqueó la ventana de Google. Permita las ventanas emergentes para esta página y vuelva a intentar."
+      : c === "auth/network-request-failed" ? "No hay conexión con Google. Revise el internet y vuelva a intentar."
+      : c === "auth/unauthorized-domain" ? "Esta dirección de la app no está habilitada para entrar con Google. Use compras-agrodavila.web.app."
+      : c === "auth/user-disabled" ? "Esa cuenta de Google está deshabilitada."
+      : c === "auth/web-storage-unsupported" || c === "auth/operation-not-supported-in-this-environment" ? "Este navegador no permite entrar con Google aquí (modo privado o navegador dentro de otra app). Abra la página en Chrome o Safari."
+      : (err && err.message) || "No se pudo entrar con Google.";
+  }
+
   function estado() {
     return {
       configurado: configLista(),
+      autorizado: accesoNube,          // false = el correo no tiene permiso en la nube
+      error_ingreso: errorIngreso,
       conectado: !!usuarioActual,
       correo: usuarioActual ? (usuarioActual.email || "") : "",
       nombre: usuarioActual ? (usuarioActual.displayName || "") : "",
@@ -136,21 +168,37 @@
       try {
         const res = await modAuth.signInWithPopup(auth, proveedor);
         usuarioActual = res.user;
-        notificarEstado();
-        return estado();
+        return await _confirmarIngreso();
       } catch (err) {
+        if (err && err.sinPermiso) throw err;
         if (err && (err.code === "auth/popup-blocked" || err.code === "auth/operation-not-supported-in-this-environment")) {
-          await modAuth.signInWithRedirect(auth, proveedor);
+          try { await modAuth.signInWithRedirect(auth, proveedor); } catch (e2) { throw new Error(mensajeIngreso(e2)); }
           return estado();
         }
-        throw err;
+        throw new Error(mensajeIngreso(err));
       }
     } else {
-      const res = await modAuth.signInWithPopup(auth, proveedor);
+      let res;
+      try { res = await modAuth.signInWithPopup(auth, proveedor); } catch (err) { throw new Error(mensajeIngreso(err)); }
       usuarioActual = res.user;
-      notificarEstado();
-      return estado();
+      return await _confirmarIngreso();
     }
+  }
+  /** Tras entrar con Google: si el correo no está autorizado, se cierra esa sesión y se dice claramente. */
+  async function _confirmarIngreso() {
+    errorIngreso = "";
+    const ok = await verificarAcceso();
+    if (ok === false) {
+      const correo = (usuarioActual && usuarioActual.email) || "ese correo";
+      try { await modAuth.signOut(auth); } catch (e) {}
+      usuarioActual = null; accesoNube = null;
+      notificarEstado();
+      const e = new Error(`El correo ${correo} no está autorizado para Compras AgroDávila. Entre con el correo autorizado o pida acceso a Wilo.`);
+      e.sinPermiso = true;
+      throw e;
+    }
+    notificarEstado();
+    return estado();
   }
 
   function limpiarClavesLocales() {
