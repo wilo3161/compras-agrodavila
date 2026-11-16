@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nueva cotización · Compras AgroDávila</title>
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+main{max-width:920px;margin:0 auto;padding:20px 16px 40px}
+h1{margin:0 0 4px;font-size:26px}
+h2{margin:0 0 8px;font-size:17px}
+.sub{color:var(--t2);font-size:14px;line-height:1.45}
+.caja{background:var(--card);border:1px solid var(--bd);border-radius:18px;box-shadow:var(--sombra);padding:16px;margin-top:16px}
+.suelta{border:2px dashed var(--bd);border-radius:14px;padding:14px;transition:border-color .15s,background .15s}
+.suelta.encima{border-color:var(--pri);background:var(--pri2)}
+.suelta textarea{width:100%;min-height:130px;padding:10px;border:1px solid var(--bd);border-radius:10px;background:transparent;color:inherit;font:inherit;font-size:15px;resize:vertical}
+.fila-btn{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.b{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:10px 14px;font:inherit;font-size:14px;cursor:pointer;min-height:44px;display:inline-flex;gap:6px;align-items:center}
+.b.p{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+.b:disabled{opacity:.5;cursor:not-allowed}
+.b.sm{padding:6px 10px;min-height:36px;font-size:13px}
+.fuente{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd);font-size:14px}
+.fuente:last-child{border-bottom:0}
+.fuente .est{color:var(--t2);font-size:13px;text-align:right}
+.fuente .est.mal{color:var(--ladrillo)}
+.items{display:grid;gap:8px;margin-top:8px}
+.it{display:grid;grid-template-columns:24px minmax(0,1fr) 90px 90px 44px;gap:6px;align-items:center}
+.it.cab{font-size:12px;color:var(--t2)}
+.it input{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:transparent;color:inherit;font:inherit;min-width:0}
+.it .n{color:var(--t2);text-align:center}
+.it .es{grid-column:2 / -1;font-size:13px;color:var(--t2);margin-top:-4px}
+.it .es button{border:0;background:var(--pri2);color:var(--pri);border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;margin-left:4px}
+.campos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.campos label{font-size:13px;color:var(--t2);display:grid;gap:4px}
+.campos select,.campos input{padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:inherit;font:inherit}
+.aviso{background:var(--ladrillo2);color:var(--ladrillo);border-radius:10px;padding:8px 10px;margin-top:8px;font-size:13px;line-height:1.4}
+.hecho{background:var(--okbg,#E3F1E4);color:var(--ok,#2F6B3A);border-radius:10px;padding:8px 10px;margin-top:8px;font-size:14px}
+.toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#23262B;color:#fff;border-radius:12px;padding:10px 14px;display:none;z-index:60;font-size:14px;max-width:92vw}
+.toast.ver{display:flex}
+@media (max-width:620px){
+  .it{grid-template-columns:24px minmax(0,1fr) minmax(0,1fr) 44px;grid-template-areas:"n p p x" "n c u x"}
+  .it .n{grid-area:n}.it .p{grid-area:p}.it .c{grid-area:c}.it .u{grid-area:u}.it .x{grid-area:x}
+  .it.cab{display:none}.it .es{grid-column:1 / -1}
+  .campos{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>Nueva cotización</h1>
+  <p class="sub">Pega o suelta aquí lo que tengas del pedido: texto, capturas de pantalla, PDF, Word o Excel. Se arma la lista de productos; tú la revisas, eliges el proveedor y sale el mensaje con su imagen y su PDF. Nada se envía sin tu aprobación.</p>
+
+  <section class="caja" aria-labelledby="t1">
+    <h2 id="t1">1. Lo que tienes</h2>
+    <div class="suelta" id="suelta">
+      <textarea id="texto" placeholder="Escribe o pega aquí (Ctrl+V). Sirve texto de un chat o de un correo, una tabla copiada de Excel o una captura de pantalla." aria-label="Texto o captura del pedido"></textarea>
+      <div class="fila-btn">
+        <button class="b p" type="button" id="leer-texto">Leer el texto</button>
+        <button class="b" type="button" id="elegir">Agregar archivos o fotos</button>
+        <input type="file" id="archivos" multiple hidden accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt">
+        <span class="sub">También puedes arrastrar los archivos a este cuadro.</span>
+      </div>
+    </div>
+    <div id="fuentes" aria-live="polite"></div>
+  </section>
+
+  <section class="caja" aria-labelledby="t2">
+    <h2 id="t2">2. Productos a cotizar <span class="sub" id="cuenta"></span></h2>
+    <div id="items"><p class="sub">Todavía no hay productos. Pega o agrega algo arriba, o escribe la lista a mano.</p></div>
+    <div class="fila-btn">
+      <button class="b sm" type="button" id="agregar">Agregar producto</button>
+      <button class="b sm" type="button" id="vaciar">Vaciar la lista</button>
+    </div>
+    <div class="campos">
+      <label>Finca donde se entrega
+        <select id="finca"><option value="">— elige la finca —</option><option>Coñaqui</option><option>Eliana</option><option>Antonio López</option><option>Otoburo</option><option>El Carmen</option><option>Puerto Cayo</option><option value="varias">Varias fincas</option></select></label>
+      <label>Para qué es (opcional, va en el mensaje)
+        <input id="motivo" maxlength="120" placeholder="Ej.: certificación, mantenimiento de bomba"></label>
+    </div>
+  </section>
+
+  <section class="caja" aria-labelledby="t3">
+    <h2 id="t3">3. Revisar y enviar</h2>
+    <p class="sub">Se abre la tarjeta de envío: ahí eliges el proveedor de la base, ves la imagen y el PDF, y apruebas. Para pedir a varios proveedores, envía y vuelve a tocar el botón.</p>
+    <div class="fila-btn"><button class="b p" type="button" id="armar" disabled>Elegir proveedor y revisar</button></div>
+    <div id="falta" class="sub" style="margin-top:6px;color:var(--ladrillo)"></div>
+    <div id="enviados" aria-live="polite"></div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-txt"></span></div>
+<script src="tarjeta_envio.js"></script>
+<script>
+(function () {
+  "use strict";
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const I = (n) => (window.AgdGuia && AgdGuia.ico ? AgdGuia.ico(n) : "");
+  const plano = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const S = { items: [], fuentes: [], enviados: [], prods: [] };
+  let reloj = null;
+  function avisar(t) { $("#toast-txt").textContent = t; $("#toast").classList.add("ver"); clearTimeout(reloj); reloj = setTimeout(() => $("#toast").classList.remove("ver"), 5000); }
+  const cargarScript = (src) => new Promise((ok, mal) => {
+    if (document.querySelector(`script[src="${src}"]`)) return ok();
+    const s = document.createElement("script"); s.src = src; s.crossOrigin = "anonymous"; s.onload = ok; s.onerror = () => mal(new Error("no se pudo cargar el lector (revisa el internet)")); document.head.appendChild(s);
+  });
+
+  /* ───────── Lector de renglones: de texto suelto a (producto, cantidad, unidad) ───────── */
+  const UNIDADES = { kg: "KG", kgs: "KG", kilo: "KG", kilos: "KG", kilogramos: "KG", lt: "LT", lts: "LT", l: "LT", litro: "LT", litros: "LT", ml: "ML", gl: "GL", galon: "GL", galones: "GL",
+    u: "UND", un: "UND", und: "UND", unds: "UND", unid: "UND", unidad: "UND", unidades: "UND", saco: "SACO", sacos: "SACO", caja: "CAJA", cajas: "CAJA", funda: "FUNDA", fundas: "FUNDA",
+    m: "M", mt: "M", mts: "M", metro: "M", metros: "M", rollo: "ROLLO", rollos: "ROLLO", par: "PAR", pares: "PAR", lb: "LB", lbs: "LB", libra: "LB", libras: "LB", gr: "GR", g: "GR", gramos: "GR",
+    qq: "QQ", quintal: "QQ", quintales: "QQ", frasco: "FRASCO", frascos: "FRASCO", tarro: "TARRO", tarros: "TARRO", caneca: "CANECA", canecas: "CANECA", tubo: "TUBO", tubos: "TUBO",
+    paquete: "PAQUETE", paquetes: "PAQUETE", juego: "JUEGO", juegos: "JUEGO", docena: "DOCENA", docenas: "DOCENA", tn: "TN", tonelada: "TN", toneladas: "TN", bulto: "BULTO", bultos: "BULTO", cc: "CC" };
+  const uni = (t) => UNIDADES[plano(t).replace(/\./g, "")] || "";
+  const RE_U = Object.keys(UNIDADES).sort((a, b) => b.length - a.length).join("|");
+  const esNum = (t) => /^\d{1,6}([.,]\d{1,3})?$/.test(String(t).trim());
+  const aNum = (t) => String(t).trim().replace(",", ".");
+  const RUIDO = /^(buen[oa]s? (d[ií]as?|tardes?|noches?)|hola|estimad|gracias|saludos|atentamente|por favor|favor|adjunto|subtotal|sub total|total|iva|descuento|fecha|ruc|cliente|direcci[oó]n|tel[eé]fono|p[aá]gina|datos usuario|detalle de productos|raz[oó]n social|tel[eé]fonos|correo|nota|validez|forma de pago|tiempo de entrega|proforma|reciba|nuestro|presente|atte|ibarra|quito|propietario)\b/i;
+  const CAB_P = /^(producto|productos|descripci[oó]n|detalle|[ií]tem|items?|nombre|art[ií]culo|material|insumo|presentaci[oó]n|concepto)s?$/i;
+  const CAB_C = /^(cant\.?|cantidad|cantidades|ctd|enteros|unidades pedidas|pedido)$/i;
+  const CAB_U = /^(unidad|unidades|u\.?m\.?|medida|und|presentaci[oó]n)$/i;
+
+  /* Tabla (Excel, Word o texto pegado con tabuladores): se ubican las columnas por su título o por su contenido */
+  function leerTabla(filas) {
+    filas = filas.map((f) => f.map((c) => String(c == null ? "" : c).replace(/\s+/g, " ").trim())).filter((f) => f.some(Boolean));
+    if (!filas.length) return [];
+    let cab = -1, cp = -1, cc = -1, cu = -1;
+    for (let i = 0; i < Math.min(filas.length, 15) && cab < 0; i++) {
+      const p = filas[i].findIndex((c) => CAB_P.test(c)), c = filas[i].findIndex((x) => CAB_C.test(x));
+      if (p >= 0 && (c >= 0 || filas[i].length <= 2)) { cab = i; cp = p; cc = c; cu = filas[i].findIndex((x, k) => k !== p && k !== c && CAB_U.test(x)); }
+    }
+    const cuerpo = filas.slice(cab + 1);
+    if (cab < 0) {   // sin títulos: la columna con más texto es el producto; la de números, la cantidad
+      const n = Math.max(...cuerpo.map((f) => f.length));
+      const punt = (k, fn) => cuerpo.reduce((s, f) => s + (f[k] && fn(f[k]) ? 1 : 0), 0);
+      const cols = [...Array(n).keys()];
+      cp = cols.slice().sort((a, b) => punt(b, (x) => /[a-záéíóúñ]{3,}/i.test(x) && !uni(x)) * 100 + cuerpo.reduce((s, f) => s + (f[b] || "").length, 0) / 100 - (punt(a, (x) => /[a-záéíóúñ]{3,}/i.test(x) && !uni(x)) * 100 + cuerpo.reduce((s, f) => s + (f[a] || "").length, 0) / 100))[0];
+      cc = cols.filter((k) => k !== cp).sort((a, b) => punt(b, esNum) - punt(a, esNum))[0]; if (cc !== undefined && !punt(cc, esNum)) cc = -1;
+      cu = cols.filter((k) => k !== cp && k !== cc).sort((a, b) => punt(b, uni) - punt(a, uni))[0]; if (cu !== undefined && !punt(cu, uni)) cu = -1;
+    }
+    const out = [];
+    cuerpo.forEach((f) => {
+      const p = f[cp] || ""; if (!p || RUIDO.test(p) || CAB_P.test(p) || !/[a-záéíóúñ]/i.test(p)) return;
+      let cant = cc >= 0 && esNum(f[cc] || "") ? aNum(f[cc]) : "", u = cu >= 0 ? (uni(f[cu]) || f[cu] || "") : "";
+      if (cc >= 0 && !cant) { const m = /^(\d+[.,]?\d*)\s*([a-záéíóúñ.]+)$/i.exec(f[cc] || ""); if (m) { cant = aNum(m[1]); u = u || uni(m[2]) || m[2].toUpperCase(); } }
+      if (!cant || !u) { const r = leerRenglon(p); if (r && r.cantidad && !cant) return out.push(r); }
+      out.push({ producto: p.toUpperCase(), cantidad: cant, unidad: String(u).toUpperCase() });
+    });
+    return out;
+  }
+  /* Un renglón suelto: «20 kg de Switch», «Switch 20 KG», «• 3 rollos — manguera 1"», «Cemento x 10 sacos» */
+  function leerRenglon(l) {
+    let t = String(l).replace(/[•·●*►▪]/g, " ").replace(/^\s*(\d{1,2}[.)]|[-–—])\s+/, "").replace(/\s+/g, " ").trim();
+    if (t.length < 3 || RUIDO.test(t) || !/[a-záéíóúñ]{2,}/i.test(t)) return null;
+    if (/[?¿]$/.test(t) || t.split(" ").length > 14) return null;                    // una frase, no un producto
+    let m = new RegExp("^(\\d+[.,]?\\d*)\\s*(" + RE_U + ")?\\.?\\s*(?:de\\s+|del\\s+|[-–—:x]\\s*)?(.{2,})$", "i").exec(t);
+    if (m && /[a-záéíóúñ]{2,}/i.test(m[3])) return { producto: m[3].replace(/^[-–—:]\s*/, "").trim().toUpperCase(), cantidad: aNum(m[1]), unidad: uni(m[2] || "") };
+    m = new RegExp("^(.{2,}?)\\s*(?:[-–—:x,]|\\bcantidad\\b:?)?\\s*(\\d+[.,]?\\d*)\\s*(" + RE_U + ")?\\.?$", "i").exec(t);
+    if (m && /[a-záéíóúñ]{2,}/i.test(m[1]) && !/\b\d+$/.test(m[1])) return { producto: m[1].replace(/[\s\-–—:x,]+$/i, "").trim().toUpperCase(), cantidad: aNum(m[2]), unidad: uni(m[3] || "") };
+    return { producto: t.toUpperCase(), cantidad: "", unidad: "" };
+  }
+  function leerTexto(txt) {
+    const lineas = String(txt || "").replace(/\r/g, "").split("\n");
+    if (lineas.filter((l) => l.includes("\t")).length >= Math.max(1, lineas.filter((l) => l.trim()).length / 2)) return leerTabla(lineas.map((l) => l.split("\t")));
+    // Texto de una proforma o de una tabla (PDF o captura): si hay un renglón de títulos «Cantidad … Descripción»,
+    // solo vale lo que está debajo, hasta el subtotal, y se quitan los precios del final de cada renglón.
+    const limpio = (l) => l.replace(/[|\[\]{}_=]/g, " ").replace(/\s+/g, " ").trim();
+    const iCab = lineas.findIndex((l) => { const w = limpio(l).split(" "); return w.some((x) => CAB_P.test(x)) && w.some((x) => CAB_C.test(x)); });
+    if (iCab >= 0) {
+      const out = [];
+      for (const l0 of lineas.slice(iCab + 1)) {
+        const l = limpio(l0); if (!l) continue;
+        if (/^(sub ?total|total|i\.?v\.?a|nota|observaci)/i.test(l)) break;
+        // sin los precios del final; una «O» suelta leída de una captura es un cero
+        const sinPrecio = l.replace(/(\s+\$?\d+[.,]\s?\d\s?\d?){1,3}$/, "").replace(/\s[Oo](?=\s|$)/g, " 0").replace(/\s\d?\)$/, " 0");
+        // dos columnas de cantidad (cajas enteras y unidades sueltas): vale la que no es cero
+        const dos = /^(.*\S)\s+(\d{1,5})\s+(\d{1,5})$/.exec(sinPrecio);
+        if (dos && /[a-záéíóúñ]{2,}/i.test(dos[1]) && (dos[2] === "0") !== (dos[3] === "0")) { out.push({ producto: dos[1].toUpperCase(), cantidad: dos[2] === "0" ? dos[3] : dos[2], unidad: "" }); continue; }
+        const r = leerRenglon(sinPrecio);
+        if (r) out.push(r);
+      }
+      if (out.length) return out;
+    }
+    return lineas.map((l) => (l.includes("@") ? null : leerRenglon(limpio(l)))).filter(Boolean);
+  }
+
+  /* ───────── Lectores de archivos ───────── */
+  let OCR = null;
+  async function leerImagen(fuenteImg, avance) {
+    await cargarScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js");
+    if (!OCR) OCR = await window.Tesseract.createWorker("spa", 1, { logger: (m) => { if (avance && m.status === "recognizing text") avance(Math.round(m.progress * 100)); } });
+    // Las capturas pequeñas se agrandan antes de leer: el lector acierta mucho más con letra grande.
+    let img = fuenteImg;
+    if (!(fuenteImg instanceof HTMLCanvasElement)) {
+      const bmp = await createImageBitmap(fuenteImg), k = Math.min(3, Math.max(1, 2000 / bmp.width));
+      const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+      const x = c.getContext("2d"); x.imageSmoothingQuality = "high"; x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(bmp, 0, 0, c.width, c.height);
+      img = c;
+    }
+    await OCR.setParameters({ tessedit_pageseg_mode: "4", preserve_interword_spaces: "1" });
+    const r = await OCR.recognize(img);
+    return r.data.text || "";
+  }
+  async function leerPdf(archivo, avance) {
+    await cargarScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    const pdf = await window.pdfjsLib.getDocument({ data: await archivo.arrayBuffer() }).promise;
+    let todo = "";
+    for (let n = 1; n <= Math.min(pdf.numPages, 8); n++) {
+      const pag = await pdf.getPage(n), tc = await pag.getTextContent();
+      const reng = {};   // se agrupan los trozos por su altura para rehacer los renglones
+      tc.items.forEach((it) => { const y = Math.round(it.transform[5] / 3); (reng[y] = reng[y] || []).push(it); });
+      let t = Object.keys(reng).sort((a, b) => b - a).map((y) => reng[y].sort((a, b) => a.transform[4] - b.transform[4]).map((x) => x.str).join(" ").replace(/\s+/g, " ").trim()).join("\n");
+      if (t.replace(/\s/g, "").length < 25) {   // PDF escaneado: se lee como imagen
+        const vp = pag.getViewport({ scale: 2 }), c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height;
+        await pag.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+        t = await leerImagen(c, avance);
+      }
+      todo += t + "\n";
+    }
+    return todo;
+  }
+  async function leerArchivo(a, avance) {
+    const nom = a.name.toLowerCase();
+    if (/\.(xlsx|xls|csv)$/.test(nom)) {
+      const wb = window.XLSX.read(await a.arrayBuffer(), { type: "array" }); let out = [];
+      wb.SheetNames.forEach((h) => { out = out.concat(leerTabla(window.XLSX.utils.sheet_to_json(wb.Sheets[h], { header: 1, raw: false, defval: "" }))); });
+      return out;
+    }
+    if (/\.docx$/.test(nom)) {
+      await cargarScript("https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js");
+      const html = (await window.mammoth.convertToHtml({ arrayBuffer: await a.arrayBuffer() })).value;
+      const d = new DOMParser().parseFromString(html, "text/html"); let out = [];
+      d.querySelectorAll("table").forEach((t) => { out = out.concat(leerTabla([...t.rows].map((r) => [...r.cells].map((c) => c.textContent)))); t.remove(); });
+      return out.concat(leerTexto([...d.body.querySelectorAll("p,li,h1,h2,h3")].map((p) => p.textContent).join("\n")));
+    }
+    if (/\.doc$/.test(nom)) throw new Error("es un Word antiguo (.doc): ábrelo y guárdalo como .docx, o copia y pega el texto");
+    if (/\.pdf$/.test(nom) || a.type === "application/pdf") return leerTexto(await leerPdf(a, avance));
+    if (a.type.startsWith("image/")) return leerTexto(await leerImagen(a, avance));
+    if (/\.txt$/.test(nom) || a.type.startsWith("text/")) return leerTexto(await a.text());
+    throw new Error("no sé leer este tipo de archivo");
+  }
+
+  /* ───────── Estado y pintura ───────── */
+  function sumar(nuevos) {
+    let n = 0;
+    nuevos.forEach((i) => {
+      const k = plano(i.producto); if (!k) return;
+      const ya = S.items.find((x) => plano(x.producto) === k);
+      if (ya) { if (!ya.cantidad && i.cantidad) ya.cantidad = i.cantidad; if (!ya.unidad && i.unidad) ya.unidad = i.unidad; return; }
+      S.items.push({ producto: i.producto, cantidad: i.cantidad || "", unidad: i.unidad || "" }); n++;
+    });
+    return n;
+  }
+  /* ¿Se parece a un producto de la base de AgroControl? Se propone, no se cambia solo. */
+  function parecido(nombre) {
+    const k = plano(nombre); if (k.length < 3 || !S.prods.length) return null;
+    if (S.prods.some((p) => p.k === k)) return null;
+    const pal = k.split(" ").filter((w) => w.length > 2); if (!pal.length) return null;
+    let mejor = null, pm = 0;
+    S.prods.forEach((p) => {
+      const pp = p.k.split(" "); const com = pal.filter((w) => pp.includes(w)).length; if (!com) return;
+      const pt = com / Math.max(pal.length, pp.filter((w) => w.length > 2).length || 1) + (p.k.startsWith(pal[0]) ? 0.15 : 0) + (p.k.startsWith(k + " ") ? 0.6 : 0);
+      if (pt > pm) { pm = pt; mejor = p; }
+    });
+    return pm >= 0.6 ? mejor : null;
+  }
+  function pintarFuentes() {
+    $("#fuentes").innerHTML = S.fuentes.map((f) => `<div class="fuente"><span>${esc(f.nombre)}</span><span class="est ${f.mal ? "mal" : ""}">${esc(f.estado)}</span></div>`).join("");
+  }
+  function faltan() {
+    const f = [], con = S.items.filter((i) => i.producto.trim());
+    if (!con.length) f.push("al menos un producto");
+    if (con.some((i) => !String(i.cantidad).trim())) f.push("la cantidad de cada producto");
+    if (!$("#finca").value) f.push("la finca");
+    return f;
+  }
+  function refrescar() {
+    const f = faltan(); $("#armar").disabled = !!f.length; $("#falta").textContent = f.length ? "Falta: " + f.join(" · ") : "";
+    const n = S.items.filter((i) => i.producto.trim()).length; $("#cuenta").textContent = n ? `· ${n}` : "";
+  }
+  function pintarItems() {
+    const c = $("#items");
+    if (!S.items.length) { c.innerHTML = `<p class="sub">Todavía no hay productos. Pega o agrega algo arriba, o escribe la lista a mano.</p>`; return refrescar(); }
+    c.innerHTML = `<div class="items"><div class="it cab"><span></span><span>Producto</span><span>Cantidad</span><span>Unidad</span><span></span></div>` + S.items.map((i, n) => {
+      const p = parecido(i.producto);
+      return `<div class="it"><span class="n">${n + 1}</span>
+        <input class="p" data-i="${n}" data-k="producto" value="${esc(i.producto)}" placeholder="Producto" aria-label="Producto ${n + 1}">
+        <input class="c" data-i="${n}" data-k="cantidad" inputmode="decimal" value="${esc(i.cantidad)}" placeholder="Cant." aria-label="Cantidad ${n + 1}" ${String(i.cantidad).trim() ? "" : `style="border-color:var(--ladrillo)"`}>
+        <input class="u" data-i="${n}" data-k="unidad" value="${esc(i.unidad)}" placeholder="Unidad" aria-label="Unidad ${n + 1}">
+        <button class="b sm x" type="button" data-quitar="${n}" aria-label="Quitar ${esc(i.producto)}">${I("cerrar") || "✕"}</button>
+        ${p ? `<div class="es">En AgroControl hay «${esc(p.n)}»${p.c ? " · " + esc(p.c) : ""} <button type="button" data-usar="${n}" data-p="${S.prods.indexOf(p)}">Usar ese nombre</button></div>` : ""}</div>`;
+    }).join("") + `</div>`;
+    refrescar();
+  }
+  async function procesar(nombre, tarea) {
+    const f = { nombre, estado: "Leyendo…" }; S.fuentes.push(f); pintarFuentes();
+    try {
+      const antes = S.items.length, leidos = await tarea((pct) => { f.estado = `Leyendo la imagen… ${pct} %`; pintarFuentes(); });
+      const n = sumar(leidos);
+      f.estado = leidos.length ? `${leidos.length} renglón(es) leídos · ${n} producto(s) nuevos` : "No encontré productos aquí";
+      f.mal = !leidos.length;
+      if (S.items.length !== antes || leidos.length) pintarItems();
+    } catch (e) { f.estado = "No se pudo leer: " + (e.message || e); f.mal = true; }
+    pintarFuentes();
+  }
+  const nombreImg = () => "Captura pegada " + new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  function recibir(archivos) { [...archivos].forEach((a) => procesar(a.name || nombreImg(), (av) => leerArchivo(a, av))); }
+
+  /* ───────── Mensaje y tarjeta ───────── */
+  function mensaje(e) {
+    const hora = Number(new Date().toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/Guayaquil" }));
+    const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
+    const finca = $("#finca").value, motivo = $("#motivo").value.trim();
+    const donde = !finca || finca === "varias" ? "" : ` para la finca ${finca}`;
+    return `${saludo}, estimado/a. Le saluda el Ing. Wilson Pérez, encargado de compras de AgroDávila.\n\n` +
+      `Por favor, ¿nos ayuda con una cotización formal${donde}${motivo ? ` (${motivo})` : ""} de:\n` +
+      e.items.map((i) => `• ${[i.cantidad, i.unidad].filter(Boolean).join(" ")} — ${i.producto}`).join("\n") +
+      `\n\nPor favor incluya: precio unitario (IVA aparte), disponibilidad o tiempo de entrega, forma de pago y validez de la oferta.\n\nMuchas gracias.`;
+  }
+  function armar() {
+    const finca = $("#finca").value === "varias" ? "" : $("#finca").value;
+    const items = S.items.filter((i) => i.producto.trim()).map((i) => ({ producto: i.producto.trim(), cantidad: i.cantidad, unidad: i.unidad, finca }));
+    window.AgdTarjeta.abrir({ tipo: "cotizacion", proveedor: { nombre: "", chat: "", telefono: "" }, items, finca, texto: "" },
+      { contexto: [finca, $("#motivo").value.trim(), "Nueva cotización"].filter(Boolean).join(" · "), origen: "nueva", generar: mensaje,
+        alEnviar: (r) => { S.enviados.push({ prov: r.proveedor, n: r.items.length, modo: "sale por WhatsApp en ~1 minuto" }); pintarEnviados(); avisar("Aprobado: sale por WhatsApp en ~1 minuto"); },
+        alYaEnviado: () => { S.enviados.push({ prov: "(enviado a mano)", n: items.length, modo: "marcado como enviado por ti" }); pintarEnviados(); } });
+  }
+  function pintarEnviados() {
+    $("#enviados").innerHTML = S.enviados.map((e) => `<div class="hecho">${I("check")} <b>${esc(e.prov)}</b> · ${e.n} producto(s) · ${esc(e.modo)}</div>`).join("") +
+      (S.enviados.length ? `<p class="sub" style="margin-top:8px">La política pide mínimo 2 cotizaciones (3 si pasa de $500): toca otra vez «Elegir proveedor y revisar» para pedirle a otro la misma lista.</p>` : "");
+    $("#armar").textContent = S.enviados.length ? "Pedir la misma lista a otro proveedor" : "Elegir proveedor y revisar";
+  }
+
+  /* ───────── Eventos ───────── */
+  $("#leer-texto").onclick = () => { const t = $("#texto").value; if (!t.trim()) return avisar("Pega o escribe algo primero."); procesar("Texto pegado", async () => leerTexto(t)).then(() => { $("#texto").value = ""; }); };
+  $("#elegir").onclick = () => $("#archivos").click();
+  $("#archivos").onchange = (e) => { recibir(e.target.files); e.target.value = ""; };
+  $("#agregar").onclick = () => { S.items.push({ producto: "", cantidad: "", unidad: "" }); pintarItems(); const ins = document.querySelectorAll("#items [data-k=producto]"); ins[ins.length - 1].focus(); };
+  $("#vaciar").onclick = () => { if (!S.items.length || confirm("¿Vaciar la lista de productos?")) { S.items = []; S.fuentes = []; pintarFuentes(); pintarItems(); } };
+  $("#armar").onclick = armar;
+  $("#finca").onchange = refrescar;
+  const zona = $("#suelta");
+  ["dragenter", "dragover"].forEach((ev) => zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.add("encima"); }));
+  ["dragleave", "drop"].forEach((ev) => zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.remove("encima"); }));
+  zona.addEventListener("drop", (e) => { if (e.dataTransfer.files.length) recibir(e.dataTransfer.files); });
+  document.addEventListener("paste", (e) => {
+    if (document.querySelector("#te-capa.ver")) return;                       // la tarjeta está abierta: el pegado es de ella
+    const arch = [...(e.clipboardData || {}).files || []];
+    if (arch.length) { e.preventDefault(); return recibir(arch); }
+    const dentro = e.target.closest && e.target.closest("input,textarea");
+    if (!dentro) { const t = e.clipboardData.getData("text"); if (t.trim()) { e.preventDefault(); procesar("Texto pegado", async () => leerTexto(t)); } }
+  });
+  document.addEventListener("input", (e) => {
+    const el = e.target; if (!el.dataset || !el.dataset.k || !el.closest("#items")) return;
+    S.items[Number(el.dataset.i)][el.dataset.k] = el.value; if (el.dataset.k === "cantidad") el.style.borderColor = el.value.trim() ? "" : "var(--ladrillo)"; refrescar();
+  });
+  document.addEventListener("click", (e) => {
+    const q = e.target.closest("[data-quitar]"); if (q) { S.items.splice(Number(q.dataset.quitar), 1); return pintarItems(); }
+    const u = e.target.closest("[data-usar]"); if (u) { const p = S.prods[Number(u.dataset.p)], it = S.items[Number(u.dataset.usar)]; it.producto = p.n; if (!it.unidad && p.u) it.unidad = p.u; return pintarItems(); }
+  });
+
+  (async function iniciar() {
+    try { if (window.ComprasApp && ComprasApp.exigirSesion) await ComprasApp.exigirSesion(); } catch (e) { return; }
+    refrescar();
+    try {
+      const l = (window.AgdNube && AgdNube.leerCatalogoProductos && await AgdNube.leerCatalogoProductos()) || [];
+      S.prods = l.map((p) => ({ n: String(p[0] || "").trim(), c: p[1] || "", u: p[2] || "", k: plano(p[0]) })).filter((p) => p.n);
+      if (S.items.length) pintarItems();
+    } catch (e) { /* sin la base de productos igual se puede cotizar */ }
+  })();
+  if (location.hostname === "localhost" || location.hostname === "127.0.0.1") window._nuevaPrueba = { leerTexto, leerTabla, S };   // solo para las pruebas en la PC
+})();
+</script>
+</body>
+</html>

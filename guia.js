@@ -98,6 +98,9 @@
     "gestion.html": {
       resumen: ["Evidencia de gestión", "Consolida ahorro documentado, proveedores nuevos incorporados, cumplimiento de cotizaciones y mejora en tiempos de ciclo desde el 04/11/2026."]
     },
+    "nueva.html": {
+      vista: ["Nueva cotización", "Pega o suelta lo que tengas del pedido: texto, capturas de pantalla, PDF, Word o Excel. La app arma la lista de productos; tú la revisas, eliges el proveedor de la base y apruebas. La lectura de capturas puede equivocarse: revisa siempre productos y cantidades."]
+    },
     "sicop.html": {
       vista: ["Órdenes de compra para SICOP", "Cada orden de AgroControl sale con los datos en el orden de la pantalla de SICOP y un botón para copiar cada uno. Compara el total de aquí con el de SICOP antes de procesar la orden."]
     },
@@ -184,6 +187,7 @@
       ["bandeja.html", "bandeja", "Bandeja"]
     ];
     const secundarios = [
+      ["nueva.html", "agregar", "Nueva cotización"],
       ["subir.html", "subir", "Subir a AgroControl"],
       ["sicop.html", "checklist", "OC para SICOP"],
       ["agente.html", "foco", "Agente"],
