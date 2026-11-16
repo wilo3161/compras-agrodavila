@@ -56,6 +56,7 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     <button type="button" data-tab="aprobada">Aprobadas, listas para subir <span id="n-aprobada"></span></button>
     <button type="button" data-tab="subida">Subidas <span id="n-subida"></span></button>
     <button type="button" data-tab="descartada">Descartadas <span id="n-descartada"></span></button>
+    <button type="button" data-tab="alerta">🔔 Revisar lo ya subido <span id="n-alerta"></span></button>
   </div>
   <section id="lista"><div class="vacio">Cargando…</div></section>
 </main>
@@ -103,14 +104,16 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
   }
 
   function pintar() {
-    for (const t of ["por_revisar", "aprobada", "subida", "descartada"]) {
-      const n = S.cargas.filter((c) => (t === "subida" ? ["subida", "subiendo", "en_formulario"].includes(c.estado) : c.estado === t)).length;
+    const enTab = (c, t) => t === "subida" ? ["subida", "subiendo", "en_formulario"].includes(c.estado)
+      : t === "alerta" ? ["alerta", "alerta_ok", "alerta_corregida"].includes(c.estado) : c.estado === t;
+    for (const t of ["por_revisar", "aprobada", "subida", "descartada", "alerta"]) {
+      const n = S.cargas.filter((c) => (t === "alerta" ? c.estado === "alerta" : enTab(c, t))).length;
       $(`#n-${t}`).textContent = n ? `(${n})` : "";
     }
-    const lista = S.cargas.filter((c) => (S.tab === "subida" ? ["subida", "subiendo", "en_formulario"].includes(c.estado) : c.estado === S.tab))
-      .sort((a, b) => String(a.pedido).localeCompare(String(b.pedido)) || String(a.linea).localeCompare(String(b.linea)));
+    const lista = S.cargas.filter((c) => enTab(c, S.tab))
+      .sort((a, b) => (a.estado === "alerta" ? 0 : 1) - (b.estado === "alerta" ? 0 : 1) || String(a.pedido).localeCompare(String(b.pedido)) || String(a.linea).localeCompare(String(b.linea)));
     const cont = $("#lista");
-    if (!lista.length) { cont.innerHTML = `<div class="vacio">${S.tab === "por_revisar" ? "No hay cargas por revisar. ✅" : "Nada aquí por ahora."}</div>`; return; }
+    if (!lista.length) { cont.innerHTML = `<div class="vacio">${S.tab === "por_revisar" ? "No hay cargas por revisar. ✅" : S.tab === "alerta" ? "Todo lo subido coincide con sus proformas. ✅" : "Nada aquí por ahora."}</div>`; return; }
     cont.innerHTML = lista.map(htmlCarga).join("");
     lista.forEach(async (c) => {
       const a = await archivo(c.archivo_id);
@@ -123,7 +126,31 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     });
   }
 
+  function htmlAlerta(c) {
+    const fila = (et, html) => `<div class="fila"><span class="et">${et}</span><span>${html}</span></div>`;
+    const abierta = c.estado === "alerta";
+    const nombre = { alerta: "Por revisar", alerta_ok: "Está bien así", alerta_corregida: "Corregida en AgroControl" }[c.estado] || c.estado;
+    return `<article class="carga" data-c="${esc(c.id)}">
+      <div class="visor" data-visor="${esc(c.id)}"><div class="cargando">Cargando proforma…</div></div>
+      <div class="datos">
+        <h2>${esc(c.producto_agrocontrol)} <span class="est ${abierta ? "error" : "subida"}">${esc(nombre)}</span></h2>
+        <div class="sub">${esc(c.pedido)} · ${esc(c.linea)} · ${esc(c.finca)} · subida el ${esc(String(c.fecha_subida || "").replace("T", " "))}</div>
+        ${fila("Proveedor", esc(c.proveedor_agrocontrol))}
+        ${fila("En AgroControl", `<span class="final">${dinero(c.precio_agrocontrol)}</span>`)}
+        ${fila("En la proforma", `${esc(c.item_proforma)} · ${dinero(c.precio_base)} ${c.iva_pct ? `+ IVA ${esc(c.iva_pct)} %` : "sin IVA"}${c.numero_proforma ? ` · N.° ${esc(c.numero_proforma)}` : ""}`)}
+        ${fila("Proforma", `${dinero(c.subtotal_proforma)} + IVA ${dinero(c.iva_proforma)} = <b>${dinero(c.total_proforma)}</b> · ${esc(c.origen)}`)}
+        ${(c.avisos || []).map((a) => `<div class="aviso">⚠️ ${esc(a)}</div>`).join("")}
+        <div class="acciones">
+          ${abierta ? `<button type="button" class="btn p" data-acc="alerta_ok">👍 Está bien así</button>
+                       <button type="button" class="btn" data-acc="alerta_corregida">✏️ Ya lo corregí en AgroControl</button>`
+                    : `<button type="button" class="btn" data-acc="alerta_abrir">↩ Volver a revisar</button>`}
+        </div>
+        ${c.revisado_por ? `<div class="sub" style="margin-top:6px">Revisado por ${esc(c.revisado_por)} · ${esc(String(c.revisado_en || "").slice(0, 16).replace("T", " "))}</div>` : ""}
+      </div></article>`;
+  }
+
   function htmlCarga(c) {
+    if (c.tipo === "auditoria") return htmlAlerta(c);
     const ed = c.estado === "por_revisar";
     const ch = S.chequeos[c.id] || {};
     const listo = CHEQUEOS.every(([k]) => ch[k]) && valor(c, "forma_pago") && valor(c, "proveedor_agrocontrol") && valor(c, "con_iva") != null && Number(valor(c, "precio_base")) > 0;
@@ -233,6 +260,15 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
         await guardar(c, { estado: "descartada", motivo_descarte: motivo });
         setTimeout(pintar, 330);
         avisar(`Descartada: ${c.linea}`, async () => { await guardar(c, { estado: "por_revisar", motivo_descarte: "" }); pintar(); });
+      } else if (b.dataset.acc === "alerta_ok" || b.dataset.acc === "alerta_corregida") {
+        const nuevo = b.dataset.acc;
+        art.classList.add("sale");
+        await guardar(c, { estado: nuevo });
+        setTimeout(pintar, 330);
+        avisar(nuevo === "alerta_ok" ? `Marcada como correcta: ${c.linea}` : `Marcada como corregida: ${c.linea} · la próxima revisión lo confirma`,
+          async () => { await guardar(c, { estado: "alerta" }); pintar(); });
+      } else if (b.dataset.acc === "alerta_abrir") {
+        await guardar(c, { estado: "alerta" }); pintar();
       } else if (b.dataset.acc === "revisar") {
         await guardar(c, { estado: "por_revisar" }); delete S.chequeos[c.id]; pintar();
       }
