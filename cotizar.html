@@ -238,6 +238,10 @@ ul.items li .det{font-size:12px;color:var(--t2)}
     const prods = (p.productos || []).map(norm).join(" ");
     for (const t of tok) if (prods.includes(t)) s += 4;
     const z = zonaFinca(it.finca);
+    // Zonificación estricta para lo pesado o barato de mover (ferretería, construcción, herramientas): de la otra
+    // zona el flete se come el ahorro, así que no se sugiere. Agroquímicos y repuestos sí viajan: solo penalizan.
+    const PESADO = ["Herramientas", "Ferretería y fijación", "Construcción, acabados y plomería", "Material eléctrico e iluminación"];
+    if (z && p.zona && p.zona !== "Nacional" && p.zona !== z && PESADO.includes(it.categoria)) return -1;
     s += p.zona === z ? 4 : (p.zona === "Nacional" ? 1 : -3);
     if (p.telefono || p.chat) s += 2;
     if (p.en_agrocontrol) s += 1;

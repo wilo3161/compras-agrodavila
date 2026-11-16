@@ -121,7 +121,7 @@
         <button class="te-btn sm" type="button" data-te="cerrar" aria-label="Cerrar">${I("cerrar")}</button>
       </div>
       <div style="margin-top:10px"><b>Para:</b> ${esc(E.prov.nombre || "— elige proveedor —")}
-        ${rubros.map((r) => `<span class="te-chip">${esc(r)}</span>`).join("")}
+        ${rubros.map((r) => `<span class="te-chip">${esc(r)}</span>`).join("")}${fi && otraZona(fi) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}
         <div class="te-sub">${E.prov.chat ? `Chat de WhatsApp: «${esc(E.prov.chat)}»` : E.prov.telefono ? `WhatsApp ${esc(E.prov.telefono)}` : `<span style="color:var(--ladrillo,#B5452F)">Sin chat de WhatsApp: escribe el número abajo.</span>`}</div>
         ${!E.prov.chat ? `<input id="te-tel" inputmode="tel" placeholder="Número del proveedor, ej. 0991234567" value="${esc(E.prov.telefono || "")}" style="margin-top:6px;width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--bd,#E2E4E7);border-radius:8px;background:transparent;color:inherit;font:inherit">` : ""}
         <button class="te-btn sm" type="button" data-te="cambiar" style="margin-top:6px">${I("refrescar")} Cambiar proveedor</button>
@@ -143,12 +143,17 @@
       ${E.op.avisos && E.op.avisos.length ? E.op.avisos.map((a) => `<div class="te-aviso">${I("alerta")} ${esc(a)}</div>`).join("") : ""}
       <div class="te-acc">
         <button class="te-btn" type="button" data-te="vista">${I("ojo")} Vista previa${esCot() ? " (imagen y PDF)" : ""}</button>
-        ${esCot() ? `<button class="te-btn" type="button" data-te="png">${I("bajar")} PNG</button><button class="te-btn" type="button" data-te="pdf">${I("bajar")} PDF</button>` : ""}
+        ${esCot() ? `<button class="te-btn" type="button" data-te="copiarimg">${I("imagen")} Copiar imagen</button><button class="te-btn" type="button" data-te="png">${I("bajar")} PNG</button><button class="te-btn" type="button" data-te="pdf">${I("bajar")} PDF</button>` : ""}
+        <button class="te-btn" type="button" data-te="copiartxt">${I("checklist")} Copiar mensaje</button>
       </div>
       <div class="te-acc">
         <button class="te-btn p" type="button" data-te="enviar" ${f.length ? "disabled" : ""}>${I("check")} Aprobar y enviar por WhatsApp</button>
         <button class="te-btn" type="button" data-te="yaenvie">Ya lo envié yo</button>
         <button class="te-btn" type="button" data-te="cerrar">Cancelar</button>
+      </div>
+      <div class="te-acc">
+        <button class="te-btn sm" type="button" data-te="abrirwa">${I("whatsapp")} Abrir el chat en WhatsApp (envío manual)</button>
+        <button class="te-btn sm" type="button" data-te="restablecer">${I("deshacer")} Restablecer la tarjeta</button>
       </div>
       <div class="te-sub" id="te-falta" style="margin-top:6px;color:var(--ladrillo,#B5452F)">${f.length ? "Para enviar falta: " + esc(f.join(" · ")) : ""}</div>
       <div class="te-sub" style="margin-top:6px">Sale desde el WhatsApp de compras (${FIRMA.whatsapp}) en cerca de 1 minuto${esCot() ? ": primero el mensaje, luego la imagen y el PDF" : ""}. Si la PC de la casa está apagada, sale cuando se encienda.</div>`;
@@ -216,13 +221,48 @@
   }
 
   /* ── Cambiar proveedor: buscador con rubro; avisa si no vende lo que se pide ── */
+  /* Zonificación logística: Puerto Cayo y El Carmen son Costa; las demás fincas, Imbabura (Sierra).
+     Un proveedor de la otra zona encarece el flete: se muestra al final y con aviso. «Nacional» sirve a las dos. */
+  const COSTA = ["puerto cayo", "el carmen"];
+  const zonaFinca = () => { const f = plano(E.finca || (E.items.find((i) => i.finca) || {}).finca || ""); return !f ? "" : (COSTA.some((c) => f.includes(c)) ? "Costa" : "Imbabura"); };
+  const otraZona = (p) => { const z = zonaFinca(); return !!z && !!p.zona && p.zona !== "Nacional" && p.zona !== z; };
+  const mismoRubro = (p) => { const r = E.rubrosOrig || []; return !r.length || !(p.rubros || []).length || (p.rubros || []).some((x) => r.includes(x)) || (p.rubros || []).includes("Por clasificar"); };
   function listaProv(q) {
     const qq = plano(q);
-    const l = (CATALOGO || []).filter((p) => !qq || plano(p.nombre + " " + (p.chats || []).join(" ") + " " + (p.rubros || []).join(" ")).includes(qq))
-      .sort((a, b) => (b.chats || []).length - (a.chats || []).length || a.nombre.localeCompare(b.nombre)).slice(0, 40);
-    return l.map((p, n) => `<button type="button" data-te="elegir" data-n="${CATALOGO.indexOf(p)}"><b>${esc(p.nombre)}</b>
-      <span class="te-sub">${esc((p.rubros || []).join(" · "))}${(p.chats || []).length ? " · con WhatsApp" : " · sin chat"}${p.zona ? " · " + esc(p.zona) : ""}</span></button>`).join("")
+    // Primero los del mismo rubro y de la zona de la finca; después los sin clasificar; al final los de otro rubro.
+    const rO = E.rubrosOrig || [];
+    // rO[0] es el rubro principal de lo que se pide (el del proveedor original).
+    const afin = (p) => { const r = p.rubros || []; return !rO.length ? 0 : r.includes(rO[0]) ? 0 : r.some((x) => rO.includes(x)) ? 3 : (r.includes("Por clasificar") || !r.length ? 6 : 9); };
+    const orden = (p) => afin(p) + (otraZona(p) ? 1.5 : 0) + ((p.chats || []).length ? 0 : p.telefono ? 0.4 : 0.8);
+    const l = (CATALOGO || []).filter((p) => !qq || plano(p.nombre + " " + (p.chats || []).join(" ") + " " + (p.rubros || []).join(" ") + " " + (p.ciudad || "") + " " + (p.zona || "")).includes(qq))
+      .sort((a, b) => orden(a) - orden(b) || a.nombre.localeCompare(b.nombre)).slice(0, 50);
+    return l.map((p) => `<button type="button" data-te="elegir" data-n="${CATALOGO.indexOf(p)}"><b>${esc(p.nombre)}</b>
+      ${otraZona(p) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}${mismoRubro(p) ? "" : `<span class="te-chip alerta">no vende lo mismo</span>`}
+      <span class="te-sub" style="display:block">${esc((p.rubros || []).join(" · "))}${(p.chats || []).length ? " · con WhatsApp" : p.telefono ? " · con teléfono" : " · sin WhatsApp"}${p.ciudad ? " · " + esc(p.ciudad) : p.zona ? " · " + esc(p.zona) : ""}</span></button>`).join("")
       || `<div class="te-sub" style="padding:10px">Ningún proveedor con ese nombre.</div>`;
+  }
+  /* Copiar la imagen o el mensaje al portapapeles (para pegar con Ctrl+V donde haga falta) */
+  const _nota = (t) => { const x = $("#te-falta"); if (x) x.textContent = t; };
+  async function copiarImagen() {
+    try {
+      if (!navigator.clipboard || !window.ClipboardItem) throw new Error("este navegador no permite copiar imágenes");
+      const c = await lienzo();
+      const blob = await new Promise((ok) => c.toBlob(ok, "image/png"));
+      await navigator.clipboard.write([new window.ClipboardItem({ "image/png": blob })]);
+      _nota("Imagen copiada: pégala con Ctrl+V (o «Pegar») en el chat.");
+    } catch (e) { _nota("No se pudo copiar la imagen (" + (e.message || e) + "). Usa el botón PNG para descargarla."); }
+  }
+  async function copiarMensaje() {
+    try { await navigator.clipboard.writeText(String(E.texto || "")); _nota("Mensaje copiado."); }
+    catch (e) { const t = $("#te-txt"); if (t) { t.focus(); t.select(); } _nota("Selecciona el mensaje y cópialo a mano: este navegador no dejó copiarlo solo."); }
+  }
+  /* Alternativa manual: abre el chat con el mensaje escrito. Usa el WhatsApp que esté abierto en ESTE equipo. */
+  function abrirWhatsApp() {
+    let d = String(E.prov.telefono || "").replace(/\D/g, "");
+    if (d.startsWith("0")) d = "593" + d.slice(1); else if (d.length === 9) d = "593" + d;
+    if (d.length < 11) { _nota("Para abrir el chat hace falta el número del proveedor."); return; }
+    window.open("https://wa.me/" + d + "?text=" + encodeURIComponent(String(E.texto || "")), "_blank", "noopener");
+    _nota("Se abrió WhatsApp con el mensaje. Confirma que sea el WhatsApp de COMPRAS y, cuando lo envíes, toca «Ya lo envié yo».");
   }
 
   async function enviar() {
@@ -261,6 +301,10 @@
     if (a === "agregar") { E.items.push({ producto: "", cantidad: "1", unidad: "u", finca: E.finca || "" }); pintar(); const ins = document.querySelectorAll(".te-tabla [data-k=producto]"); ins[ins.length - 1].focus(); return; }
     if (a === "rehacer") { E.editado = false; E.avisoProv = ""; E.texto = textoAuto(); return pintar(); }
     if (a === "vista") return vista();
+    if (a === "copiarimg") return copiarImagen();
+    if (a === "copiartxt") return copiarMensaje();
+    if (a === "abrirwa") return abrirWhatsApp();
+    if (a === "restablecer") { const o = JSON.parse(E.original); E.prov = o.prov; E.items = o.items; E.texto = o.texto; E.editado = o.editado; E.avisoProv = ""; return pintar(); }
     if (a === "png") return bajarPng();
     if (a === "pdf") return bajarPdf();
     if (a === "enviar") return enviar();
@@ -277,7 +321,11 @@
       const p = CATALOGO[Number(el.dataset.n)];
       E.prov = { nombre: p.nombre, chat: (p.chats || [])[0] || p.chat || "", telefono: p.telefono || "" };
       E.texto = E.editado ? E.texto : textoAuto();
-      E.avisoProv = E.editado ? `Cambiaste el proveedor a ${p.nombre}: revisa el saludo del mensaje o toca «Rehacer el mensaje».` : "";
+      const av = [];
+      if (otraZona(p)) av.push(`${p.nombre} es de ${p.zona} y la entrega es en ${zonaFinca() === "Costa" ? "la Costa" : "Imbabura"}: pregunta el costo del flete antes de aprobar.`);
+      if (!mismoRubro(p)) av.push(`${p.nombre} vende ${(p.rubros || []).join(", ")}; lo que se pide era de ${(E.rubrosOrig || []).join(", ")}. Confirma que sí lo tenga.`);
+      if (E.editado) av.push(`Cambiaste el proveedor: revisa el saludo del mensaje o toca «Rehacer el mensaje».`);
+      E.avisoProv = av.join(" ");
       return pintar();
     }
   }
@@ -310,6 +358,8 @@
     if (fi && !E.prov.telefono) E.prov.telefono = fi.telefono || "";
     if (!E.texto) E.texto = textoAuto();
     else { let auto = ""; try { auto = String(textoAuto() || ""); } catch (e) {} E.editado = E.texto.trim() !== auto.trim(); }
+    E.rubrosOrig = fi ? (fi.rubros || []).filter((r) => r !== "Por clasificar") : [];
+    E.original = JSON.stringify({ prov: E.prov, items: E.items, texto: E.texto, editado: E.editado });
     FOCO_PREVIO = document.activeElement;
     pintar();
     $("#te-capa").classList.add("ver");
