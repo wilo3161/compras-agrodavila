@@ -147,6 +147,7 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
         ${ed ? `<div class="chequeo"><b>Compara con la imagen y marca lo que está bien:</b>${CHEQUEOS.map(([k, n]) => `<label><input type="checkbox" data-chk="${k}" ${ch[k] ? "checked" : ""}> ${n}</label>`).join("")}</div>` : ""}
         <div class="acciones">
           ${ed ? `<button type="button" class="btn p" data-acc="aprobar" ${listo ? "" : "disabled"}>✅ Aprobar para subir</button>
+                  <div class="falta sub" style="width:100%;color:var(--ladrillo,#B5452F)">${esc(faltan(c))}</div>
                   <button type="button" class="btn" data-acc="descartar">❌ Descartar</button>` : ""}
           ${["aprobada", "descartada", "error"].includes(c.estado) ? `<button type="button" class="btn" data-acc="revisar">↩ Volver a revisar</button>` : ""}
         </div>
@@ -163,7 +164,10 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
   async function guardar(c, cambios) {
     const antes = {}; Object.keys(cambios).forEach((k) => { antes[k] = c[k] === undefined ? null : c[k]; });
     Object.assign(c, cambios);
-    if (!SOLO_LECTURA) await AgdNube.actualizarCarga(c.id, cambios);
+    if (!SOLO_LECTURA) {
+      try { await AgdNube.actualizarCarga(c.id, cambios); }
+      catch (e) { Object.assign(c, antes); throw e; }  // no se guardó: todo vuelve como estaba
+    }
     return antes;
   }
   const carga = (el) => S.cargas.find((x) => x.id === el.closest("[data-c]").dataset.c);
@@ -183,10 +187,21 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     const f = el.closest("[data-c]").querySelector(".final"); if (f) f.textContent = dinero(precioFinal(c));
     pintarBoton(c);
   });
+  function faltan(c) {
+    const ch = S.chequeos[c.id] || {}; const f = [];
+    const sinMarcar = CHEQUEOS.filter(([k]) => !ch[k]).map(([, n]) => n);
+    if (sinMarcar.length) f.push("marcar " + sinMarcar.join(", "));
+    if (!valor(c, "forma_pago")) f.push("elegir la forma de pago");
+    if (!valor(c, "proveedor_agrocontrol")) f.push("escribir el proveedor como está en AgroControl");
+    if (valor(c, "con_iva") == null) f.push("elegir sin o con IVA");
+    if (!(Number(valor(c, "precio_base")) > 0)) f.push("poner el precio");
+    return f.length ? "Para aprobar falta: " + f.join(" · ") : "";
+  }
   function pintarBoton(c) {
-    const ch = S.chequeos[c.id] || {};
-    const ok = CHEQUEOS.every(([k]) => ch[k]) && valor(c, "forma_pago") && valor(c, "proveedor_agrocontrol") && valor(c, "con_iva") != null && Number(valor(c, "precio_base")) > 0;
-    const b = document.querySelector(`[data-c="${CSS.escape(c.id)}"] [data-acc=aprobar]`); if (b) b.disabled = !ok;
+    const art = document.querySelector(`[data-c="${CSS.escape(c.id)}"]`); if (!art) return;
+    const txt = faltan(c);
+    const b = art.querySelector("[data-acc=aprobar]"); if (b) b.disabled = !!txt;
+    const f = art.querySelector(".falta"); if (f) f.textContent = txt;
   }
 
   document.addEventListener("click", async (e) => {
@@ -205,8 +220,15 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
         setTimeout(pintar, 330);
         avisar(`Aprobada: ${c.linea} a ${dinero(cambios.precio_final)} · queda lista para subir`, async () => { await guardar(c, Object.assign(antes, { estado: "por_revisar" })); pintar(); });
       } else if (b.dataset.acc === "descartar") {
-        const motivo = (prompt("¿Por qué se descarta? (por ejemplo: no es el mismo producto, precio vencido)") || "").trim();
-        if (!motivo) return;
+        const caja = art.querySelector(".motivos");
+        if (caja) { caja.remove(); return; }
+        art.querySelector(".acciones").insertAdjacentHTML("afterend", `<div class="motivos" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+          <span class="sub" style="width:100%">¿Por qué se descarta?</span>
+          ${["Ya está subida en AgroControl", "No es el mismo producto", "Precio vencido", "Otro"].map((m) => `<button type="button" class="btn sm" data-acc="motivo" data-m="${m}">${m}</button>`).join("")}</div>`);
+        return;
+      } else if (b.dataset.acc === "motivo") {
+        let motivo = b.dataset.m;
+        if (motivo === "Otro") { motivo = (window.prompt ? (prompt("Escribe el motivo") || "") : "").trim() || "Otro"; }
         art.classList.add("sale");
         await guardar(c, { estado: "descartada", motivo_descarte: motivo });
         setTimeout(pintar, 330);
@@ -214,7 +236,11 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
       } else if (b.dataset.acc === "revisar") {
         await guardar(c, { estado: "por_revisar" }); delete S.chequeos[c.id]; pintar();
       }
-    } catch (err) { avisar("No se pudo guardar: " + (err && err.message ? err.message : err)); }
+    } catch (err) {
+      if (art) art.classList.remove("sale");
+      pintar();
+      avisar("⚠️ NO se guardó: " + (err && err.message ? err.message : err) + " · Mándame una captura de este mensaje.");
+    }
     finally { b.disabled = false; }
   });
   $("#toast-deshacer").addEventListener("click", async () => { const f = deshacer; deshacer = null; $("#toast").classList.remove("ver"); if (f) await f(); });
