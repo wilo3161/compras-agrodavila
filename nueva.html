@@ -63,6 +63,7 @@ h2{margin:0 0 8px;font-size:17px}
       </div>
     </div>
     <div id="fuentes" aria-live="polite"></div>
+    <div id="aviso-agro"></div>
   </section>
 
   <section class="caja" aria-labelledby="t2">
@@ -73,8 +74,8 @@ h2{margin:0 0 8px;font-size:17px}
       <button class="b sm" type="button" id="vaciar">Vaciar la lista</button>
     </div>
     <div class="campos">
-      <label>Finca donde se entrega
-        <select id="finca"><option value="">— elige la finca —</option><option>Coñaqui</option><option>Eliana</option><option>Antonio López</option><option>Otoburo</option><option>El Carmen</option><option>Puerto Cayo</option><option value="varias">Varias fincas</option></select></label>
+      <label>Finca donde se entrega (para lo que no la trae)
+        <select id="finca"><option value="">— elige la finca —</option><option>Coñaqui</option><option>Eliana</option><option>Andrés López</option><option>Otoburo</option><option>Agrícola El Carmen</option><option>Puerto Cayo</option><option value="varias">Varias fincas</option></select></label>
       <label>Para qué es (opcional, va en el mensaje)
         <input id="motivo" maxlength="120" placeholder="Ej.: certificación, mantenimiento de bomba"></label>
     </div>
@@ -83,7 +84,7 @@ h2{margin:0 0 8px;font-size:17px}
   <section class="caja" aria-labelledby="t3">
     <h2 id="t3">3. Revisar y enviar</h2>
     <p class="sub">Se abre la tarjeta de envío: ahí eliges el proveedor de la base, ves la imagen y el PDF, y apruebas. Para pedir a varios proveedores, envía y vuelve a tocar el botón.</p>
-    <div class="fila-btn"><button class="b p" type="button" id="armar" disabled>Elegir proveedor y revisar</button></div>
+    <div id="grupos" class="fila-btn" style="flex-direction:column;align-items:stretch"></div>
     <div id="falta" class="sub" style="margin-top:6px;color:var(--ladrillo)"></div>
     <div id="enviados" aria-live="polite"></div>
   </section>
@@ -117,17 +118,24 @@ h2{margin:0 0 8px;font-size:17px}
   const aNum = (t) => String(t).trim().replace(",", ".");
   const RUIDO = /^(buen[oa]s? (d[ií]as?|tardes?|noches?)|hola|estimad|gracias|saludos|atentamente|por favor|favor|adjunto|subtotal|sub total|total|iva|descuento|fecha|ruc|cliente|direcci[oó]n|tel[eé]fono|p[aá]gina|datos usuario|detalle de productos|raz[oó]n social|tel[eé]fonos|correo|nota|validez|forma de pago|tiempo de entrega|proforma|reciba|nuestro|presente|atte|ibarra|quito|propietario)\b/i;
   const CAB_P = /^(producto|productos|descripci[oó]n|detalle|[ií]tem|items?|nombre|art[ií]culo|material|insumo|presentaci[oó]n|concepto)s?$/i;
-  const CAB_C = /^(cant\.?|cantidad|cantidades|ctd|enteros|unidades pedidas|pedido)$/i;
+  const CAB_C = /^(cant\.?|cantidad|cantidades|ctd|enteros|unidades pedidas)$/i;
+  /* Fincas de AgroDávila, con las formas en que las escriben. La finca se toma del archivo cuando viene; si no, se pregunta. */
+  const FINCAS = [["Coñaqui", /co[nñ]aqui/], ["Eliana", /\beliana\b/], ["Andrés López", /\b(andres|antonio|a)\.? lopez\b/], ["Otoburo", /otoburo/],
+    ["Agrícola El Carmen", /\bel carmen\b/], ["Puerto Cayo", /\b(puerto|pto)\.? cayo\b/]];
+  const sinTilde = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  function fincaDe(txt) { const t = sinTilde(txt); const h = FINCAS.filter((f) => f[1].test(t)); return h.length === 1 ? h[0][0] : ""; }
+  let META = null;   // lo que se supo del último archivo leído (si es el Excel de AgroControl, estados, fincas)
   const CAB_U = /^(unidad|unidades|u\.?m\.?|medida|und|presentaci[oó]n)$/i;
 
   /* Tabla (Excel, Word o texto pegado con tabuladores): se ubican las columnas por su título o por su contenido */
   function leerTabla(filas) {
     filas = filas.map((f) => f.map((c) => String(c == null ? "" : c).replace(/\s+/g, " ").trim())).filter((f) => f.some(Boolean));
     if (!filas.length) return [];
-    let cab = -1, cp = -1, cc = -1, cu = -1;
+    let cab = -1, cp = -1, cc = -1, cu = -1, cf = -1, cl = -1, ce = -1;
     for (let i = 0; i < Math.min(filas.length, 15) && cab < 0; i++) {
       const p = filas[i].findIndex((c) => CAB_P.test(c)), c = filas[i].findIndex((x) => CAB_C.test(x));
-      if (p >= 0 && (c >= 0 || filas[i].length <= 2)) { cab = i; cp = p; cc = c; cu = filas[i].findIndex((x, k) => k !== p && k !== c && CAB_U.test(x)); }
+      if (p >= 0 && (c >= 0 || filas[i].length <= 2)) { cab = i; cp = p; cc = c; cu = filas[i].findIndex((x, k) => k !== p && k !== c && CAB_U.test(x));
+        cf = filas[i].findIndex((x) => /^(finca|hacienda|destino|entrega en)$/i.test(x)); cl = filas[i].findIndex((x) => /^(c[oó]digo producto|l[ií]nea)$/i.test(x)); ce = filas[i].findIndex((x) => /^estado$/i.test(x)); }
     }
     const cuerpo = filas.slice(cab + 1);
     if (cab < 0) {   // sin títulos: la columna con más texto es el producto; la de números, la cantidad
@@ -139,12 +147,22 @@ h2{margin:0 0 8px;font-size:17px}
       cu = cols.filter((k) => k !== cp && k !== cc).sort((a, b) => punt(b, uni) - punt(a, uni))[0]; if (cu !== undefined && !punt(cu, uni)) cu = -1;
     }
     const out = [];
+    // Excel «Pedidos» de AgroControl: se cotiza solo lo que campo ya aprobó («Revisado Supervisor»); lo demás se cuenta y se avisa.
+    const agro = cl >= 0 && ce >= 0 && cf >= 0;
+    if (agro) META = { agro: true, total: 0, porCotizar: 0, sinAprobar: 0, yaCotizado: 0, autorizado: 0 };
     cuerpo.forEach((f) => {
       const p = f[cp] || ""; if (!p || RUIDO.test(p) || CAB_P.test(p) || !/[a-záéíóúñ]/i.test(p)) return;
+      if (agro) {
+        const est = sinTilde(f[ce]); META.total++;
+        if (/revisado supervisor/.test(est)) META.porCotizar++;
+        else { if (/pedido campo/.test(est)) META.sinAprobar++; else if (/proveedor seleccionado/.test(est)) META.yaCotizado++; else META.autorizado++; return; }
+        return out.push({ producto: p.toUpperCase(), cantidad: esNum(f[cc] || "") ? aNum(f[cc]) : "", unidad: (uni(f[cu]) || f[cu] || "").toUpperCase(), finca: fincaDe(f[cf]) || f[cf] || "", linea: f[cl] || "" });
+      }
+      const fin = cf >= 0 ? (fincaDe(f[cf]) || "") : "";
       let cant = cc >= 0 && esNum(f[cc] || "") ? aNum(f[cc]) : "", u = cu >= 0 ? (uni(f[cu]) || f[cu] || "") : "";
       if (cc >= 0 && !cant) { const m = /^(\d+[.,]?\d*)\s*([a-záéíóúñ.]+)$/i.exec(f[cc] || ""); if (m) { cant = aNum(m[1]); u = u || uni(m[2]) || m[2].toUpperCase(); } }
-      if (!cant || !u) { const r = leerRenglon(p); if (r && r.cantidad && !cant) return out.push(r); }
-      out.push({ producto: p.toUpperCase(), cantidad: cant, unidad: String(u).toUpperCase() });
+      if (!cant || !u) { const r = leerRenglon(p); if (r && r.cantidad && !cant) return out.push(Object.assign(r, { finca: fin })); }
+      out.push({ producto: p.toUpperCase(), cantidad: cant, unidad: String(u).toUpperCase(), finca: fin });
     });
     return out;
   }
@@ -160,6 +178,10 @@ h2{margin:0 0 8px;font-size:17px}
     return { producto: t.toUpperCase(), cantidad: "", unidad: "" };
   }
   function leerTexto(txt) {
+    const fTxt = fincaDe(txt);
+    return leerTexto0(txt).map((i) => (i.finca || !fTxt ? i : Object.assign(i, { finca: fTxt })));
+  }
+  function leerTexto0(txt) {
     const lineas = String(txt || "").replace(/\r/g, "").split("\n");
     if (lineas.filter((l) => l.includes("\t")).length >= Math.max(1, lineas.filter((l) => l.trim()).length / 2)) return leerTabla(lineas.map((l) => l.split("\t")));
     // Texto de una proforma o de una tabla (PDF o captura): si hay un renglón de títulos «Cantidad … Descripción»,
@@ -246,9 +268,9 @@ h2{margin:0 0 8px;font-size:17px}
     let n = 0;
     nuevos.forEach((i) => {
       const k = plano(i.producto); if (!k) return;
-      const ya = S.items.find((x) => plano(x.producto) === k);
-      if (ya) { if (!ya.cantidad && i.cantidad) ya.cantidad = i.cantidad; if (!ya.unidad && i.unidad) ya.unidad = i.unidad; return; }
-      S.items.push({ producto: i.producto, cantidad: i.cantidad || "", unidad: i.unidad || "" }); n++;
+      const ya = S.items.find((x) => plano(x.producto) === k && (x.linea || "") === (i.linea || "") && (!x.finca || !i.finca || x.finca === i.finca));
+      if (ya) { if (!ya.cantidad && i.cantidad) ya.cantidad = i.cantidad; if (!ya.unidad && i.unidad) ya.unidad = i.unidad; if (!ya.finca && i.finca) ya.finca = i.finca; return; }
+      S.items.push({ producto: i.producto, cantidad: i.cantidad || "", unidad: i.unidad || "", finca: i.finca || "", linea: i.linea || "" }); n++;
     });
     return n;
   }
@@ -272,11 +294,11 @@ h2{margin:0 0 8px;font-size:17px}
     const f = [], con = S.items.filter((i) => i.producto.trim());
     if (!con.length) f.push("al menos un producto");
     if (con.some((i) => !String(i.cantidad).trim())) f.push("la cantidad de cada producto");
-    if (!$("#finca").value) f.push("la finca");
+    if (con.some((i) => !i.finca) && !$("#finca").value) f.push("la finca de los productos que no la traen");
     return f;
   }
   function refrescar() {
-    const f = faltan(); $("#armar").disabled = !!f.length; $("#falta").textContent = f.length ? "Falta: " + f.join(" · ") : "";
+    const f = faltan(); $("#falta").textContent = f.length ? "Falta: " + f.join(" · ") : ""; pintarGrupos(f);
     const n = S.items.filter((i) => i.producto.trim()).length; $("#cuenta").textContent = n ? `· ${n}` : "";
   }
   function pintarItems() {
@@ -289,6 +311,7 @@ h2{margin:0 0 8px;font-size:17px}
         <input class="c" data-i="${n}" data-k="cantidad" inputmode="decimal" value="${esc(i.cantidad)}" placeholder="Cant." aria-label="Cantidad ${n + 1}" ${String(i.cantidad).trim() ? "" : `style="border-color:var(--ladrillo)"`}>
         <input class="u" data-i="${n}" data-k="unidad" value="${esc(i.unidad)}" placeholder="Unidad" aria-label="Unidad ${n + 1}">
         <button class="b sm x" type="button" data-quitar="${n}" aria-label="Quitar ${esc(i.producto)}">${I("cerrar") || "✕"}</button>
+        ${i.finca || i.linea ? `<div class="es">${i.finca ? "Finca " + esc(i.finca) : `<span style="color:var(--ladrillo)">sin finca</span>`}${i.linea ? " · " + esc(i.linea) : ""}</div>` : ""}
         ${p ? `<div class="es">En AgroControl hay «${esc(p.n)}»${p.c ? " · " + esc(p.c) : ""} <button type="button" data-usar="${n}" data-p="${S.prods.indexOf(p)}">Usar ese nombre</button></div>` : ""}</div>`;
     }).join("") + `</div>`;
     refrescar();
@@ -296,10 +319,17 @@ h2{margin:0 0 8px;font-size:17px}
   async function procesar(nombre, tarea) {
     const f = { nombre, estado: "Leyendo…" }; S.fuentes.push(f); pintarFuentes();
     try {
+      META = null;
       const antes = S.items.length, leidos = await tarea((pct) => { f.estado = `Leyendo la imagen… ${pct} %`; pintarFuentes(); });
-      const n = sumar(leidos);
-      f.estado = leidos.length ? `${leidos.length} renglón(es) leídos · ${n} producto(s) nuevos` : "No encontré productos aquí";
+      const n = sumar(leidos), m = META;
+      const fincas = [...new Set(leidos.map((i) => i.finca).filter(Boolean))];
+      f.estado = leidos.length ? `${leidos.length} renglón(es) leídos · ${n} producto(s) nuevos` + (fincas.length ? ` · finca${fincas.length > 1 ? "s" : ""}: ${fincas.join(", ")}` : " · no dice la finca: elígela abajo") : "No encontré productos aquí";
       f.mal = !leidos.length;
+      if (m && m.agro) {
+        f.estado = `Excel de AgroControl: ${m.total} líneas · ${m.porCotizar} esperan cotización (las traje) · ${m.yaCotizado} ya cotizadas · ${m.autorizado} autorizadas o cerradas` + (m.sinAprobar ? ` · ${m.sinAprobar} sin aprobar de campo` : "");
+        f.mal = false;
+        $("#aviso-agro").innerHTML = m.porCotizar ? `<div class="aviso" style="background:var(--pri2);color:var(--pri)">Estas ${m.porCotizar} líneas ya están en AgroControl. En <a href="cotizar.html"><b>Cotizar</b></a> salen repartidas por proveedor, con cuántas cotizaciones tiene cada una y a quién ya se le pidió. Usa esta página si quieres pedirlas tú por finca.</div>` : `<div class="aviso">En este Excel no hay líneas esperando cotización (estado «Revisado Supervisor»).</div>`;
+      }
       if (S.items.length !== antes || leidos.length) pintarItems();
     } catch (e) { f.estado = "No se pudo leer: " + (e.message || e); f.mal = true; }
     pintarFuentes();
@@ -311,25 +341,39 @@ h2{margin:0 0 8px;font-size:17px}
   function mensaje(e) {
     const hora = Number(new Date().toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/Guayaquil" }));
     const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
-    const finca = $("#finca").value, motivo = $("#motivo").value.trim();
-    const donde = !finca || finca === "varias" ? "" : ` para la finca ${finca}`;
+    const finca = e.finca || "", motivo = $("#motivo").value.trim();
+    const donde = !finca ? "" : ` para la finca ${finca}`;
     return `${saludo}, estimado/a. Le saluda el Ing. Wilson Pérez, encargado de compras de AgroDávila.\n\n` +
       `Por favor, ¿nos ayuda con una cotización formal${donde}${motivo ? ` (${motivo})` : ""} de:\n` +
       e.items.map((i) => `• ${[i.cantidad, i.unidad].filter(Boolean).join(" ")} — ${i.producto}`).join("\n") +
       `\n\nPor favor incluya: precio unitario (IVA aparte), disponibilidad o tiempo de entrega, forma de pago y validez de la oferta.\n\nMuchas gracias.`;
   }
-  function armar() {
-    const finca = $("#finca").value === "varias" ? "" : $("#finca").value;
-    const items = S.items.filter((i) => i.producto.trim()).map((i) => ({ producto: i.producto.trim(), cantidad: i.cantidad, unidad: i.unidad, finca }));
+  const fincaItem = (i) => i.finca || ($("#finca").value === "varias" ? "" : $("#finca").value);
+  function grupos() {
+    const g = new Map();
+    S.items.filter((i) => i.producto.trim()).forEach((i) => { const k = fincaItem(i); if (!g.has(k)) g.set(k, []); g.get(k).push(i); });
+    return [...g.entries()].sort((a, b) => b[1].length - a[1].length);
+  }
+  function pintarGrupos(f) {
+    const gs = grupos(), bloqueado = !!f.length;
+    $("#grupos").innerHTML = (gs.length ? gs : [["", []]]).map(([finca, its]) => {
+      const env = S.enviados.filter((e) => e.finca === finca).length;
+      return `<button class="b p" type="button" data-armar="${esc(finca)}" ${bloqueado || !its.length ? "disabled" : ""} style="justify-content:space-between">
+        <span>${gs.length > 1 || finca ? esc(finca || "Sin finca") + " · " + its.length + " producto(s)" : "Elegir proveedor y revisar"}</span>
+        <span style="font-weight:400">${env ? `ya pedido a ${env} · pedir a otro proveedor` : gs.length > 1 || finca ? "elegir proveedor y revisar" : ""}</span></button>`;
+    }).join("");
+  }
+  function armar(finca) {
+    const items = S.items.filter((i) => i.producto.trim() && fincaItem(i) === finca).map((i) => ({ producto: i.producto.trim(), cantidad: i.cantidad, unidad: i.unidad, finca, linea: i.linea || "" }));
     window.AgdTarjeta.abrir({ tipo: "cotizacion", proveedor: { nombre: "", chat: "", telefono: "" }, items, finca, texto: "" },
       { contexto: [finca, $("#motivo").value.trim(), "Nueva cotización"].filter(Boolean).join(" · "), origen: "nueva", generar: mensaje,
-        alEnviar: (r) => { S.enviados.push({ prov: r.proveedor, n: r.items.length, modo: "sale por WhatsApp en ~1 minuto" }); pintarEnviados(); avisar("Aprobado: sale por WhatsApp en ~1 minuto"); },
-        alYaEnviado: () => { S.enviados.push({ prov: "(enviado a mano)", n: items.length, modo: "marcado como enviado por ti" }); pintarEnviados(); } });
+        alEnviar: (r) => { S.enviados.push({ prov: r.proveedor, finca, n: r.items.length, modo: "sale por WhatsApp en ~1 minuto" }); pintarEnviados(); avisar("Aprobado: sale por WhatsApp en ~1 minuto"); },
+        alYaEnviado: () => { S.enviados.push({ prov: "(enviado a mano)", finca, n: items.length, modo: "marcado como enviado por ti" }); pintarEnviados(); } });
   }
   function pintarEnviados() {
-    $("#enviados").innerHTML = S.enviados.map((e) => `<div class="hecho">${I("check")} <b>${esc(e.prov)}</b> · ${e.n} producto(s) · ${esc(e.modo)}</div>`).join("") +
-      (S.enviados.length ? `<p class="sub" style="margin-top:8px">La política pide mínimo 2 cotizaciones (3 si pasa de $500): toca otra vez «Elegir proveedor y revisar» para pedirle a otro la misma lista.</p>` : "");
-    $("#armar").textContent = S.enviados.length ? "Pedir la misma lista a otro proveedor" : "Elegir proveedor y revisar";
+    $("#enviados").innerHTML = S.enviados.map((e) => `<div class="hecho">${I("check")} <b>${esc(e.prov)}</b>${e.finca ? " · " + esc(e.finca) : ""} · ${e.n} producto(s) · ${esc(e.modo)}</div>`).join("") +
+      (S.enviados.length ? `<p class="sub" style="margin-top:8px">La política pide mínimo 2 cotizaciones (3 si pasa de $500): toca otra vez el botón de la finca para pedirle a otro proveedor la misma lista.</p>` : "");
+    refrescar();
   }
 
   /* ───────── Eventos ───────── */
@@ -337,9 +381,8 @@ h2{margin:0 0 8px;font-size:17px}
   $("#elegir").onclick = () => $("#archivos").click();
   $("#archivos").onchange = (e) => { recibir(e.target.files); e.target.value = ""; };
   $("#agregar").onclick = () => { S.items.push({ producto: "", cantidad: "", unidad: "" }); pintarItems(); const ins = document.querySelectorAll("#items [data-k=producto]"); ins[ins.length - 1].focus(); };
-  $("#vaciar").onclick = () => { if (!S.items.length || confirm("¿Vaciar la lista de productos?")) { S.items = []; S.fuentes = []; pintarFuentes(); pintarItems(); } };
-  $("#armar").onclick = armar;
-  $("#finca").onchange = refrescar;
+  $("#vaciar").onclick = () => { if (!S.items.length || confirm("¿Vaciar la lista de productos?")) { S.items = []; S.fuentes = []; $("#aviso-agro").innerHTML = ""; pintarFuentes(); pintarItems(); } };
+  $("#finca").onchange = () => pintarItems();
   const zona = $("#suelta");
   ["dragenter", "dragover"].forEach((ev) => zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.add("encima"); }));
   ["dragleave", "drop"].forEach((ev) => zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.remove("encima"); }));
@@ -356,6 +399,7 @@ h2{margin:0 0 8px;font-size:17px}
     S.items[Number(el.dataset.i)][el.dataset.k] = el.value; if (el.dataset.k === "cantidad") el.style.borderColor = el.value.trim() ? "" : "var(--ladrillo)"; refrescar();
   });
   document.addEventListener("click", (e) => {
+    const ar = e.target.closest("[data-armar]"); if (ar && !ar.disabled) return armar(ar.dataset.armar);
     const q = e.target.closest("[data-quitar]"); if (q) { S.items.splice(Number(q.dataset.quitar), 1); return pintarItems(); }
     const u = e.target.closest("[data-usar]"); if (u) { const p = S.prods[Number(u.dataset.p)], it = S.items[Number(u.dataset.usar)]; it.producto = p.n; if (!it.unidad && p.u) it.unidad = p.u; return pintarItems(); }
   });
