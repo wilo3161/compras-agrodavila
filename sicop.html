@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OC para SICOP · Compras AgroDávila</title>
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+main{max-width:1080px;margin:0 auto;padding:20px 16px 40px}
+h1{margin:0 0 4px;font-size:26px}
+.sub{color:var(--t2);font-size:14px;line-height:1.45}
+.pestanas{display:flex;gap:6px;margin:14px 0;flex-wrap:wrap}
+.pestanas button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer;min-height:42px}
+.pestanas button.activa{background:var(--pri);border-color:var(--pri);color:#fff}
+.oc{background:var(--card);border:1px solid var(--bd);border-radius:18px;box-shadow:var(--sombra);padding:16px;margin-bottom:16px}
+.oc h2{margin:0;font-size:18px}
+.paso{display:grid;grid-template-columns:150px minmax(0,1fr);gap:6px 12px;padding:9px 0;border-bottom:1px solid var(--bd);align-items:start}
+.paso .et{color:var(--t2);font-size:13px;padding-top:4px}
+.paso .val{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:600}
+.paso textarea,.paso input{width:100%;padding:9px;border:1px solid var(--bd);border-radius:10px;background:transparent;color:inherit;font:inherit}
+.orden{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--pri2);color:var(--pri);font-size:12px;font-weight:700;margin-right:6px;flex:none}
+.items{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:14px}
+.items th{font-size:12px;color:var(--t2);text-align:left;padding:6px;border-bottom:1px solid var(--bd);white-space:nowrap}
+.items td{padding:7px 6px;border-bottom:1px solid var(--bd);vertical-align:top}
+.items td.n,.items th.n{text-align:right;font-variant-numeric:tabular-nums}
+.sug{color:var(--md);font-size:12px;font-weight:600}
+.aviso{background:var(--ladrillo2);color:var(--ladrillo);border-radius:10px;padding:8px 10px;margin:8px 0 0;font-size:13px;line-height:1.4}
+.total{display:flex;gap:18px;flex-wrap:wrap;justify-content:flex-end;font-variant-numeric:tabular-nums;margin-top:8px;font-size:14px}
+.total b{font-family:var(--titulo);font-size:18px}
+.chipoc{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;background:var(--pri2);color:var(--pri);margin-left:6px}
+.chipoc.hecha{background:var(--okbg);color:var(--ok)}
+.vacio{padding:36px 16px;text-align:center;color:var(--t2);background:var(--card);border:1px dashed var(--bd);border-radius:16px}
+.toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#23262B;color:#fff;border-radius:12px;padding:10px 14px;display:none;gap:12px;align-items:center;z-index:60;font-size:14px;max-width:92vw}
+.toast.ver{display:flex}
+@media (max-width:760px){
+  .paso{grid-template-columns:1fr}
+  .items thead{display:none}
+  .items,.items tbody,.items tr,.items td{display:block;width:100%}
+  .items tr{border:1px solid var(--bd);border-radius:12px;padding:8px 10px;margin-bottom:8px}
+  .items td{border:0;padding:3px 0;display:flex;justify-content:space-between;gap:10px;text-align:right}
+  .items td::before{content:attr(data-l);color:var(--t2);font-size:12px;font-weight:600;text-align:left}
+  .items td.prod{display:block;text-align:left;font-weight:700}
+  .items td.prod::before{display:none}
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>OC para SICOP</h1>
+  <p class="sub" id="subtitulo">Cada orden de compra de AgroControl, con los datos en el mismo orden de la pantalla de SICOP y un botón para copiar cada uno. Tú la digitas y la procesas en SICOP; aquí no se guarda nada en SICOP.</p>
+  <div class="pestanas" role="tablist">
+    <button type="button" class="activa" data-tab="pendiente">Por registrar en SICOP <span id="n-pendiente"></span></button>
+    <button type="button" data-tab="hecha">Ya registradas <span id="n-hecha"></span></button>
+  </div>
+  <section id="lista"><div class="esqueleto" role="status"><span class="lector">Cargando órdenes de compra…</span><i></i><i></i></div></section>
+  <p class="sub" id="pie" style="margin-top:14px"></p>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-txt"></span></div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const I = (n) => (window.AgdGuia && AgdGuia.ico ? AgdGuia.ico(n) : "");
+  const params = new URLSearchParams(location.search);
+  const LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  const PRUEBA = LOCAL ? params.get("prueba") : null;   // solo en la PC de desarrollo
+  const S = { filas: [], mapa: {}, tab: "pendiente", motivo: {} };
+  const plano = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const num = (v) => { const x = Number(String(v == null ? "" : v).replace(",", ".")); return isFinite(x) ? x : 0; };
+  const dinero = (v, d = 2) => "$" + Number(v || 0).toLocaleString("es-EC", { minimumFractionDigits: d, maximumFractionDigits: d });
+  let reloj = null;
+  function avisar(t) { $("#toast-txt").textContent = t; $("#toast").classList.add("ver"); clearTimeout(reloj); reloj = setTimeout(() => $("#toast").classList.remove("ver"), 5000); }
+
+  /* Listas de SICOP vistas en pantalla el 16/11/2026 (capturas 14, 15 y 16): 13 medidas y 24 clases de insumos. */
+  const MEDIDAS = { UND: "Unidad (u)", UN: "Unidad (u)", U: "Unidad (u)", UNIDAD: "Unidad (u)", UNIDADES: "Unidad (u)", KG: "Kilogramos (kg)", KILO: "Kilogramos (kg)", KILOS: "Kilogramos (kg)",
+    LT: "Litros (l)", L: "Litros (l)", LITRO: "Litros (l)", LITROS: "Litros (l)", ML: "Mililitros (ml)", GR: "Gramos (gr)", G: "Gramos (gr)", GL: "Galones (gl)", GALON: "Galones (gl)", GALONES: "Galones (gl)",
+    LB: "Libra (lb)", LIBRA: "Libra (lb)", LIBRAS: "Libra (lb)", M: "Metros (m)", MT: "Metros (m)", MTS: "Metros (m)", METRO: "Metros (m)", METROS: "Metros (m)", M3: "Metros cúbicos (m3)",
+    SACO: "Sacos (SC)", SACOS: "Sacos (SC)", SC: "Sacos (SC)", TON: "Tonelada (t)", T: "Tonelada (t)", CC: "Centimetros Cubicos (cc)", KAVETA: "Kavetas (Kv)", KAVETAS: "Kavetas (Kv)" };
+  /* Clasificación SUGERIDA a partir de la categoría de AgroControl. Es una sugerencia: la definitiva la eliges en SICOP. */
+  const CLASES = { "Insecticidas, acaricidas y molusquicidas": "INSECTICIDAS", "Fungicidas y bactericidas": "FUNGICIDAS", "Herbicidas": "HERBICIDAS", "Fertilizantes": "FERTILIZANTES",
+    "Bioestimulantes y reguladores de crecimiento": "BIOESTIMULANTES", "Abonos orgánicos y sustratos": "ORGANICOS", "Coadyuvantes y correctores de agua/pH": "CORRECTORES",
+    "Herramientas": "Materiales y herramientas", "Ferretería y fijación": "Materiales y herramientas", "Construcción, acabados y plomería": "Materiales y herramientas",
+    "Material agrícola": "Materiales y herramientas", "Material eléctrico e iluminación": "Materiales y herramientas", "EPP y seguridad": "Materiales y herramientas",
+    "Riego e hidráulica": "Materiales y herramientas", "Repuestos de maquinaria": "Accesorios maquinaria", "Maquinaria y equipos motorizados": "Accesorios maquinaria" };
+  const campo = (f, corto, largo) => (f[largo] != null && f[largo] !== "") ? f[largo] : (f[corto] != null ? f[corto] : "");
+
+  async function cargar() {
+    try {
+      if (PRUEBA) { const d = await (await fetch(PRUEBA)).json(); S.filas = d.filas || []; S.mapa = d.mapa || {};
+        $("#subtitulo").insertAdjacentHTML("afterend", `<p class="sub" style="color:var(--ladrillo)"><strong>PRUEBA LOCAL · no se guarda nada</strong></p>`); return pintar(); }
+      let ses = false; try { ses = !!(window.ComprasApp && await ComprasApp.sesion({ permitirNube: true })); } catch (e) {}
+      if (!ses) { $("#lista").innerHTML = `<div class="vacio">Inicia sesión para ver las órdenes.<br><br><a class="btn p" href="index.html">Ir a iniciar sesión</a></div>`; return; }
+      const snap = await ComprasApp.filasAgro({ forzar: false });
+      S.filas = (snap && snap.filas) || [];
+      try { const m = await AgdNube.leerMapaSicop(); (m || []).forEach((x) => { S.mapa[plano(x.nombre_agrocontrol)] = x; }); } catch (e) {}
+      pintar();
+    } catch (e) { $("#lista").innerHTML = `<div class="vacio">No se pudo leer AgroControl: ${esc(e.message || e)}</div>`; }
+  }
+
+  function ordenes() {
+    const por = new Map();
+    for (const f of S.filas) {
+      const oc = String(campo(f, "oc_codigo", "OC (código)") || "").trim();
+      const est = String(campo(f, "estado", "Estado (código)") || "").toLowerCase();
+      if (!oc || est === "anulado" || est === "rechazado") continue;
+      if (!por.has(oc)) por.set(oc, { oc, lineas: [] });
+      por.get(oc).lineas.push(f);
+    }
+    return [...por.values()].map((o) => {
+      const f0 = o.lineas[0];
+      const prov = String(campo(f0, "proveedor", "Proveedor") || "");
+      const m = S.mapa[plano(prov)] || null;
+      const items = o.lineas.map((f) => {
+        const cant = num(campo(f, "cantidad", "Cantidad")), conIva = num(campo(f, "precio_sel", "Precio unit. elegido"));
+        const baseDato = campo(f, "precio_base_sel", "Precio base elegido"), pctDato = campo(f, "iva_pct_sel", "IVA % elegido");
+        const sabeIva = baseDato !== "" && pctDato !== "";
+        const pct = sabeIva ? num(pctDato) : null, base = sabeIva ? num(baseDato) : null;
+        const uni = String(campo(f, "unidad", "Unidad") || ""), cat = String(campo(f, "categoria", "Categoría") || "");
+        return { linea: campo(f, "linea", "Línea"), producto: String(campo(f, "producto", "Producto") || ""), cant, uni, cat,
+          medida: MEDIDAS[plano(uni)] || "", clase: CLASES[cat] || "", conIva, base, pct, sabeIva };
+      });
+      const completo = items.every((i) => i.sabeIva);
+      const subtotal = completo ? items.reduce((a, i) => a + i.base * i.cant, 0) : null;
+      const iva = completo ? items.reduce((a, i) => a + i.base * i.cant * i.pct / 100, 0) : null;
+      const numero = String(campo(f0, "numero_oc", "N° OC") || "").trim();
+      return { oc: o.oc, pedido: campo(f0, "pedido", "Pedido"), finca: String(campo(f0, "finca", "Finca") || ""), prov, m, items, completo, subtotal, iva,
+        total: completo ? subtotal + iva : items.reduce((a, i) => a + i.conIva * i.cant, 0), numero,
+        pago: String(campo(f0, "tipo_pago", "Tipo de pago") || ""), credito: campo(f0, "dias_credito", "Días crédito"),
+        servicio: items.every((i) => /servicio/i.test(i.cat)), creada: String(campo(f0, "oc_creada", "F. OC creada") || "") };
+    }).sort((a, b) => String(b.creada).localeCompare(String(a.creada)) || a.oc.localeCompare(b.oc));
+  }
+
+  const copiar = (v, et) => `<button type="button" class="btn sm" data-cp="${esc(v)}" aria-label="Copiar ${esc(et || "")}">Copiar</button>`;
+  const hoyEc = () => new Date().toLocaleDateString("es-EC", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Guayaquil" });
+
+  function htmlOC(o) {
+    const provSicop = o.m && o.m.nombre_en_sicop ? o.m.nombre_en_sicop : o.prov;
+    const estadoProv = o.m ? o.m.en_sicop : "";
+    const noCreado = estadoProv === "no creado";
+    const motivo = S.motivo[o.oc] != null ? S.motivo[o.oc] : "COMPRA DE " + o.items.slice(0, 3).map((i) => i.producto).join(", ") + (o.items.length > 3 ? " Y OTROS" : "");
+    const obs = `FINCA ${o.finca.toUpperCase()}\n${motivo.toUpperCase()}`;
+    const n = (k) => `<span class="orden">${k}</span>`;
+    return `<article class="oc" data-oc="${esc(o.oc)}">
+      <h2>${esc(o.prov)} <span class="chipoc${o.numero ? " hecha" : ""}">${o.numero ? "SICOP " + esc(o.numero) : "Por registrar"}</span></h2>
+      <div class="sub">${esc(o.oc)} · pedido ${esc(o.pedido)} · ${esc(o.finca)} · ${o.items.length} producto${o.items.length === 1 ? "" : "s"}${o.creada ? " · OC creada el " + esc(String(o.creada).slice(0, 10)) : ""}</div>
+      ${noCreado ? `<div class="aviso">${I("alerta")} Este proveedor <b>no está creado en SICOP</b>. Hay que crearlo allá antes de poder hacerle la orden.</div>` : ""}
+      ${!o.m ? `<div class="aviso">${I("alerta")} Todavía no se ha comprobado cómo se llama este proveedor en SICOP. Búscalo por nombre con F9.</div>` : ""}
+      <div class="paso"><span class="et">${n(1)}Menú</span><span class="val">Datos → Orden de Compra</span></div>
+      <div class="paso"><span class="et">${n(2)}# Fecha Orden</span><span class="val">${esc(hoyEc())} ${copiar(hoyEc(), "fecha")}</span></div>
+      <div class="paso"><span class="et">${n(3)}Tipo</span><span class="val">${o.servicio ? "Servicio" : "Compra"}</span></div>
+      <div class="paso"><span class="et">${n(4)}Proveedor (F9)</span><span class="val">${esc(provSicop)} ${copiar("%" + provSicop.split(" ").slice(0, 2).join(" ") + "%", "búsqueda del proveedor")}
+        <span class="sub" style="font-weight:400;width:100%">${estadoProv === "sí, con otro nombre" ? `En SICOP está con este nombre (en AgroControl es ${esc(o.prov)}). ` : ""}Se copia el texto de búsqueda con %. ${o.m && o.m.ruc ? "RUC " + esc(o.m.ruc) + "." : ""}</span></span></div>
+      <div class="paso"><span class="et">${n(5)}Días crédito</span><span class="val">${esc(o.pago || "—")}${o.pago === "Crédito" ? " · " + esc(o.credito || 0) + " días" : ""}
+        <span class="sub" style="font-weight:400;width:100%">SICOP pone solo los días de la ficha del proveedor. En AgroControl esta compra está como «${esc(o.pago || "sin dato")}»: verifica cuál corresponde.</span></span></div>
+      <div class="paso"><span class="et">${n(6)}Observación</span><span>
+        <span class="sub">Escríbela <b>después</b> de elegir el proveedor: SICOP borra este campo al elegirlo. Va arriba de los datos que SICOP pone solo.</span>
+        <input data-motivo="${esc(o.oc)}" value="${esc(motivo)}" aria-label="Motivo de la compra" style="margin:6px 0">
+        <textarea readonly rows="2" data-obs aria-label="Observación para SICOP">${esc(obs)}</textarea>
+        <span class="val" style="margin-top:6px">${copiar(obs, "observación")}</span></span></div>
+      <div class="paso" style="border-bottom:0"><span class="et">${n(7)}Productos</span><span class="sub">Uno por fila: producto con F9, medida, clasificación, cantidad y valor unitario <b>sin IVA</b>; luego marca la casilla IVA y el porcentaje.</span></div>
+      <table class="items"><thead><tr><th>Producto (F9)</th><th>Medida</th><th>Clasificación</th><th class="n">Cantidad</th><th class="n">Valr Unt. sin IVA</th><th>IVA</th></tr></thead><tbody>
+        ${o.items.map((i) => `<tr>
+          <td class="prod" data-l="Producto">${esc(i.producto)} ${copiar("%" + i.producto.split(" ").slice(0, 2).join(" ") + "%", "búsqueda del producto")}<div class="sub">${esc(i.linea)}</div></td>
+          <td data-l="Medida">${i.medida ? esc(i.medida) : `<span class="sug">elige en la lista (${esc(i.uni || "sin unidad")})</span>`}</td>
+          <td data-l="Clasificación">${i.clase ? `${esc(i.clase)} <span class="sug">sugerida</span>` : `<span class="sug">elige en la lista</span>`}</td>
+          <td class="n" data-l="Cantidad">${esc(i.cant)} ${copiar(String(i.cant), "cantidad")}</td>
+          <td class="n" data-l="Valr Unt. sin IVA">${i.sabeIva ? `${esc(i.base.toFixed(4))} ${copiar(i.base.toFixed(4), "valor unitario")}` : `<span class="sug">con IVA incluido: ${esc(i.conIva)}</span>`}</td>
+          <td data-l="IVA">${i.sabeIva ? (i.pct > 0 ? `Marcar · ${esc(i.pct)} %` : "Sin IVA") : `<span class="sug">revisa la proforma</span>`}</td></tr>`).join("")}
+      </tbody></table>
+      ${o.completo ? "" : `<div class="aviso">${I("alerta")} De esta orden no tengo el precio sin IVA de todos los productos (falta entrar con tu usuario de AgroControl o la cotización no lo tiene). Toma el valor sin IVA de la proforma.</div>`}
+      <div class="total">${o.completo ? `<span>Subtotal ${dinero(o.subtotal)}</span><span>IVA ${dinero(o.iva)}</span>` : ""}<span>Total que debe mostrar SICOP: <b>${dinero(o.total)}</b></span></div>
+      <div class="sub" style="text-align:right">Compara este total con el de SICOP <b>antes</b> de tocar «Procesar Orden».</div>
+    </article>`;
+  }
+
+  function pintar() {
+    const todas = ordenes();
+    const pend = todas.filter((o) => !o.numero), hechas = todas.filter((o) => o.numero);
+    if (window.AgdMov) { AgdMov.latir($("#n-pendiente"), pend.length ? `(${pend.length})` : " "); AgdMov.latir($("#n-hecha"), hechas.length ? `(${hechas.length})` : " "); }
+    const lista = S.tab === "pendiente" ? pend : hechas;
+    const cont = $("#lista");
+    cont.innerHTML = lista.length ? lista.map(htmlOC).join("")
+      : `<div class="vacio">${S.tab === "pendiente" ? "No hay órdenes de AgroControl esperando registro en SICOP." : "Todavía no hay órdenes con número de SICOP anotado en AgroControl."}</div>`;
+    if (window.AgdMov) AgdMov.entrar(cont, S.tab);
+    $("#pie").textContent = `${todas.length} órdenes de compra en AgroControl · una orden pasa a «Ya registradas» cuando anotas su número de SICOP en AgroControl.`;
+  }
+
+  document.addEventListener("click", async (e) => {
+    const tab = e.target.closest("[data-tab]");
+    if (tab) { S.tab = tab.dataset.tab; document.querySelectorAll("[data-tab]").forEach((x) => x.classList.toggle("activa", x === tab)); return pintar(); }
+    const cp = e.target.closest("[data-cp]");
+    if (cp) {
+      try { await navigator.clipboard.writeText(cp.dataset.cp); avisar("Copiado: " + cp.dataset.cp.replace(/\n/g, " / ")); }
+      catch (err) { avisar("No se pudo copiar solo. Cópialo a mano: " + cp.dataset.cp); }
+    }
+  });
+  document.addEventListener("input", (e) => {
+    const m = e.target.closest("[data-motivo]"); if (!m) return;
+    S.motivo[m.dataset.motivo] = m.value;
+    const art = m.closest(".oc"), o = ordenes().find((x) => x.oc === m.dataset.motivo); if (!o) return;
+    const obs = `FINCA ${o.finca.toUpperCase()}\n${m.value.toUpperCase()}`;
+    art.querySelector("[data-obs]").value = obs;
+    const b = art.querySelector("[data-obs]").parentNode.querySelector("[data-cp]"); if (b) b.dataset.cp = obs;
+  });
+  cargar();
+})();
+</script>
+</body>
+</html>

@@ -1165,6 +1165,7 @@
     } catch (e) { return null; }
   }
   const leerCatalogoProveedores = () => _leerDocJson("agrocontrol/catalogo_proveedores");
+  const leerMapaSicop = () => _leerDocJson("agrocontrol/sicop_mapa");   // proveedor de AgroControl → nombre y RUC en SICOP
   const leerCotizacionesPorLinea = () => _leerDocJson("agrocontrol/cotizaciones");
 
   async function escucharCotizar(cb, alError) {
@@ -1340,6 +1341,7 @@
     cancelarSolicitudCotizacion,
     registrarDecision,
     leerEstadoAgente,
+    leerMapaSicop,
     asegurarConexion,
     estaConectada,
     escucharSeguimiento,

@@ -140,7 +140,8 @@
       put("F. autorización", loc(p.fecha_aprobacion || primera(p, "aprobado"))); put("N° cotizaciones", cs.length); put("Precio unit. elegido", p.precio_unitario_seleccionado || "");
       if (pus.length) { put("Precio unit. mínimo", Math.min(...pus)); put("Precio unit. máximo", Math.max(...pus)); }
       const pv = mProv.get(p.proveedor_seleccionado_id); put("Proveedor", pv ? pv.nombre : "");
-      if (sel) { if (sel.dias_entrega != null) put("Días entrega ofrecidos", sel.dias_entrega); put("Tipo de pago", sel.tipo_pago); put("Días crédito", sel.plazo_dias || 0); }
+      if (sel) { if (sel.precio_base != null) put("Precio base elegido", sel.precio_base); if (sel.iva_pct != null) put("IVA % elegido", sel.iva_pct);
+        if (sel.dias_entrega != null) put("Días entrega ofrecidos", sel.dias_entrega); put("Tipo de pago", sel.tipo_pago); put("Días crédito", sel.plazo_dias || 0); }
       if (o) {
         put("F. OC creada", loc(o.creado_en)); put("F. pago programada", dia(o.fecha_pago_programada)); put("Pago programado el", loc(o.programado_en));
         put("F. pago aprobado (3 OK)", dia(o.fecha_pago_aprobado)); put("N° OC", o.numero_oc); put("F. registro N° OC", loc(o.oc_fecha));
