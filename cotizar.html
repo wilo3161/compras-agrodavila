@@ -166,9 +166,9 @@ ul.items li .det{font-size:12px;color:var(--t2)}
   async function cargar() {
     if (PRUEBA) {
       const d = await (await fetch(PRUEBA)).json();
-      Object.assign(S, { filas: d.filas || [], cots: d.cots || {}, catalogo: d.catalogo || [], seg: d.seg || {} });
+      Object.assign(S, { filas: d.filas || [], cots: d.cots || {}, catalogo: d.catalogo || [], seg: d.seg || {}, estado: d.estado || {} });
       $("#subtitulo").innerHTML = `<strong style="color:var(--ladrillo,#B5452F)">PRUEBA LOCAL con datos reales · no se guarda nada</strong>`;
-      window.__S = S;
+      window.__S = S; window.__pendientes = pendientes; window.__armar = armarTarjetas;
       return pintar();
     }
     if (DEMO) { cargarDemo(); return pintar(); }

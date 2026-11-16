@@ -270,7 +270,7 @@
   const zonaFinca = () => { const f = plano(E.finca || (E.items.find((i) => i.finca) || {}).finca || ""); return !f ? "" : (COSTA.some((c) => f.includes(c)) ? "Costa" : "Imbabura"); };
   const otraZona = (p) => { const z = zonaFinca(); return !!z && !!p.zona && p.zona !== "Nacional" && p.zona !== z; };
   const mismoRubro = (p) => { const r = E.rubrosOrig || []; return !r.length || !(p.rubros || []).length || (p.rubros || []).some((x) => r.includes(x)) || (p.rubros || []).includes("Por clasificar"); };
-  function listaProv(q) {
+  function provOrdenados(q) {
     const qq = plano(q);
     // Primero los del mismo rubro y de la zona de la finca; después los sin clasificar; al final los de otro rubro.
     const rO = E.rubrosOrig || [];
@@ -282,12 +282,21 @@
     const pals = qq.split(" ").filter(Boolean);
     const l = (CATALOGO || []).filter((p) => { if (!pals.length) return true; if (p._k === undefined) p._k = plano(p.nombre + " " + (p.chats || []).join(" ") + " " + (p.rubros || []).join(" ") + " " + (p.ciudad || "") + " " + (p.zona || "") + " " + (p.productos || []).join(" ")); return pals.every((w) => p._k.includes(w)); })
       .sort((a, b) => orden(a) - orden(b) || a.nombre.localeCompare(b.nombre)).slice(0, 50);
+    return { l, vendio };
+  }
+  function listaProv(q) {
+    const { l, vendio } = provOrdenados(q);
     return l.map((p) => `<button type="button" data-te="elegir" data-n="${CATALOGO.indexOf(p)}"><b>${esc(p.nombre)}</b>
       ${vendio(p) ? `<span class="te-chip">ya vendió ${vendio(p) === 1 ? "1 de estos productos" : vendio(p) + " de estos productos"}</span>` : ""}${otraZona(p) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}${mismoRubro(p) ? "" : `<span class="te-chip alerta">no vende lo mismo</span>`}
       <span class="te-sub" style="display:block">${esc((p.rubros || []).join(" · "))}${(p.chats || []).length ? " · con WhatsApp" : p.telefono ? " · con teléfono" : " · sin WhatsApp"}${p.ciudad ? " · " + esc(p.ciudad) : p.zona ? " · " + esc(p.zona) : ""}</span></button>`).join("")
       || `<div class="te-sub" style="padding:10px">Ningún proveedor con ese nombre.</div>`;
   }
   function htmlBuscador() {
+    if (!(CATALOGO || []).length) return `<div class="te-aviso">${I("alerta")} <b>No pude leer la base de proveedores.</b> ${sinGoogle() ? "En este navegador falta conectar tu cuenta de Google: sin eso no se ve la base ni se puede enviar por WhatsApp." : "Revisa el internet y vuelve a intentar."}
+        <div style="margin-top:8px"><button class="te-btn p sm" type="button" data-te="conectar">${sinGoogle() ? "Conectar con Google y cargar proveedores" : "Volver a cargar proveedores"}</button></div></div>
+      <div class="te-sub" style="margin-top:6px">Mientras tanto puedes escribir el proveedor a mano: <input id="te-nuevo" placeholder="Nombre del proveedor" style="margin-top:4px;width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--bd,#E2E4E7);border-radius:8px;background:transparent;color:inherit;font:inherit">
+        <input id="te-tel" inputmode="tel" placeholder="Número, ej. 0991234567" value="${esc(E.prov.telefono || "")}" style="margin-top:4px;width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--bd,#E2E4E7);border-radius:8px;background:transparent;color:inherit;font:inherit">
+        <button class="te-btn sm" type="button" data-te="usarnuevo" style="margin-top:4px">Usar este proveedor</button></div>`;
     return `<input id="te-buscar" class="te-buscar" autocomplete="off" placeholder="Buscar proveedor por nombre, chat, rubro o producto (ej.: fertilizantes, glufosinato)" aria-label="Buscar proveedor">
       <div class="te-sub" style="margin-top:4px">${(CATALOGO || []).length} proveedores en la base. Primero salen los que ya vendieron estos productos y los de la zona de la finca.</div>
       <div class="te-lista" id="te-lista">${listaProv("")}</div>
@@ -389,6 +398,17 @@
       const c = document.querySelector(`.te-tabla [data-k=cantidad][data-i="${el.dataset.i}"]`); if (c) { c.focus(); c.select(); }
       return;
     }
+    if (a === "conectar") {
+      el.disabled = true; el.textContent = "Conectando…";
+      (async () => {
+        const est = E;
+        try { if (sinGoogle() && AgdNube.asegurarConexion) await AgdNube.asegurarConexion(); } catch (e) { if (E === est) { _nota("No se conectó: " + (e.message || e)); pintar(); } return; }
+        CATALOGO = null; PRODS = null; await catalogo(); productos();
+        if (E !== est) return;
+        preelegir(); pintar();
+      })();
+      return;
+    }
     if (a === "usarnuevo") {
       const nom = String(($("#te-nuevo") || {}).value || "").trim(); if (!nom) { _nota("Escribe el nombre del proveedor."); return; }
       E.prov = { nombre: nom, chat: "", telefono: String(($("#te-tel") || {}).value || "").trim() }; E.buscando = false;
@@ -440,6 +460,21 @@
     if (!(el.closest && el.closest("#te-sug"))) quitarSug();
   }
 
+  /* El agente propone el proveedor: solo si hay prueba (ya vendió alguno de estos productos); si no, se queda el buscador. */
+  function preelegir() {
+    if (!E || E.prov.nombre || !E.op.preelegir || !(CATALOGO || []).length) return;
+    const fuera = (E.op.excluir || []).map(plano);
+    const { l, vendio } = provOrdenados("");
+    const p = l.find((x) => vendio(x) > 0 && !fuera.includes(plano(x.nombre)) && ((x.chats || []).length || x.telefono));
+    if (!p) return;
+    const n = vendio(p), tot = E.items.filter((i) => plano(i.producto).length > 2).length;
+    E.prov = { nombre: p.nombre, chat: (p.chats || [])[0] || p.chat || "", telefono: p.telefono || "" };
+    E.rubrosOrig = (p.rubros || []).filter((r) => r !== "Por clasificar");
+    E.elegidoPorAgente = p.nombre;
+    E.avisoProv = `El agente eligió a ${p.nombre} porque ya vendió ${n} de ${tot} producto(s) de esta lista${p.zona ? " y es de " + p.zona : ""}.` +
+      (n < tot ? ` De los otros ${tot - n} no hay registro con este proveedor: confirma que los tenga o quítalos.` : "") + (otraZona(p) ? " Es de otra zona: pregunta el flete." : "") + " Cámbialo si no corresponde.";
+    if (!E.editado) E.texto = textoAuto();
+  }
   /** Abre la tarjeta. envio = { tipo:"cotizacion"|"mensaje", proveedor:{nombre,chat,telefono}, items:[{producto,cantidad,unidad,finca,linea,pedido}],
    *  texto, finca }; op = { contexto, generar(envio)→texto, alEnviar(res), alYaEnviado(res), avisos:[], origen } */
   async function abrir(envio, op) {
@@ -462,6 +497,7 @@
     if (!E.texto) E.texto = textoAuto();
     else { let auto = ""; try { auto = String(textoAuto() || ""); } catch (e) {} E.editado = E.texto.trim() !== auto.trim(); }
     E.rubrosOrig = fi ? (fi.rubros || []).filter((r) => r !== "Por clasificar") : [];
+    preelegir();
     E.original = JSON.stringify({ prov: E.prov, items: E.items, texto: E.texto, editado: E.editado });
     FOCO_PREVIO = document.activeElement;
     pintar();

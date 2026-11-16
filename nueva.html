@@ -83,7 +83,7 @@ h2{margin:0 0 8px;font-size:17px}
 
   <section class="caja" aria-labelledby="t3">
     <h2 id="t3">3. Revisar y enviar</h2>
-    <p class="sub">Se abre la tarjeta de envío: ahí eliges el proveedor de la base, ves la imagen y el PDF, y apruebas. Para pedir a varios proveedores, envía y vuelve a tocar el botón.</p>
+    <p class="sub">Se abre la tarjeta de envío con el proveedor que propone el agente (el que ya vendió esos productos y es de la zona). Lo puedes cambiar, ves la imagen y el PDF, y apruebas. Para pedir a otro proveedor, envía y vuelve a tocar el botón: te propone el siguiente.</p>
     <div id="grupos" class="fila-btn" style="flex-direction:column;align-items:stretch"></div>
     <div id="falta" class="sub" style="margin-top:6px;color:var(--ladrillo)"></div>
     <div id="enviados" aria-live="polite"></div>
@@ -366,7 +366,7 @@ h2{margin:0 0 8px;font-size:17px}
   function armar(finca) {
     const items = S.items.filter((i) => i.producto.trim() && fincaItem(i) === finca).map((i) => ({ producto: i.producto.trim(), cantidad: i.cantidad, unidad: i.unidad, finca, linea: i.linea || "" }));
     window.AgdTarjeta.abrir({ tipo: "cotizacion", proveedor: { nombre: "", chat: "", telefono: "" }, items, finca, texto: "" },
-      { contexto: [finca, $("#motivo").value.trim(), "Nueva cotización"].filter(Boolean).join(" · "), origen: "nueva", generar: mensaje,
+      { contexto: [finca, $("#motivo").value.trim(), "Nueva cotización"].filter(Boolean).join(" · "), origen: "nueva", generar: mensaje, preelegir: true, excluir: S.enviados.filter((x) => x.finca === finca).map((x) => x.prov),
         alEnviar: (r) => { S.enviados.push({ prov: r.proveedor, finca, n: r.items.length, modo: "sale por WhatsApp en ~1 minuto" }); pintarEnviados(); avisar("Aprobado: sale por WhatsApp en ~1 minuto"); },
         alYaEnviado: () => { S.enviados.push({ prov: "(enviado a mano)", finca, n: items.length, modo: "marcado como enviado por ti" }); pintarEnviados(); } });
   }
