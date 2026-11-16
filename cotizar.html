@@ -151,7 +151,19 @@ ul.items li .det{font-size:12px;color:var(--t2)}
   const hoyIso = () => new Date().toISOString().slice(0, 10);
 
   /* ───────── Datos ───────── */
+  // Prueba con datos reales SOLO en la PC de desarrollo (localhost): ?prueba=archivo.json. Nunca escribe en la nube.
+  const PRUEBA = (location.hostname === "localhost" || location.hostname === "127.0.0.1") ? params.get("prueba") : null;
+
+  const SOLO_LECTURA = DEMO || !!PRUEBA;
+
   async function cargar() {
+    if (PRUEBA) {
+      const d = await (await fetch(PRUEBA)).json();
+      Object.assign(S, { filas: d.filas || [], cots: d.cots || {}, catalogo: d.catalogo || [], seg: d.seg || {} });
+      $("#subtitulo").innerHTML = `<strong style="color:var(--ladrillo,#B5452F)">PRUEBA LOCAL con datos reales · no se guarda nada</strong>`;
+      window.__S = S;
+      return pintar();
+    }
     if (DEMO) { cargarDemo(); return pintar(); }
     let ses = false;
     try { ses = !!(window.ComprasApp && await ComprasApp.sesion({ permitirNube: true })); } catch (e) {}
@@ -369,16 +381,16 @@ ul.items li .det{font-size:12px;color:var(--t2)}
       const completa = env.length + it.tiene >= it.exige;
       const nuevo = { estado: completa ? "enviada" : "pendiente", proveedores_enviados: env };
       S.estado[it.linea] = Object.assign({}, st, nuevo);
-      if (!DEMO) await AgdNube.guardarCotizar(it.linea, nuevo);
+      if (!SOLO_LECTURA) await AgdNube.guardarCotizar(it.linea, nuevo);
     }
     return antes;
   }
   async function revertir(antes, solicitudId) {
     for (const [lin, st] of Object.entries(antes)) {
       S.estado[lin] = st;
-      if (!DEMO) await AgdNube.guardarCotizar(lin, { estado: st.estado || "pendiente", proveedores_enviados: st.proveedores_enviados || [] });
+      if (!SOLO_LECTURA) await AgdNube.guardarCotizar(lin, { estado: st.estado || "pendiente", proveedores_enviados: st.proveedores_enviados || [] });
     }
-    if (solicitudId && !DEMO) { try { await AgdNube.marcarSolicitudCotizacion(solicitudId, { estado: "cancelada" }); } catch (e) {} }
+    if (solicitudId && !SOLO_LECTURA) { try { await AgdNube.marcarSolicitudCotizacion(solicitudId, { estado: "cancelada" }); } catch (e) {} }
     pintar();
   }
 
@@ -389,7 +401,7 @@ ul.items li .det{font-size:12px;color:var(--t2)}
       if (tel.length < 9) { avisar("Sin número no se puede enviar. Puedes usar «Ya lo envié yo»."); return; }
     }
     let sid = "";
-    if (!DEMO) {
+    if (!SOLO_LECTURA) {
       sid = await AgdNube.crearSolicitudCotizacion({
         proveedor: t.prov.nombre, telefono: tel, chat: t.prov.chat || "",
         items: t.items.map((i) => ({ linea: i.linea, pedido: i.pedido, producto: i.producto, cantidad: String(i.cantidad), unidad: i.unidad, finca: i.finca, urgente: !!i.urgente })),
@@ -429,12 +441,12 @@ ul.items li .det{font-size:12px;color:var(--t2)}
       datos = { estado: "descartada", motivo: "No se va a comprar" };
     }
     S.estado[lin] = Object.assign({}, antes, datos);
-    if (!DEMO) await AgdNube.guardarCotizar(lin, datos);
-    if (op === "2" && !DEMO) { try { await AgdNube.guardarSeguimiento(lin, { estado: "No se compró", nota: "Descartado desde Cotizar" }); } catch (e) {} }
+    if (!SOLO_LECTURA) await AgdNube.guardarCotizar(lin, datos);
+    if (op === "2" && !SOLO_LECTURA) { try { await AgdNube.guardarSeguimiento(lin, { estado: "No se compró", nota: "Descartado desde Cotizar" }); } catch (e) {} }
     pintar();
     avisar(op === "1" ? `Descartado: comprado con ${datos.comprado_con}` : "Descartado: no se va a comprar", async () => {
       S.estado[lin] = antes;
-      if (!DEMO) await AgdNube.guardarCotizar(lin, { estado: antes.estado || "pendiente", motivo: "", comprado_con: "" });
+      if (!SOLO_LECTURA) await AgdNube.guardarCotizar(lin, { estado: antes.estado || "pendiente", motivo: "", comprado_con: "" });
       pintar();
     });
   }
@@ -509,7 +521,7 @@ ul.items li .det{font-size:12px;color:var(--t2)}
         case "cambiar": abrirCambiar(b.dataset.t); break;
         case "vista": abrirVista(b.dataset.t); break;
         case "yaenvie": if (t) await yaEnvie(t); break;
-        case "reintentar": if (!DEMO) await AgdNube.marcarSolicitudCotizacion(b.dataset.s, { estado: "aprobada", error: "" }); avisar("Se reintentará el envío"); break;
+        case "reintentar": if (!SOLO_LECTURA) await AgdNube.marcarSolicitudCotizacion(b.dataset.s, { estado: "aprobada", error: "" }); avisar("Se reintentará el envío"); break;
       }
     } catch (err) {
       avisar("No se pudo guardar: " + (err && err.message ? err.message : err));
