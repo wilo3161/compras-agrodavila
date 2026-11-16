@@ -213,7 +213,31 @@
   const tieneClave = () => { try { return !!(localStorage.getItem(LS_CLAVE) || sessionStorage.getItem(LS_CLAVE)); } catch (e) { return false; } };
 
   /* El marco visual (barra, guías, recorrido) está en guia.js */
-  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+  /* Versión de la app (16/11/2026): cuando se publica algo nuevo, aparece un aviso con el botón «Actualizar».
+     Así no hay que adivinar si se está viendo lo último ni cerrar y abrir la app a ciegas. */
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    const habiaControl = !!navigator.serviceWorker.controller;   // primera instalación: no es «versión nueva»
+    let avisado = false;
+    const avisarVersion = () => {
+      if (avisado || document.getElementById("agd-version")) return; avisado = true;
+      const d = document.createElement("div");
+      d.id = "agd-version"; d.setAttribute("role", "status"); d.setAttribute("aria-live", "polite");
+      d.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--marco-alto,68px) + 14px + env(safe-area-inset-bottom));z-index:9500;" +
+        "display:flex;gap:12px;align-items:center;background:var(--tinta,#23262B);color:#F2F3F5;border-radius:14px;padding:10px 12px 10px 16px;" +
+        "box-shadow:0 12px 36px rgba(0,0,0,.35);font:600 14px var(--letra,system-ui);max-width:min(92vw,520px)";
+      const t = document.createElement("span"); t.textContent = "Hay una versión nueva de la app.";
+      const btn = document.createElement("button"); btn.type = "button"; btn.textContent = "Actualizar";
+      btn.style.cssText = "border:0;border-radius:10px;padding:8px 14px;min-height:40px;font:inherit;cursor:pointer;background:var(--maiz,#C7901A);color:#1B1D21";
+      btn.onclick = () => location.reload();
+      d.appendChild(t); d.appendChild(btn); document.body.appendChild(d);
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (habiaControl) avisarVersion(); });
+    navigator.serviceWorker.register("sw.js").then((reg) => {
+      const revisar = () => { try { reg.update(); } catch (e) {} };
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) revisar(); });   // al volver a la app
+      setInterval(revisar, 10 * 60 * 1000);                                                          // y cada 10 minutos
+    }).catch(() => {});
+  }
   async function corteWA() {
     try {
       const pq = await leerPaquete();
