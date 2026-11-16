@@ -95,7 +95,7 @@ ul.items li .det{font-size:12px;color:var(--t2)}
     <button type="button" data-tab="enviadas" role="tab">Enviadas</button>
   </div>
 
-  <section id="vista-cotizar"><div class="vacio">Cargando lo que falta cotizar…</div></section>
+  <section id="vista-cotizar"><div class="esqueleto" role="status"><span class="lector">Cargando lo que falta cotizar…</span><i></i><i></i><i></i></div></section>
   <section id="vista-enviadas" hidden></section>
 </main>
 
@@ -116,7 +116,7 @@ ul.items li .det{font-size:12px;color:var(--t2)}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button type="button" class="btn sm" id="bajar-png">🖼 Imagen PNG</button>
         <button type="button" class="btn sm" id="bajar-pdf">📄 PDF</button>
-        <button type="button" class="btn sm p" id="vista-enviar">✅ Aprobar y enviar</button>
+        <button type="button" class="btn sm p" id="vista-enviar"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Aprobar y enviar</button>
         <button type="button" class="btn sm" data-cerrar>Cerrar</button>
       </div>
     </div>
@@ -132,6 +132,7 @@ ul.items li .det{font-size:12px;color:var(--t2)}
   "use strict";
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const I = (n) => (window.AgdGuia && AgdGuia.ico ? AgdGuia.ico(n) : "");
   const R = window.AgdReglas;
   const params = new URLSearchParams(location.search);
   const DEMO = params.get("demo") === "1";
@@ -214,7 +215,9 @@ ul.items li .det{font-size:12px;color:var(--t2)}
       const tiene = Number(campo(f, "n_cot", "N° cotizaciones")) || 0;
       const exige = DEMO ? 3 : R.cotizacionesExigidas(f, tot);
       const enviados = (st.proveedores_enviados || []).map((x) => x.proveedor);
-      const faltan = Math.max(0, exige - tiene - enviados.length);
+      // Un proveedor al que se le pidió y YA cotizó está dentro de «tiene»: solo cuentan los que aún no responden.
+      const esperando = enviados.filter((n) => !(S.cots[lin] || []).some((c) => mismoProv(c[0], n)));
+      const faltan = Math.max(0, exige - tiene - esperando.length);
       if (faltan <= 0) continue;
       const ya = (S.cots[lin] || []).map((c) => c[0]).concat(enviados);
       out.push({
@@ -262,6 +265,7 @@ ul.items li .det{font-size:12px;color:var(--t2)}
       const a = S.ajustes[t.id] || {};
       if (a.prov) t.prov = a.prov;
       if (a.quitados) t.items = t.items.filter((i) => !a.quitados.includes(i.linea));
+      if (t.prov) t.items = t.items.filter((i) => !i.ya.some((n) => mismoProv(n, t.prov.nombre)));
     }
     tarjetas.sort((a, b) => (b.items.some((i) => i.urgente) - a.items.some((i) => i.urgente)) || (b.items.length - a.items.length));
     return { tarjetas: tarjetas.filter((t) => t.items.length), lineas: new Set(items.map((i) => i.linea)).size };
@@ -276,11 +280,14 @@ ul.items li .det{font-size:12px;color:var(--t2)}
     const { tarjetas, lineas } = armarTarjetas();
     S.tarjetas = tarjetas;
     $("#resumen").hidden = false;
-    $("#contador").textContent = lineas ? `Te falta cotizar: ${lineas} línea${lineas === 1 ? "" : "s"}` : "¡Todo cotizado! 🎉";
+    AgdMov.latir($("#contador"), lineas ? `Te falta cotizar: ${lineas} línea${lineas === 1 ? "" : "s"}` : "¡Todo cotizado!");
     $("#contador-sub").textContent = lineas ? `${tarjetas.filter((t) => t.prov).length} proveedores por contactar` : "No hay líneas pendientes de cotización.";
     const cont = $("#vista-cotizar");
-    if (!tarjetas.length) { cont.innerHTML = `<div class="vacio">No hay nada pendiente con este filtro. ✅</div>`; return; }
+    if (!tarjetas.length) { cont.innerHTML = `<div class="vacio">No hay nada pendiente con este filtro.</div>`; return; }
     cont.innerHTML = `<div class="rejilla">${tarjetas.map(htmlTarjeta).join("")}</div>`;
+    AgdMov.entrar(cont, "c|" + (S.finca || "") + "|" + (S.urg ? 1 : 0));
+    const rej = cont.firstElementChild;
+    if (cont.hasAttribute("data-entra")) { cont.removeAttribute("data-entra"); [...rej.children].forEach((el, i) => el.style.setProperty("--i", i)); rej.setAttribute("data-entra", ""); setTimeout(() => rej.removeAttribute("data-entra"), 900); }
   }
 
   function htmlTarjeta(t) {
@@ -289,22 +296,22 @@ ul.items li .det{font-size:12px;color:var(--t2)}
     const urg = t.items.some((i) => i.urgente);
     const cabeza = p
       ? `<h2>${esc(p.nombre)}${urg ? `<span class="etq">URGENTE</span>` : ""}${p.zona ? `<span class="etq zona">${esc(p.zona)}</span>` : ""}</h2>
-         <div class="contacto ${wa ? "ok" : "mal"}">${wa ? `✅ WhatsApp: ${esc(p.telefono || p.chat)}` : "⚠️ Sin WhatsApp: escribe el número al enviar"}</div>
+         <div class="contacto ${wa ? "ok" : "mal"}">${wa ? `${I("check")} WhatsApp: ${esc(p.telefono || p.chat)}` : `${I("alerta")} Sin WhatsApp: escribe el número al enviar`}</div>
          <div class="vende"><b>Vende:</b> ${esc((p.categorias || []).slice(0, 3).join(" · "))}${(p.tipicos || []).length ? `<br><b>Le compramos:</b> ${esc(p.tipicos.slice(0, 5).join(", "))}` : ""}</div>`
       : `<h2>Sin proveedor sugerido</h2><div class="aviso">Estos productos no tienen categoría o ningún proveedor del catálogo la vende. Elige uno con «Cambiar proveedor».</div>`;
     const items = t.items.map((i) => `
       <li data-linea="${esc(i.linea)}">
         <div class="txt"><div class="prod">${esc(i.producto)}${i.urgente ? ` <span class="etq">URGENTE</span>` : ""}</div>
         <div class="det">${esc(i.cantidad)} ${esc(i.unidad)} · ${esc(i.finca)} · ${esc(i.linea)} · tiene ${i.tiene} de ${i.exige} cotizaciones</div></div>
-        <button type="button" class="mini" title="Quitar de esta tarjeta" data-acc="quitar" data-t="${esc(t.id)}" data-l="${esc(i.linea)}">✕</button>
-        <button type="button" class="mini" title="Ya se compró o no se va a comprar" data-acc="menu" data-t="${esc(t.id)}" data-l="${esc(i.linea)}">⋯</button>
+        <button type="button" class="mini" title="Quitar de esta tarjeta" data-acc="quitar" data-t="${esc(t.id)}" data-l="${esc(i.linea)}">${I("cerrar")}</button>
+        <button type="button" class="mini" title="Ya se compró o no se va a comprar" data-acc="menu" data-t="${esc(t.id)}" data-l="${esc(i.linea)}">${I("mas")}</button>
       </li>`).join("");
     return `<article class="tarjeta" data-t="${esc(t.id)}">${cabeza}
       <ul class="items">${items}</ul>
       <div class="acciones">
-        ${p ? `<button type="button" class="btn p ancho" data-acc="vista" data-t="${esc(t.id)}">👁 Vista previa y enviar</button>` : ""}
-        <button type="button" class="btn sm" data-acc="cambiar" data-t="${esc(t.id)}">🔁 Cambiar proveedor</button>
-        ${p ? `<button type="button" class="btn sm" data-acc="yaenvie" data-t="${esc(t.id)}">✔ Ya lo envié yo</button>` : ""}
+        ${p ? `<button type="button" class="btn p ancho" data-acc="vista" data-t="${esc(t.id)}">${I("ojo")} Vista previa y enviar</button>` : ""}
+        <button type="button" class="btn sm" data-acc="cambiar" data-t="${esc(t.id)}">${I("refrescar")} Cambiar proveedor</button>
+        ${p ? `<button type="button" class="btn sm" data-acc="yaenvie" data-t="${esc(t.id)}">${I("check")} Ya lo envié yo</button>` : ""}
       </div></article>`;
   }
 
@@ -312,12 +319,12 @@ ul.items li .det{font-size:12px;color:var(--t2)}
     const cont = $("#vista-enviadas");
     const lista = (S.solicitudes || []).slice().sort((a, b) => String(b.aprobada_en || "").localeCompare(String(a.aprobada_en || ""))).slice(0, 60);
     if (!lista.length) { cont.innerHTML = `<div class="vacio">Aún no has enviado solicitudes desde aquí.</div>`; return; }
-    const nombre = { aprobada: "Por enviar", enviando: "Enviando…", enviada: "Enviada ✓", error: "Error", cancelada: "Cancelada" };
+    const nombre = { aprobada: "Por enviar", enviando: "Enviando…", enviada: "Enviada", error: "Error", cancelada: "Cancelada" };
     cont.innerHTML = `<div class="rejilla">${lista.map((s) => `
       <article class="tarjeta"><h2>${esc(s.proveedor)} <span class="est ${esc(s.estado)}">${esc(nombre[s.estado] || s.estado)}</span></h2>
       <div class="det sub">${esc((s.items || []).length)} producto(s) · aprobada ${esc(String(s.aprobada_en || "").slice(0, 16).replace("T", " "))}${s.enviada_en ? ` · enviada ${esc(String(s.enviada_en).slice(11, 16))}` : ""}</div>
       <div class="vende">${esc((s.items || []).map((i) => i.producto).join(", "))}</div>
-      ${s.estado === "error" ? `<div class="aviso">${esc(s.error || "No se pudo enviar.")}</div><button type="button" class="btn sm" data-acc="reintentar" data-s="${esc(s.id)}">↻ Reintentar</button>` : ""}
+      ${s.estado === "error" ? `<div class="aviso">${esc(s.error || "No se pudo enviar.")}</div><button type="button" class="btn sm" data-acc="reintentar" data-s="${esc(s.id)}">${I("refrescar")} Reintentar</button>` : ""}
       </article>`).join("")}</div>`;
   }
 
@@ -378,10 +385,19 @@ ul.items li .det{font-size:12px;color:var(--t2)}
       const st = S.estado[it.linea] || {};
       antes[it.linea] = JSON.parse(JSON.stringify(st));
       const env = (st.proveedores_enviados || []).concat([{ proveedor: t.prov.nombre, fecha: hoyIso(), solicitud_id: solicitudId || "" }]);
-      const completa = env.length + it.tiene >= it.exige;
+      const esperando = env.filter((x) => !(S.cots[it.linea] || []).some((c) => mismoProv(c[0], x.proveedor)));
+      const completa = esperando.length + it.tiene >= it.exige;
       const nuevo = { estado: completa ? "enviada" : "pendiente", proveedores_enviados: env };
       S.estado[it.linea] = Object.assign({}, st, nuevo);
-      if (!SOLO_LECTURA) await AgdNube.guardarCotizar(it.linea, nuevo);
+      try { if (!SOLO_LECTURA) await AgdNube.guardarCotizar(it.linea, nuevo); }
+      catch (e) {
+        // Falló a medias: todo vuelve como estaba (también lo que ya se había escrito) y no se envía nada.
+        for (const [lin, previo] of Object.entries(antes)) {
+          S.estado[lin] = previo;
+          try { await AgdNube.guardarCotizar(lin, { estado: previo.estado || "pendiente", proveedores_enviados: previo.proveedores_enviados || [] }); } catch (x) {}
+        }
+        throw e;
+      }
     }
     return antes;
   }
@@ -390,8 +406,17 @@ ul.items li .det{font-size:12px;color:var(--t2)}
       S.estado[lin] = st;
       if (!SOLO_LECTURA) await AgdNube.guardarCotizar(lin, { estado: st.estado || "pendiente", proveedores_enviados: st.proveedores_enviados || [] });
     }
-    if (solicitudId && !SOLO_LECTURA) { try { await AgdNube.marcarSolicitudCotizacion(solicitudId, { estado: "cancelada" }); } catch (e) {} }
     pintar();
+  }
+  /** Deshacer un envío: primero se cancela la solicitud; si la PC ya la tomó, NO se devuelven las líneas (ya salió). */
+  async function deshacerEnvio(antes, solicitudId, tid, provAjuste) {
+    if (solicitudId && !SOLO_LECTURA) {
+      let cancelada = false;
+      try { cancelada = await AgdNube.cancelarSolicitudCotizacion(solicitudId); } catch (e) { cancelada = false; }
+      if (!cancelada) { avisar("Ya estaba saliendo por WhatsApp: no se pudo deshacer. Mírala en «Enviadas»."); return; }
+    }
+    if (provAjuste) (S.ajustes[tid] = S.ajustes[tid] || {}).prov = provAjuste;
+    await revertir(antes, "");
   }
 
   async function enviar(t) {
@@ -400,25 +425,33 @@ ul.items li .det{font-size:12px;color:var(--t2)}
       tel = (prompt(`¿Número de WhatsApp de ${t.prov.nombre}? (ej. 0991234567)`) || "").replace(/\D/g, "");
       if (tel.length < 9) { avisar("Sin número no se puede enviar. Puedes usar «Ya lo envié yo»."); return; }
     }
+    // Orden seguro: primero se anotan las líneas; si eso falla, no se crea la solicitud y nada sale.
+    const antes = await registrarEnvio(t, "");
     let sid = "";
     if (!SOLO_LECTURA) {
+     try {
       sid = await AgdNube.crearSolicitudCotizacion({
         proveedor: t.prov.nombre, telefono: tel, chat: t.prov.chat || "",
         items: t.items.map((i) => ({ linea: i.linea, pedido: i.pedido, producto: i.producto, cantidad: String(i.cantidad), unidad: i.unidad, finca: i.finca, urgente: !!i.urgente })),
         // La imagen de la vista previa (1080 px) viaja con la solicitud: la PC la manda dentro del chat y aparte el PDF.
         png: (S.vista === t && S.vistaPng && S.vistaPng.length < 750000) ? S.vistaPng : "",
       });
+     } catch (e) { await revertir(antes, ""); throw e; }   // no se creó la solicitud: las líneas vuelven a pendientes
     }
-    const antes = await registrarEnvio(t, sid);
+    // El cambio manual de proveedor ya se usó: sin esto la tarjeta reaparecía igual tras enviar.
+    const provAjuste = (S.ajustes[t.id] || {}).prov || null;
+    if (provAjuste) delete S.ajustes[t.id].prov;
     cerrar();
     salir(t.id, pintar);
-    avisar(`Se envía a ${t.prov.nombre} por WhatsApp · lo verás en «Enviadas»`, () => revertir(antes, sid));
+    avisar(`Se envía a ${t.prov.nombre} por WhatsApp · lo verás en «Enviadas»`, () => deshacerEnvio(antes, sid, t.id, provAjuste));
   }
 
   async function yaEnvie(t) {
     const antes = await registrarEnvio(t, "");
+    const provAjuste = (S.ajustes[t.id] || {}).prov || null;
+    if (provAjuste) delete S.ajustes[t.id].prov;
     salir(t.id, pintar);
-    avisar(`Marcado como enviado a ${t.prov.nombre}`, () => revertir(antes, ""));
+    avisar(`Marcado como enviado a ${t.prov.nombre}`, () => deshacerEnvio(antes, "", t.id, provAjuste));
   }
 
   function quitar(tid, lin) {
@@ -487,16 +520,26 @@ ul.items li .det{font-size:12px;color:var(--t2)}
     const t = tarjeta(tid);
     S.vista = t;
     S.vistaPng = "";
+    const bEnv = $("#vista-enviar"); if (bEnv) bEnv.disabled = true;   // no se aprueba hasta que la imagen esté lista
     $("#hoja-fuente").innerHTML = htmlHoja(t, t.prov.telefono).replace('id="hoja"', 'id="hoja" style="width:794px;max-width:none"');
     $("#vista-hoja").innerHTML = `<div class="sub" style="padding:20px;text-align:center">Preparando la vista previa…</div>`;
     $("#capa-vista").classList.add("ver");
     try {
-      const c = await lienzo();
+      let c = await lienzo();
       S.vistaPng = c.toDataURL("image/png");
+      if (S.vistaPng.length >= 750000) {   // lista larga: se reintenta más liviana antes de rendirse
+        c = await window.html2canvas($("#hoja-fuente #hoja"), { scale: 0.9, backgroundColor: "#ffffff", width: 794, windowWidth: 794 });
+        S.vistaPng = c.toDataURL("image/png");
+      }
       $("#vista-hoja").innerHTML = `<img alt="Solicitud de cotización para ${esc(t.prov.nombre)}" src="${c.toDataURL("image/png")}" style="width:100%;height:auto;border:1px solid var(--bd);border-radius:8px;display:block">`;
     } catch (e) {
       $("#vista-hoja").innerHTML = htmlHoja(t, t.prov.telefono);  // sin internet para la librería: se muestra la hoja tal cual
     }
+    if (!S.vistaPng || S.vistaPng.length >= 750000) {
+      S.vistaPng = "";
+      $("#vista-hoja").insertAdjacentHTML("afterbegin", `<div class="sub" style="padding:8px 4px;color:var(--ladrillo,#B5452F)">No se pudo preparar la imagen: se enviarán el mensaje y el PDF, sin la imagen.</div>`);
+    }
+    if (bEnv) bEnv.disabled = false;
   }
   function cerrar() { document.querySelectorAll(".capa").forEach((c) => c.classList.remove("ver")); }
 

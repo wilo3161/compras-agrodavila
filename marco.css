@@ -147,4 +147,124 @@ header:has(.top) nav button{color:#F2F3F5 !important}
   .tour-globo{left:16px !important;right:16px;width:auto}
 }
 @media (max-width:330px){.grid{grid-template-columns:1fr !important}}
+
+/* ══════════ Movimiento y estados (16/11/2026) ══════════
+   Regla: el movimiento confirma una acción o da continuidad; nada hace esperar.
+   Rápido (120–180 ms) para respuesta, 240–320 ms para capas y cambios de vista. Salida más corta que la entrada. */
+:root{--sale:cubic-bezier(.16,1,.3,1); --entra:cubic-bezier(.4,0,1,1); --t-rapido:140ms; --t-medio:240ms; --t-capa:300ms;
+  accent-color:var(--pri); caret-color:var(--pri)}
+html{scrollbar-width:thin;scroll-behavior:smooth}
+::-webkit-scrollbar{width:10px;height:10px} ::-webkit-scrollbar-thumb{background:var(--bd);border-radius:999px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--t2)}
+
+/* Continuidad entre páginas: el menú se queda quieto y solo cambia el contenido */
+@view-transition{navigation:auto}
+.marco{view-transition-name:marco}
+main{view-transition-name:contenido}
+::view-transition-old(contenido){animation:vt-sale 120ms var(--entra) both}
+::view-transition-new(contenido){animation:vt-entra 260ms var(--sale) both}
+::view-transition-group(marco){animation-duration:0s}
+@keyframes vt-sale{to{opacity:0;transform:translateY(-6px)}}
+@keyframes vt-entra{from{opacity:0;transform:translateY(10px)}}
+
+/* Respuesta al toque */
+.btn,.pestanas button,.marco a.sec,.marco .mas-btn,.mas-item,.te-btn{-webkit-tap-highlight-color:transparent}
+.btn:active:not(:disabled),.te-btn:active:not(:disabled),.pestanas button:active{transform:scale(.97)}
+.pestanas button{transition:background var(--t-rapido),color var(--t-rapido),border-color var(--t-rapido),transform var(--t-rapido)}
+.pestanas button:hover:not(.activa){border-color:var(--pri)}
+.marco a.sec,.marco .mas-btn{transition:background var(--t-medio) var(--sale),color var(--t-rapido)}
+.marco a.sec .ico,.marco .mas-btn .ico{transition:transform var(--t-medio) var(--sale)}
+.marco a.sec[aria-current="page"] .ico{transform:translateY(-1px) scale(1.08)}
+input,select,textarea{transition:border-color var(--t-rapido),box-shadow var(--t-rapido)}
+input:focus,select:focus,textarea:focus{border-color:var(--pri) !important;box-shadow:0 0 0 3px color-mix(in srgb,var(--pri) 22%,transparent);outline:none}
+
+/* Tarjetas: se levantan al pasar el cursor solo donde hay algo que hacer */
+.tarjeta,.carga{transition:opacity var(--t-capa) var(--sale),transform var(--t-capa) var(--sale),box-shadow var(--t-medio),border-color var(--t-medio)}
+@media (hover:hover){.tarjeta:hover,.carga:hover{box-shadow:var(--sombra-alta);border-color:color-mix(in srgb,var(--pri) 35%,var(--bd))}}
+.tarjeta.sale,.carga.sale{opacity:0;transform:translateX(28px) scale(.97);pointer-events:none}
+
+/* Llegada de una lista (solo cuando aparece o se cambia de pestaña: el contenedor lleva data-entra) */
+[data-entra] > *{animation:llega 380ms var(--sale) both;animation-delay:calc(min(var(--i,0),8) * 45ms)}
+@keyframes llega{from{opacity:0;transform:translateY(14px)}}
+
+/* El contador de una pestaña «late» cuando cambia: se ve a dónde fue lo que aprobaste */
+.late{display:inline-block;animation:late 420ms var(--sale)}
+@keyframes late{0%{transform:scale(1)}35%{transform:scale(1.35);color:var(--maiz)}100%{transform:scale(1)}}
+
+/* Capas, hojas y diálogos */
+.capa.ver,.te-capa.ver{animation:velo var(--t-medio) ease-out both}
+.capa.ver > *,.te-capa.ver > .te-caja,dialog[open]{animation:capa-entra var(--t-capa) var(--sale) both}
+dialog::backdrop{background:rgba(14,20,30,.55);animation:velo var(--t-medio) ease-out both}
+@keyframes velo{from{opacity:0}}
+@keyframes capa-entra{from{opacity:0;transform:translateY(18px) scale(.985)}}
+.marco-mas:not(.hide){animation:menu-entra 200ms var(--sale) both;transform-origin:bottom right}
+@keyframes menu-entra{from{opacity:0;transform:translateY(8px) scale(.96)}}
+
+/* Avisos (toast): suben desde abajo y avisan también a lectores de pantalla */
+.toast:has(#toast-txt){display:flex !important;opacity:0;visibility:hidden;transform:translate(-50%,14px);transition:opacity var(--t-medio) var(--sale),transform var(--t-medio) var(--sale),visibility 0s linear var(--t-medio);
+  background:var(--tinta) !important;color:#F2F3F5 !important;box-shadow:var(--sombra-alta);border-radius:14px !important;max-width:min(92vw,560px)}
+.toast:has(#toast-txt).ver{opacity:1;visibility:visible;transform:translate(-50%,0);transition-delay:0s}
+.toast:has(#toast-txt) button{min-height:34px}
+
+/* Cargando: esqueleto con brillo en vez de un texto suelto */
+.esqueleto{display:grid;gap:12px}
+.esqueleto i{display:block;height:92px;border-radius:16px;background:linear-gradient(100deg,var(--card) 30%,color-mix(in srgb,var(--pri2) 70%,var(--card)) 50%,var(--card) 70%) 0 0/250% 100%;
+  border:1px solid var(--bd);animation:brillo 1.4s linear infinite}
+.esqueleto i:nth-child(2){opacity:.75}.esqueleto i:nth-child(3){opacity:.5}
+@keyframes brillo{to{background-position:-250% 0}}
+.esqueleto .lector{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+
+/* Vacío con sentido: una línea de qué pasó y qué sigue */
+.vacio{animation:llega 320ms var(--sale) both}
+
+/* Menú en la PC: lo secundario va en «Más», igual que en el teléfono, para que nada se corte */
+@media (min-width:761px){
+  .marco a.sec.sec-extra{display:none}
+  .marco .mas-wrap{display:flex}
+  .marco-mas{bottom:auto;top:calc(100% + 10px);transform-origin:top right}
+  .marco a.sec{white-space:nowrap}
+  .marco-mas .mas-ayuda{display:none}
+  @keyframes menu-entra{from{opacity:0;transform:translateY(-8px) scale(.96)}}
+}
+
+/* Quien pide menos movimiento: sin desplazamientos; quedan los cambios de opacidad y color */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:1ms !important;animation-delay:0s !important;transition-duration:1ms !important}
+  .esqueleto i{animation:none}
+  ::view-transition-old(contenido),::view-transition-new(contenido){animation:none}
+}
 @media print{.marco,.guia-pestana{display:none}}
+/* Teléfono: sincronización y pestañas en una sola fila que se desliza (no empujan el contenido hacia abajo) */
+@media (max-width:760px){
+  .frescura,.pestanas{flex-wrap:nowrap !important;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+  .frescura::-webkit-scrollbar,.pestanas::-webkit-scrollbar{display:none}
+  .frescura > *,.pestanas > *{flex:none;white-space:nowrap;scroll-snap-align:start}
+  .pestanas{margin-left:-12px;margin-right:-12px;padding:2px 12px}
+}
+/* Legibilidad en modo oscuro: estas etiquetas tenían colores fijos pensados para fondo claro */
+.est-ent,.aviso-ok,.pill-si{color:var(--pri) !important}
+.est-proc,.aviso-warn{color:var(--md) !important}
+.est-comp,.pill-no{color:var(--t2) !important}
+.est-alert{color:var(--tierra) !important}
+/* Tamaño cómodo para el dedo (mínimo 42 px) en filtros, pestañas y casillas */
+.chip-f,.tab-btn{min-height:42px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:20px !important;height:20px !important;min-height:0 !important;padding:0 !important;margin:0;flex:none;border-radius:4px !important;box-shadow:none !important}
+input[type=radio]{border-radius:50% !important}
+.ivas{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px}
+.ivas input[type=number]{width:84px !important}
+label:has(> input[type=checkbox]),label:has(> input[type=radio]){min-height:40px;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+/* «Qué hacer hoy» (WhatsApp): cada pendiente es una tarjeta con su botón, no una fila de lista */
+.card:has(> .tarea){display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px;background:transparent !important;border:0 !important;box-shadow:none;padding:0 !important}
+.card:has(> .tarea) > h2{grid-column:1/-1;margin:6px 2px 2px}
+.card:has(> .tarea) > .tarea{display:flex;flex-direction:column;align-items:stretch;gap:8px;background:var(--card);border:1px solid var(--bd);border-radius:var(--radio);
+  padding:14px;box-shadow:var(--sombra);transition:box-shadow var(--t-medio),border-color var(--t-medio)}
+@media (hover:hover){.card:has(> .tarea) > .tarea:hover{box-shadow:var(--sombra-alta);border-color:color-mix(in srgb,var(--pri) 35%,var(--bd))}}
+.card:has(> .tarea) > .tarea > .chip{align-self:flex-start}
+.card:has(> .tarea) > .tarea > div:last-child{margin-top:auto;padding-top:4px}
+.card:has(> .tarea) > .tarea .btn{width:100%;justify-content:center}
+.card:has(> .tarea) > .tarea .q{font-weight:600;line-height:1.35}
+/* Modo oscuro: la pestaña activa lleva texto oscuro sobre el azul claro (el blanco no alcanzaba el contraste AA) */
+:root[data-theme="dark"] .pestanas button.activa{color:#0F1722 !important}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pestanas button.activa{color:#0F1722 !important}}
+.visor .cargando{color:var(--t2) !important}

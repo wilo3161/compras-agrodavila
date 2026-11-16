@@ -195,7 +195,8 @@
       try { if (modFs.terminate) await modFs.terminate(inst); } catch (e) {}
       try { if (modFs.clearIndexedDbPersistence) await modFs.clearIndexedDbPersistence(inst); } catch (e) {}
     }
-    limpiarClavesLocales();
+    // «Desconectar sincronización» solo cierra Google: NO borra la sesión de AgroControl, la clave de datos ni los
+    // borradores. La limpieza completa la hace «Salir» (ComprasApp.salir), que es quien de verdad cierra todo.
     usuarioActual = null;
     notificarEstado();
   }
@@ -1001,7 +1002,7 @@
     const docRef = modFs.doc(db, `${RAIZ}/mantenimientos/${id}`);
     const datos = {
       id,
-      fecha_reporte: String(reg.fecha_reporte || ahora.slice(0, 10)),
+      fecha_reporte: String(reg.fecha_reporte || new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10)),  // día de Ecuador (UTC-5), no de UTC
       activo: String(reg.activo).trim(),
       codigo_activo: String(reg.codigo_activo || "").trim(),
       finca: String(reg.finca).trim(),
@@ -1079,6 +1080,11 @@
       por: correo,
       actualizado_en: ahora
     };
+    // «Cotización única» (un solo proveedor posible): antes se perdía aquí y la línea seguía en «Falta cotizar».
+    if (datos && datos.cotizacion_unica === true) {
+      carga.cotizacion_unica = true;
+      carga.motivo_cotizacion_unica = String(datos.motivo_cotizacion_unica || "").trim().slice(0, 300);
+    }
     lista.forEach(lin => { mapa[lin] = Object.assign({}, carga); });
     escribirSeguimientoLocal(mapa);
 
@@ -1149,6 +1155,20 @@
     await inicializar();
     if (!db || !usuarioActual) throw new Error("Inicia sesión.");
     await modFs.updateDoc(modFs.doc(db, `${RAIZ}/solicitudes_cotizacion/${id}`), cambio);
+  }
+
+  /** Cancela una solicitud SOLO si la PC todavía no la tomó (sigue «aprobada»). Devuelve true si se canceló.
+   *  Si ya está «enviando» o «enviada», no se toca: deshacer en ese punto haría pedir dos veces al proveedor. */
+  async function cancelarSolicitudCotizacion(id) {
+    await inicializar();
+    if (!db || !usuarioActual) throw new Error("Inicia sesión.");
+    const ref = modFs.doc(db, `${RAIZ}/solicitudes_cotizacion/${id}`);
+    return modFs.runTransaction(db, async (tx) => {
+      const s = await tx.get(ref);
+      if (!s.exists() || (s.data() || {}).estado !== "aprobada") return false;
+      tx.update(ref, { estado: "cancelada", cancelada_en: new Date().toISOString() });
+      return true;
+    });
   }
 
   const escucharSolicitudesCotizacion = (cb, alError) => _escucharColeccion("solicitudes_cotizacion", cb, alError);
@@ -1226,6 +1246,7 @@
     crearSolicitudCotizacion,
     marcarSolicitudCotizacion,
     escucharSolicitudesCotizacion,
+    cancelarSolicitudCotizacion,
     escucharSeguimiento,
     guardarSeguimiento,
     guardarSeguimientoLote,

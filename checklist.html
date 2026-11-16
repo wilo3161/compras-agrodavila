@@ -333,13 +333,14 @@ async function autoCerrarMarcasAvanzadas() {
     const idMarcado = etMarcada ? etMarcada.id : 0;
 
     // Si la etapa actual es posterior a la marcada, se cierra sola y va al historial
-    if (actual.etapaId > idMarcado && idMarcado > 0) {
+    // Una línea anulada o rechazada (etapa «aparte», orden 98/99) NO es un avance: no se archiva como cotizada.
+    if (actual.etapaId > idMarcado && idMarcado > 0 && !actual.aparte) {
       let tipoAvance = "general";
       if (etMarcada.key === "por_cotizar") tipoAvance = "cotizada";
       else if (etMarcada.key === "autorizado_sin_oc") tipoAvance = "oc";
       else if (etMarcada.key === "con_oc") tipoAvance = "entrega";
 
-      promesas.push(
+      promesas.push(() =>
         AgdNube.archivarMarcaEnHistorial(lin, hoy, {
           linea: lin,
           etapa_anterior: etMarcada.nombre,
@@ -352,7 +353,8 @@ async function autoCerrarMarcasAvanzadas() {
   });
 
   if (promesas.length) {
-    await Promise.all(promesas);
+    // En serie: cada archivado lee y reescribe el historial del día; en paralelo se pisaban y se perdían avances.
+    for (const archivar of promesas) { try { await archivar(); } catch (e) { console.warn("No se pudo archivar una marca", e); } }
     CHECKLIST_MAPA = AgdNube.leerChecklistLocal();
   }
 }
@@ -444,8 +446,10 @@ function renderizarTodo() {
     if (fFinca && item.finca !== fFinca) return false;
     if (fEstado === "hecho" && !item.chk.hecho) return false;
     if (fEstado === "pendiente" && item.chk.hecho) return false;
-    if (fEstado === "alerta" && item.diasH < R.UMBRALES.dias_alerta) return false;
-    if (fEstado === "estancado" && item.diasH < R.UMBRALES.dias_estancado) return false;
+    const etItem = ETAPAS.find(e => e.id === item.etapaId) || {};
+    const cerradaItem = etItem.key === "pagado" || !!etItem.aparte;   // lo pagado o anulado no cuenta como alerta
+    if (fEstado === "alerta" && (cerradaItem || item.diasH < R.UMBRALES.dias_alerta)) return false;
+    if (fEstado === "estancado" && (cerradaItem || item.diasH < R.UMBRALES.dias_estancado)) return false;
     if (fEstado === "diferencia" && !item.avisoDif) return false;
     if (q) {
       const match = (item.linea + " " + item.pedido + " " + item.producto + " " + item.proveedor + " " + item.finca).toLowerCase();
@@ -464,8 +468,10 @@ function renderizarTarjetasEtapas(todas) {
 
   cont.innerHTML = ETAPAS_TARJETAS.map(e => {
     const items = todas.filter(x => x.etapaId === e.id);
-    const alertas = items.filter(x => x.diasH >= R.UMBRALES.dias_alerta).length;
-    const estancadas = items.filter(x => x.diasH >= R.UMBRALES.dias_estancado).length;
+    // Lo ya pagado no se alerta ni se estanca: terminó
+    const cerrada = e.key === "pagado" || !!e.aparte;
+    const alertas = cerrada ? 0 : items.filter(x => x.diasH >= R.UMBRALES.dias_alerta).length;
+    const estancadas = cerrada ? 0 : items.filter(x => x.diasH >= R.UMBRALES.dias_estancado).length;
     const esActiva = etapaFiltro === String(e.id);
 
     return `
@@ -655,10 +661,11 @@ function descargarExcelChecklist() {
   });
 
   // 1. Hoja de Resumen
+  // Filas como listas (no objetos con claves distintas): así el título y la tabla quedan en las mismas columnas A–F.
   const resumenRows = [
-    { "Compras AgroDávila": "CHECKLIST DIARIO DE COMPRAS Y LOGÍSTICA", "Fecha": hoy, "": "", "Total líneas": SNAP_FILAS.length },
-    {},
-    { "Etapa": "ID", "Nombre de etapa": "Descripción", "Líneas totales": "Total", "Alertas (≥1 d)": "Alertas", "Estancadas (≥3 d)": "Estancadas", "Marcadas hechas": "Hechas" }
+    ["CHECKLIST DIARIO DE COMPRAS Y LOGÍSTICA · Compras AgroDávila", "", "Fecha", hoy, "Total líneas", SNAP_FILAS.length],
+    [],
+    ["Etapa", "Nombre de etapa", "Líneas totales", "Alertas (≥1 d)", "Estancadas (≥3 d)", "Marcadas hechas"]
   ];
 
   ETAPAS.forEach(e => {
@@ -666,17 +673,11 @@ function descargarExcelChecklist() {
     const als = grupo.filter(x => x.diasH >= R.UMBRALES.dias_alerta).length;
     const ests = grupo.filter(x => x.diasH >= R.UMBRALES.dias_estancado).length;
     const hechas = grupo.filter(x => x.hecho === "SI").length;
-    resumenRows.push({
-      "Etapa": e.id,
-      "Nombre de etapa": e.nombre,
-      "Líneas totales": grupo.length,
-      "Alertas (≥1 d)": als,
-      "Estancadas (≥3 d)": ests,
-      "Marcadas hechas": hechas
-    });
+    const sinAlerta = e.key === "pagado" || !!e.aparte;   // lo pagado o anulado no está «estancado»
+    resumenRows.push([e.aparte ? "" : e.id, e.nombre, grupo.length, sinAlerta ? 0 : als, sinAlerta ? 0 : ests, hechas]);
   });
 
-  const wsRes = XLSX.utils.json_to_sheet(resumenRows, { skipHeader: true });
+  const wsRes = XLSX.utils.aoa_to_sheet(resumenRows);
   XLSX.utils.book_append_sheet(wb, wsRes, "Resumen");
 
   // 2. Una hoja por cada etapa oficial

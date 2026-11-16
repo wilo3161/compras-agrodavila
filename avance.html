@@ -387,7 +387,7 @@ dialog.modal-seg::backdrop{background:rgba(15,20,28,.5)}
     poblarCombos(resGlobal.lineas.filter(l => !l.aparte));
 
     const filtradas = filasFiltradas();
-    resumenActual = R.avancePorPedido(filtradas, seguimientoMapa);
+    resumenActual = R.avancePorPedido(filtradas, seguimientoMapa, undefined, R.totalesReferenciaCotizacion(filasRaw));
     const t = resumenActual.totales;
 
     document.getElementById("kPctEnt").textContent = t.pct_entregado_global.toFixed(1) + "%";
@@ -397,9 +397,13 @@ dialog.modal-seg::backdrop{background:rgba(15,20,28,.5)}
     document.getElementById("kFaltaOk").textContent = usd(t.monto_falta_ok_pago);
     document.getElementById("kFaltaOkSub").textContent = `${t.falta_ok_lineas} líneas esperando OK de pago`;
 
-    const faltaCot = resumenActual.lineas.filter(l => !l.aparte && (l.estado_entrega === "Por cotizar" || l.estado_entrega === "Cotizado (en revisión)"));
-    const sinCotLineas = faltaCot.filter(l => Number(l.n_cot || 0) === 0);
-    const faltaCompLineas = faltaCot.filter(l => Number(l.n_cot || 0) > 0);
+    // Pestaña «Falta cotizar»: solo lo que de verdad falta (0 proformas, o menos de las exigidas)
+    const faltaCot = resumenActual.lineas.filter(l => !l.aparte && (l.sin_cotizar || l.falta_completar_cotizaciones));
+    // Mismas reglas que Gerencia (etapas.js): «sin cotizar» = aprobada en campo con 0 proformas;
+    // «falta completar» = tiene alguna pero menos de las exigidas. Antes contaba líneas con 3 de 3 y líneas aún sin visto bueno.
+    const vigentesCot = resumenActual.lineas.filter(l => !l.aparte);
+    const sinCotLineas = vigentesCot.filter(l => l.sin_cotizar);
+    const faltaCompLineas = vigentesCot.filter(l => l.falta_completar_cotizaciones);
 
     document.getElementById("kSinCot").textContent = String(sinCotLineas.length);
     document.getElementById("kSinCotSub").textContent = "0 proformas registradas";

@@ -56,9 +56,9 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     <button type="button" data-tab="aprobada">Aprobadas, listas para subir <span id="n-aprobada"></span></button>
     <button type="button" data-tab="subida">Subidas <span id="n-subida"></span></button>
     <button type="button" data-tab="descartada">Descartadas <span id="n-descartada"></span></button>
-    <button type="button" data-tab="alerta">🔔 Revisar lo ya subido <span id="n-alerta"></span></button>
+    <button type="button" data-tab="alerta"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg> Revisar lo ya subido <span id="n-alerta"></span></button>
   </div>
-  <section id="lista"><div class="vacio">Cargando…</div></section>
+  <section id="lista"><div class="esqueleto" role="status"><span class="lector">Cargando las cargas por revisar…</span><i></i><i></i></div></section>
 </main>
 <div class="zoom" id="zoom" title="Toca para cerrar"><img id="zoom-img" alt="Proforma ampliada"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-txt"></span><button type="button" id="toast-deshacer">Deshacer</button></div>
@@ -73,6 +73,7 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
   const DEMO = params.get("demo") === "1";
   const PRUEBA = LOCAL ? params.get("prueba") : null;   // solo en la PC de desarrollo; no escribe en la nube
   const SOLO_LECTURA = DEMO || !!PRUEBA;
+  const I = (n) => (window.AgdGuia && AgdGuia.ico ? AgdGuia.ico(n) : "");
   const CHEQUEOS = [["proveedor", "Proveedor"], ["producto", "Producto"], ["precio", "Precio"], ["iva", "IVA"], ["pago", "Forma de pago"]];
   const S = { cargas: [], archivos: {}, tab: "por_revisar", chequeos: {}, editado: {} };
   const dinero = (v, d = 2) => (v == null || v === "" || isNaN(v)) ? "—" : "$" + Number(v).toLocaleString("es-EC", { minimumFractionDigits: d, maximumFractionDigits: 4 });
@@ -87,7 +88,19 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     let ses = false;
     try { ses = !!(window.ComprasApp && await ComprasApp.sesion({ permitirNube: true })); } catch (e) {}
     if (!ses) { $("#lista").innerHTML = `<div class="vacio">Inicia sesión para revisar las cargas.<br><br><a class="btn p" href="index.html">Ir a iniciar sesión</a></div>`; return; }
-    AgdNube.escucharCargas((l) => { S.cargas = l || []; pintar(); });
+    AgdNube.escucharCargas((l) => {
+      S.cargas = l || [];
+      const lista = $("#lista"), activo = document.activeElement;
+      const ocupado = (activo && lista.contains(activo) && /^(INPUT|SELECT|TEXTAREA)$/.test(activo.tagName)) || lista.querySelector(".motivos");
+      if (ocupado) { S.pintarPendiente = true; return; }   // se repinta al terminar de escribir
+      pintar();
+    });
+    document.addEventListener("focusout", () => setTimeout(() => {
+      if (!S.pintarPendiente) return;
+      const lista = $("#lista"), activo = document.activeElement;
+      if ((activo && lista.contains(activo) && /^(INPUT|SELECT|TEXTAREA)$/.test(activo.tagName)) || lista.querySelector(".motivos")) return;
+      S.pintarPendiente = false; pintar();
+    }, 150));
   }
 
   async function archivo(id) {
@@ -98,30 +111,33 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
 
   function valor(c, k) { const e = S.editado[c.id] || {}; return k in e ? e[k] : c[k]; }
   function precioFinal(c) {
-    const base = Number(valor(c, "precio_base")); const con = valor(c, "con_iva"); const pct = Number(valor(c, "iva_pct")) || 0;
+    const base = Number(valor(c, "precio_base")); const con = valor(c, "con_iva"); const pctCrudo = valor(c, "iva_pct"); const pct = (pctCrudo == null || pctCrudo === "") ? 15 : (Number(pctCrudo) || 0);
     if (!base || con == null) return null;
     return Math.round(base * (1 + (con ? pct : 0) / 100) * 10000) / 10000;
   }
 
   function pintar() {
     const enTab = (c, t) => t === "subida" ? ["subida", "subiendo", "en_formulario"].includes(c.estado)
-      : t === "alerta" ? ["alerta", "alerta_ok", "alerta_corregida"].includes(c.estado) : c.estado === t;
+      : t === "alerta" ? ["alerta", "alerta_ok", "alerta_corregida"].includes(c.estado)
+      : t === "aprobada" ? ["aprobada", "error"].includes(c.estado) : c.estado === t;
     for (const t of ["por_revisar", "aprobada", "subida", "descartada", "alerta"]) {
       const n = S.cargas.filter((c) => (t === "alerta" ? c.estado === "alerta" : enTab(c, t))).length;
-      $(`#n-${t}`).textContent = n ? `(${n})` : "";
+      AgdMov.latir($(`#n-${t}`), n ? `(${n})` : " ");
     }
     const lista = S.cargas.filter((c) => enTab(c, S.tab))
       .sort((a, b) => (a.estado === "alerta" ? 0 : 1) - (b.estado === "alerta" ? 0 : 1) || String(a.pedido).localeCompare(String(b.pedido)) || String(a.linea).localeCompare(String(b.linea)));
     const cont = $("#lista");
-    if (!lista.length) { cont.innerHTML = `<div class="vacio">${S.tab === "por_revisar" ? "No hay cargas por revisar. ✅" : S.tab === "alerta" ? "Todo lo subido coincide con sus proformas. ✅" : "Nada aquí por ahora."}</div>`; return; }
+    if (!lista.length) { cont.innerHTML = `<div class="vacio">${S.tab === "por_revisar" ? "No hay cargas por revisar." : S.tab === "alerta" ? "Todo lo subido coincide con sus proformas." : "Nada aquí por ahora."}</div>`; return; }
     cont.innerHTML = lista.map(htmlCarga).join("");
+    AgdMov.entrar(cont, S.tab);
     lista.forEach(async (c) => {
       const a = await archivo(c.archivo_id);
       const v = document.querySelector(`[data-visor="${CSS.escape(c.id)}"]`);
       if (!v) return;
       if (!a) { v.innerHTML = `<div class="cargando">No se pudo cargar la proforma (${esc(c.archivo_nombre)}).</div>`; return; }
       v.innerHTML = a.mime === "application/pdf"
-        ? `<iframe title="Proforma ${esc(c.archivo_nombre)}" src="${a.url}"></iframe>`
+        ? `<iframe title="Proforma ${esc(c.archivo_nombre)}" src="${a.url}"></iframe>
+           <button type="button" class="btn sm" data-abrirpdf="${esc(c.archivo_id)}" style="margin:8px">${I("ojo")} Abrir la proforma en otra pestaña</button>`
         : `<img alt="Proforma ${esc(c.archivo_nombre)}" src="${a.url}" data-zoom="1">`;
     });
   }
@@ -139,11 +155,11 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
         ${fila("En AgroControl", `<span class="final">${dinero(c.precio_agrocontrol)}</span>`)}
         ${fila("En la proforma", `${esc(c.item_proforma)} · ${dinero(c.precio_base)} ${c.iva_pct ? `+ IVA ${esc(c.iva_pct)} %` : "sin IVA"}${c.numero_proforma ? ` · N.° ${esc(c.numero_proforma)}` : ""}`)}
         ${fila("Proforma", `${dinero(c.subtotal_proforma)} + IVA ${dinero(c.iva_proforma)} = <b>${dinero(c.total_proforma)}</b> · ${esc(c.origen)}`)}
-        ${(c.avisos || []).map((a) => `<div class="aviso">⚠️ ${esc(a)}</div>`).join("")}
+        ${(c.avisos || []).map((a) => `<div class="aviso">${I("alerta")} ${esc(a)}</div>`).join("")}
         <div class="acciones">
-          ${abierta ? `<button type="button" class="btn p" data-acc="alerta_ok">👍 Está bien así</button>
-                       <button type="button" class="btn" data-acc="alerta_corregida">✏️ Ya lo corregí en AgroControl</button>`
-                    : `<button type="button" class="btn" data-acc="alerta_abrir">↩ Volver a revisar</button>`}
+          ${abierta ? `<button type="button" class="btn p" data-acc="alerta_ok">${I("pulgar")} Está bien así</button>
+                       <button type="button" class="btn" data-acc="alerta_corregida">${I("lapiz")} Ya lo corregí en AgroControl</button>`
+                    : `<button type="button" class="btn" data-acc="alerta_abrir">${I("deshacer")} Volver a revisar</button>`}
         </div>
         ${c.revisado_por ? `<div class="sub" style="margin-top:6px">Revisado por ${esc(c.revisado_por)} · ${esc(String(c.revisado_en || "").slice(0, 16).replace("T", " "))}</div>` : ""}
       </div></article>`;
@@ -161,7 +177,7 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     return `<article class="carga" data-c="${esc(c.id)}">
       <div class="visor" data-visor="${esc(c.id)}"><div class="cargando">Cargando proforma…</div></div>
       <div class="datos">
-        <h2>${esc(c.producto_agrocontrol)} <span class="est ${esc(c.estado)}">${esc({ por_revisar: "Por revisar", aprobada: "Aprobada", descartada: "Descartada", subida: "Subida ✓", subiendo: "Subiendo…", en_formulario: "En AgroControl, sin guardar", error: "Error" }[c.estado] || c.estado)}</span></h2>
+        <h2>${esc(c.producto_agrocontrol)} <span class="est ${esc(c.estado)}">${esc({ por_revisar: "Por revisar", aprobada: "Aprobada", descartada: "Descartada", subida: "Subida", subiendo: "Subiendo…", en_formulario: "En AgroControl, sin guardar", error: "Error" }[c.estado] || c.estado)}</span></h2>
         <div class="sub">${esc(c.pedido)} · ${esc(c.linea)} · ${esc(c.finca)} · pide ${esc(c.cantidad_pedido ?? "")}</div>
         ${fila("En la proforma", `${esc(c.item_proforma)}${c.cantidad_proforma ? ` · ${esc(c.cantidad_proforma)} ${esc(c.unidad)}` : ""}`)}
         ${fila("Proveedor", ed ? `<input data-k="proveedor_agrocontrol" value="${esc(valor(c, "proveedor_agrocontrol") || "")}" placeholder="Nombre como está en AgroControl"><div class="sub">En la proforma: ${esc(c.proveedor_proforma)}${c.ruc ? ` · RUC ${esc(c.ruc)}` : ""}${c.numero_proforma ? ` · N.° ${esc(c.numero_proforma)}` : ""}</div>` : esc(valor(c, "proveedor_agrocontrol")))}
@@ -170,13 +186,13 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
         ${fila("Precio final", `<span class="final">${dinero(pf)}</span>`)}
         ${fila("Forma de pago", ed ? `<select data-k="forma_pago"><option value="">Elige…</option>${["Contado", "Cheque", "Crédito"].map((x) => `<option ${pago === x ? "selected" : ""}>${x}</option>`).join("")}</select>` : esc(pago))}
         ${fila("Proforma", `${dinero(c.subtotal_proforma)} + IVA ${dinero(c.iva_proforma)} = <b>${dinero(c.total_proforma)}</b> · ${esc(c.origen)}`)}
-        ${(c.avisos || []).map((a) => `<div class="aviso">⚠️ ${esc(a)}</div>`).join("")}
+        ${(c.avisos || []).map((a) => `<div class="aviso">${I("alerta")} ${esc(a)}</div>`).join("")}
         ${ed ? `<div class="chequeo"><b>Compara con la imagen y marca lo que está bien:</b>${CHEQUEOS.map(([k, n]) => `<label><input type="checkbox" data-chk="${k}" ${ch[k] ? "checked" : ""}> ${n}</label>`).join("")}</div>` : ""}
         <div class="acciones">
-          ${ed ? `<button type="button" class="btn p" data-acc="aprobar" ${listo ? "" : "disabled"}>✅ Aprobar para subir</button>
+          ${ed ? `<button type="button" class="btn p" data-acc="aprobar" ${listo ? "" : "disabled"}>${I("check")} Aprobar para subir</button>
                   <div class="falta sub" style="width:100%;color:var(--ladrillo,#B5452F)">${esc(faltan(c))}</div>
-                  <button type="button" class="btn" data-acc="descartar">❌ Descartar</button>` : ""}
-          ${["aprobada", "descartada", "error"].includes(c.estado) ? `<button type="button" class="btn" data-acc="revisar">↩ Volver a revisar</button>` : ""}
+                  <button type="button" class="btn" data-acc="descartar">${I("cerrar")} Descartar</button>` : ""}
+          ${["aprobada", "descartada", "error"].includes(c.estado) ? `<button type="button" class="btn" data-acc="revisar">${I("deshacer")} Volver a revisar</button>` : ""}
         </div>
         ${c.revisado_por ? `<div class="sub" style="margin-top:6px">Revisado por ${esc(c.revisado_por)} · ${esc(String(c.revisado_en || "").slice(0, 16).replace("T", " "))}</div>` : ""}
       </div></article>`;
@@ -232,6 +248,13 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
   }
 
   document.addEventListener("click", async (e) => {
+    const ap = e.target.closest("[data-abrirpdf]");
+    if (ap) {
+      const a = await archivo(ap.dataset.abrirpdf); if (!a) return;
+      try { const blob = await (await fetch(a.url)).blob(); window.open(URL.createObjectURL(blob), "_blank"); }
+      catch (err) { avisar("No se pudo abrir la proforma: " + (err.message || err)); }
+      return;
+    }
     const z = e.target.closest("[data-zoom]"); if (z) { $("#zoom-img").src = z.src; $("#zoom").classList.add("ver"); return; }
     if (e.target.closest("#zoom")) { $("#zoom").classList.remove("ver"); return; }
     const tab = e.target.closest("[data-tab]");
@@ -242,6 +265,7 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
       b.disabled = true;
       if (b.dataset.acc === "aprobar") {
         const cambios = Object.assign({}, S.editado[c.id] || {}, { estado: "aprobada", precio_final: precioFinal(c) });
+        if (valor(c, "con_iva") === true) { const pc = valor(c, "iva_pct"); cambios.iva_pct = (pc == null || pc === "") ? 15 : Number(pc) || 0; }
         art.classList.add("sale");
         const antes = await guardar(c, cambios);
         setTimeout(pintar, 330);
@@ -275,7 +299,7 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     } catch (err) {
       if (art) art.classList.remove("sale");
       pintar();
-      avisar("⚠️ NO se guardó: " + (err && err.message ? err.message : err) + " · Mándame una captura de este mensaje.");
+      avisar("NO se guardó: " + (err && err.message ? err.message : err) + " · Mándame una captura de este mensaje.");
     }
     finally { b.disabled = false; }
   });

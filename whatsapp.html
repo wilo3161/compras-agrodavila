@@ -80,7 +80,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 @media (max-width:600px){main{padding:12px}.kq{grid-template-columns:1fr}.rk{grid-template-columns:110px 1fr 56px}.tarea{grid-template-columns:1fr}.kpi .v{font-size:22px}}
 @media print{header nav,.top .acc,.filtros,.btn{display:none!important}body{background:#fff}}
 </style>
-</head>
+<link rel="stylesheet" href="marco.css"></head>
 <body>
 <header>
   <div class="top">
@@ -187,12 +187,16 @@ function msgSeguimiento(p){const prov=D.byId[p.proveedor_id];const it=itemsTxt(p
   return `${saludo(prov)} Le escribo para dar seguimiento a nuestro pedido${p.odc?" con ODC "+p.odc:""} del ${fecha(p.fecha)}: ${it}.${p.fecha_compromiso?"\nLa fecha comprometida era el "+fecha(p.fecha_compromiso)+".":""}\n¿Nos confirma la fecha de despacho y llegada a la finca${p.finca?" "+p.finca:""}, por favor? Gracias.`;}
 
 /* ====== Tarjetas de envío (tarjeta_envio.js) ====== */
-function provDeChat(chat,pid){ return (pid&&D.byId[pid])||(D.proveedores||[]).find(x=>x.chat===chat)||{}; }
+function provDeChat(chat,pid){ const porChat=(D.proveedores||[]).find(x=>x.chat&&x.chat===chat); if(porChat) return porChat; const o=pid&&D.byId[pid]; return (o&&(!chat||!o.chat||o.chat===chat))?o:{}; }
 function lineaItem(i){ return `${i.cantidad} ${i.unidad||""} — ${i.producto}`.replace(/\s+—/," —"); }
 function generarTexto(envio,pid,ped){
+  // El saludo va para el proveedor que la tarjeta tiene AHORA (si se cambió, ya no es el original).
   const prov=provDeChat(envio.prov.chat,pid);
-  if(envio.tipo==="cotizacion") return msgCotizacion(prov,envio.items.map(lineaItem),null,envio.finca||"");
-  if(ped) return msgSeguimiento(Object.assign({},ped,{items:envio.items.map(i=>({descripcion:i.producto,cantidad:i.cantidad,unidad:i.unidad}))}));
+  // msgCotizacion busca la finca por su id (PCAYO, ELIANA…), no por el nombre: así salen «para la finca X» y «Facturar a…».
+  if(envio.tipo==="cotizacion") return msgCotizacion(prov,envio.items.map(lineaItem),null,envio.fincaId||"");
+  if(ped){ const mismo=!envio.prov.chat||!(D.byId[ped.proveedor_id]||{}).chat||(D.byId[ped.proveedor_id]||{}).chat===envio.prov.chat;
+    const t=msgSeguimiento(Object.assign({},ped,{items:envio.items.map(i=>({descripcion:i.producto,cantidad:i.cantidad,unidad:i.unidad}))}));
+    return mismo?t:t.replace(saludo(D.byId[ped.proveedor_id]),saludo(prov)); }
   return null;
 }
 function tarjetaBorrador(id,textoActual){
@@ -200,18 +204,18 @@ function tarjetaBorrador(id,textoActual){
   const p=D.byId[b.proveedor_id]||{};
   AgdTarjeta.abrir({ tipo:b.tipo==="cotizacion"?"cotizacion":"mensaje", proveedor:{nombre:p.nombre||b.proveedor_id||"",chat:b.chat||"",telefono:p.telefono||""},
     items:(b.items||[]).map(i=>({producto:i.descripcion||"",cantidad:i.cantidad,unidad:i.unidad||"",finca:nomFinca(b.finca)==="—"?"":nomFinca(b.finca)})),
-    texto:textoActual||b.texto, finca:nomFinca(b.finca)==="—"?"":nomFinca(b.finca) },
+    texto:textoActual||b.texto, finca:nomFinca(b.finca)==="—"?"":nomFinca(b.finca), fincaId:b.finca||"" },
     { contexto:(b.motivo||"")+((b.lineas_agrocontrol||[]).length?" · "+b.lineas_agrocontrol.join(", "):""), origen:"whatsapp:"+id,
       generar:e=>generarTexto(e,b.proveedor_id,null),
-      alEnviar:r=>{ guardarBor(id,{texto:r.texto,estado:"enviado",enviado_en:new Date().toISOString(),solicitud_id:r.solicitud_id,error:null}); toast("Aprobado: sale por WhatsApp en ~1 minuto"); },
+      alEnviar:r=>{ guardarBor(id,{texto:r.texto,estado:"enviado",enviado_en:new Date().toISOString(),solicitud_id:r.solicitud_id,proveedor_enviado:r.proveedor||"",chat_enviado:r.chat||"",error:null}); toast("Aprobado: sale por WhatsApp en ~1 minuto"); },
       alYaEnviado:r=>{ guardarBor(id,{texto:r.texto,estado:"enviado",enviado_en:new Date().toISOString(),error:null}); toast("Marcado como enviado"); } });
 }
 function tarjetaPedido(p){
   const prov=D.byId[p.proveedor_id]||{}; const cot=p.estado==="por_cotizar";
   AgdTarjeta.abrir({ tipo:cot?"cotizacion":"mensaje", proveedor:{nombre:prov.nombre||"",chat:prov.chat||"",telefono:prov.telefono||""},
     items:(p.items||[]).map(i=>({producto:i.descripcion||"",cantidad:i.cantidad,unidad:i.unidad||"",finca:p.finca?nomFinca(p.finca):""})),
-    texto:cot?"":msgSeguimiento(p), finca:p.finca?nomFinca(p.finca):"" },
-    { contexto:[p.id,p.odc?"ODC "+p.odc:"",p.proxima_accion?"Próxima acción: "+p.proxima_accion:""].filter(Boolean).join(" · "), origen:"whatsapp:ped-"+p.id,
+    texto:cot?"":msgSeguimiento(p), finca:p.finca?nomFinca(p.finca):"", fincaId:p.finca||"" },
+    { contexto:[p.finca?nomFinca(p.finca):"",p.odc?"ODC "+p.odc:"",p.proxima_accion?"Próxima acción: "+p.proxima_accion:""].filter(Boolean).join(" · "), origen:"whatsapp:ped-"+p.id,
       generar:e=>generarTexto(e,p.proveedor_id,p),
       alEnviar:()=>{ guardarPed(p.id,{ultimo_envio:new Date().toISOString()}); toast("Aprobado: sale por WhatsApp en ~1 minuto"); },
       alYaEnviado:()=>{ guardarPed(p.id,{ultimo_envio:new Date().toISOString()}); toast("Marcado como enviado"); } });

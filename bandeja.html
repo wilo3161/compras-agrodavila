@@ -612,7 +612,9 @@ function pintarHistorial() {
       if (!matchProv) return false;
     }
     if (filtroFecha) {
-      if (!it.fecha || !it.fecha.startsWith(filtroFecha)) return false;
+      // La fecha guardada está en UTC: se compara el día de Ecuador (lo enviado después de las 19:00 es de ese mismo día)
+      const diaEc = (window.AgdReglas && AgdReglas.fechaLocal) ? AgdReglas.fechaLocal(it.fecha) : String(it.fecha || "").slice(0, 10);
+      if (!it.fecha || diaEc !== filtroFecha) return false;
     }
     return true;
   });
@@ -754,8 +756,9 @@ function pintarConciliaciones() {
 
   const abiertas = LINEAS_AGRO.filter(f => {
     const est = String(f["Estado (código)"] || f.estado || "").toLowerCase();
-    const tieneOc = f["N° OC"] || f.numero_oc || f["OC"] || f.oc_codigo;
-    return tieneOc && est !== "anulado" && est !== "rechazado";
+    const tieneOc = f["N° OC"] || f.numero_oc || f["OC"] || f["OC (código)"] || f.oc_codigo;
+    const yaEntregada = String(f["F. entrega"] || f.f_entrega || "").trim();   // lo ya entregado no se concilia otra vez
+    return tieneOc && !yaEntregada && est !== "anulado" && est !== "rechazado";
   });
 
   cont.innerHTML = pend.map(r => {
@@ -764,7 +767,7 @@ function pintarConciliaciones() {
       const af = String(a["Finca"] || a.finca || "").toLowerCase().includes(fincaRec) ? 0 : 1;
       const bf = String(b["Finca"] || b.finca || "").toLowerCase().includes(fincaRec) ? 0 : 1;
       return af - bf;
-    }).slice(0, 60);
+    }).slice(0, 200);
 
     return `
       <article class="card-conv alerta-ladrillo" data-rid="${esc(r.id)}">
@@ -790,7 +793,7 @@ function pintarConciliaciones() {
           <select id="sel_oc_${esc(r.id)}" class="sel-oc-conc" style="width:100%;padding:8px 10px">
             <option value="">— Seleccionar OC de AgroControl (o escribir abajo) —</option>
             ${candidatas.map(c => {
-              const oc = c["N° OC"] || c.numero_oc || c.oc_codigo || "";
+              const oc = c["N° OC"] || c.numero_oc || c["OC (código)"] || c.oc_codigo || "";
               const ped = c["Pedido"] || c.pedido || "";
               const lin = c["Línea"] || c.linea || "";
               const clave = [oc, ped, lin].join("|");
@@ -820,7 +823,7 @@ function pintarConciliaciones() {
       const card = btn.closest("article");
       const selVal = card.querySelector(".sel-oc-conc").value;
       const manualOc = card.querySelector(`#inp_oc_${CSS.escape(rid)}`).value.trim();
-      const claveFila = c => [c["N° OC"] || c.numero_oc || c.oc_codigo || "", c["Pedido"] || c.pedido || "", c["Línea"] || c.linea || ""].join("|");
+      const claveFila = c => [c["N° OC"] || c.numero_oc || c["OC (código)"] || c.oc_codigo || "", c["Pedido"] || c.pedido || "", c["Línea"] || c.linea || ""].join("|");
       const cand = selVal ? abiertas.find(c => claveFila(c) === selVal) : null;
       if (!cand && !manualOc) {
         alert("Seleccione una OC de AgroControl o escriba el N° OC.");
@@ -829,7 +832,7 @@ function pintarConciliaciones() {
       btn.disabled = true;
       const asig = cand ? {
         numero_oc: String(cand["N° OC"] || cand.numero_oc || manualOc || ""),
-        oc_codigo: String(cand.oc_codigo || ""),
+        oc_codigo: String(cand["OC (código)"] || cand.oc_codigo || ""),
         pedido: String(cand["Pedido"] || cand.pedido || ""),
         linea: String(cand["Línea"] || cand.linea || ""),
         proveedor: String(cand["Proveedor"] || cand.proveedor || ""),

@@ -82,6 +82,10 @@ input[type=email],input[type=password]{width:100%;padding:12px 14px;font:inherit
 </style>
 </head>
 <body>
+<div id="pCarga" role="status" aria-live="polite" style="max-width:520px;margin:48px auto;padding:0 16px">
+  <p style="color:var(--t2);font-size:14px;margin:0 0 12px">Abriendo Compras AgroDávila…</p>
+  <div class="esqueleto"><i></i><i></i></div>
+</div>
 <section class="entrada hide" id="pLogin" aria-labelledby="tLogin">
   <div class="lema">
     <div class="sello" id="selloLogin"></div>
@@ -182,7 +186,7 @@ input[type=email],input[type=password]{width:100%;padding:12px 14px;font:inherit
 const $=s=>document.querySelector(s), I=n=>AgdGuia.ico(n);
 document.querySelectorAll("[data-i]").forEach(e=>e.innerHTML=I(e.dataset.i));
 $("#selloLogin").innerHTML=I("hoja"); $("#selloClave").innerHTML=I("llave"); $("#icUrg").innerHTML=I("alerta");
-const ver=id=>["pLogin","pClave","pMenu"].forEach(x=>$("#"+x).classList.toggle("hide",x!==id));
+const ver=id=>{ const c=$("#pCarga"); if(c) c.remove(); ["pLogin","pClave","pMenu"].forEach(x=>$("#"+x).classList.toggle("hide",x!==id)); };
 function err(el,t){ el.textContent=t; el.classList.toggle("hide",!t); }
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -195,7 +199,7 @@ function pintarPasos(){ const h=hechos(); if(window.matchMedia("(display-mode: s
 document.addEventListener("click",e=>{ const a=e.target.closest("[data-paso]"); if(a&&a.dataset.paso!=="excel"&&a.dataset.paso!=="instalar") marcar(a.dataset.paso); });
 
 /* Lo urgente hoy (AgroControl en vivo y Bandeja) */
-let SNAP=null, CONV_PENDIENTES=0, FILAS_AC=[], AGRO_ERROR=false;
+let SNAP=null, CONV_PENDIENTES=0, FILAS_AC=[], AGRO_ERROR=false, AGRO_LISTO=false;
 function renderUrgente(){
   const filas = [
     ["tierra","bandeja",`${CONV_PENDIENTES} conversaciones esperan respuesta`,"Mensajes con respuesta sugerida lista en la nube",CONV_PENDIENTES,"bandeja.html"],
@@ -206,6 +210,7 @@ function renderUrgente(){
     $("#estado").textContent="No se pudo leer AgroControl.";
     return;
   }
+  if(!AGRO_LISTO){ $("#estado").textContent="Leyendo AgroControl…"; return; }   // aún no hay datos: no se dice «Todo al día»
   const total=filas.reduce((a,f)=>a+f[4],0);
   $("#estado").textContent=total?`Hay ${total} asuntos esperando por usted. Empiece por los de arriba.`:"Todo al día.";
 }
@@ -225,6 +230,7 @@ async function urgente(){
       ["maiz","control","Falta completar cotizaciones","Tienen 1 o 2 de las exigidas (2 o 3)",faltaCot,"avance.html#faltacot"],
       ["tierra","llave","Por autorizar","Esperan autorización",porAut,"control.html"],
       ["verde","hoja","Revisión de campo","Pedidos nuevos de las fincas",revCampo,"control.html"]];
+    AGRO_LISTO=true;
     renderUrgente();
   }catch(e){
     AGRO_ERROR=true;
@@ -252,8 +258,9 @@ function saludo(s){
   $("#usuario").textContent="Sesión iniciada como "+correo;
 }
 async function iniciar(){
-  let s=null; try{ s=await ComprasApp.sesion({permitirNube:true}); }catch(e){}
-  if(!s){ ver("pLogin"); $("#correo").focus(); return; }
+  // Con mala señal la nube puede tardar: a los 8 s se muestra el ingreso en vez de dejar la pantalla esperando.
+  let s=null; try{ s=await Promise.race([ComprasApp.sesion({permitirNube:true}), new Promise(r=>setTimeout(()=>r(null),8000))]); }catch(e){}
+  if(!s){ ver("pLogin"); if(!window.supabase) err($("#eLogin"),"No se pudo cargar la app completa (sin conexión). Revise el internet y vuelva a abrirla."); $("#correo").focus(); return; }
   if(!ComprasApp.tieneClave() && !sessionStorage.getItem("agd_sin_wa") && !(s&&s.nube)){ ver("pClave"); $("#frase").focus(); return; }
   ver("pMenu"); saludo(s); pintarPasos(); mostrarCorte(); urgente();
   if(window.AgdGuia && AgdGuia.renderizarFrescura) AgdGuia.renderizarFrescura();

@@ -603,7 +603,9 @@ function renderTodo() {
 
   // 6 Tarjetas Gerenciales + Indicadores de Gestión desde AgdReglas
   const hoyEc = R.hoyEcuador();
-  const ind = R.resumirIndicadores(agroFilt, gastoInfo.recMapa, vFilt, hoyEc);
+  // El seguimiento manual (p. ej. «cotización única») también cuenta para los indicadores, igual que en Avance
+  let segGer = {}; try { segGer = (window.AgdNube && AgdNube.leerSeguimientoLocal) ? (AgdNube.leerSeguimientoLocal() || {}) : {}; } catch (e) { segGer = {}; }
+  const ind = R.resumirIndicadores(agroFilt, gastoInfo.recMapa, vFilt, hoyEc, segGer, R.totalesReferenciaCotizacion(AGRO_FILAS));
   const T = ind.tarjetas;
   const sumRecPag = lFilt.filter(l => l.etapa === "Recibido en finca" || l.etapa === "Pagado").reduce((s, l) => s + l.monto, 0);
   const sumOrdMas = lFilt.filter(l => l.etapa !== "Comprometido").reduce((s, l) => s + l.monto, 0);
@@ -626,7 +628,7 @@ function renderTodo() {
 
   const ent = ind.cumplimiento_entrega || {};
   $("#cEnt").textContent = ent.pct_a_tiempo != null ? Math.round(ent.pct_a_tiempo * 100) + "%" : "—";
-  $("#cEntSub").textContent = `${ent.entregadas || 0} entregas / ${ent.total_evaluadas || 0} OC · meta 90%`;
+  $("#cEntSub").textContent = `${ent.a_tiempo || 0} a tiempo de ${ent.medidas || 0} líneas medidas${ent.sin_dato ? ` · ${ent.sin_dato} sin plazo registrado` : ""} · meta 90%`;
   const po = ind.dias_pedido_a_oc || {};
   $("#cPedOc").textContent = po.promedio != null ? po.promedio.toFixed(1) + " d" : "—";
   $("#cPedOcSub").textContent = `${po.n || 0} OCs medidas · meta ≤ ${po.meta || 4} d`;
@@ -639,13 +641,19 @@ function renderTodo() {
   $("#tbFincaHa").innerHTML = R.FINCAS.map(f => {
     const gf = (ind.gasto_por_finca && ind.gasto_por_finca[f.nombre]) || { monto: 0, lineas: 0, hectareas: f.hectareas_base };
     const ha = (ind.hectareas_finca && ind.hectareas_finca[f.nombre]) || f.hectareas_base || 0;
-    const cph = ind.costo_por_hectarea && ind.costo_por_hectarea[f.nombre];
+    // costo_por_hectarea es una lista; el dato por finca ya viene dentro de gasto_por_finca
+    const cph = (Number(ha) > 0 && gf.costo_por_hectarea != null) ? gf.costo_por_hectarea : null;
     const cults = (f.cultivos && f.cultivos.length) ? f.cultivos.join(", ") : "General";
     return `<tr><td data-l="Finca"><b>${esc(f.nombre)}</b></td><td data-l="Zona">${esc(f.zona)}</td><td data-l="Cultivo(s)">${esc(cults)}</td><td class="n" data-l="Ha">${ha}</td><td class="n" data-l="Líneas">${gf.lineas}</td><td class="n" data-l="Gasto $"><b>${fmtUsd(gf.monto)}</b></td><td class="n" data-l="$/ha">${cph != null ? fmtUsd(cph) : "—"}</td></tr>`;
   }).join("");
   const cults = ind.gasto_por_cultivo || [];
   $("#tbCultivo").innerHTML = cults.length ? cults.map(c => `<tr><td data-l="Cultivo"><b>${esc(c.cultivo)}</b></td><td class="n" data-l="Líneas">${c.lineas}</td><td class="n" data-l="Gasto $"><b>${fmtUsd(c.monto)}</b></td></tr>`).join("") : '<tr><td colspan="3" class="muted">Sin datos de cultivo</td></tr>';
-  const cxp = (ind.cuentas_por_pagar && ind.cuentas_por_pagar.tramos) || [];
+  // cuentasPorPagarVencimiento devuelve un cubo por tramo (no una lista «tramos»): se arma la tabla desde esas claves
+  const cubosCxp = ind.cuentas_por_pagar || {};
+  const cxp = [["vencido_gt_30", "Vencido hace más de 30 días"], ["vencido_16_30", "Vencido hace 16 a 30 días"], ["vencido_1_15", "Vencido hace 1 a 15 días"],
+               ["hoy_a_7_dias", "Vence hoy o en los próximos 7 días"], ["dias_8_a_30", "Vence en 8 a 30 días"], ["mas_30_dias", "Vence en más de 30 días"],
+               ["sin_programar", "Sin fecha de pago programada"]]
+    .map(([k, tramo]) => Object.assign({ tramo }, cubosCxp[k] || {})).filter(t => Number(t.lineas || 0) > 0);
   $("#tbCxP").innerHTML = cxp.length ? cxp.map(t => `<tr><td data-l="Tramo de vencimiento">${esc(t.tramo)}</td><td class="n" data-l="OCs">${t.ocs}</td><td class="n" data-l="Monto $"><b>${fmtUsd(t.monto)}</b></td></tr>`).join("") : '<tr><td colspan="3" class="muted">Sin OCs pendientes</td></tr>';
 
   // KPI Mantenimiento

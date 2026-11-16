@@ -1155,9 +1155,11 @@
     };
   }
 
-  function avancePorPedido(filas, seguimiento, hoy) {
+  function avancePorPedido(filas, seguimiento, hoy, totRefTodas) {
     const lista = Array.isArray(filas) ? filas : Array.from(filas || []);
-    const totRef = totalesReferenciaCotizacion(lista);
+    // Las cotizaciones exigidas (2 o 3) dependen del total del pedido COMPLETO: si la lista viene filtrada,
+    // quien llama pasa los totales calculados con todas las filas para que «Faltan» no cambie con el filtro.
+    const totRef = totRefTodas || totalesReferenciaCotizacion(lista);
     const lineasEval = [];
     const grupos = {};
     const totConteos = Object.fromEntries(ESTADOS_AVANCE.map(e => [e, 0]));
@@ -1288,12 +1290,12 @@
     };
   }
 
-  function resumirIndicadores(filas, recepciones, vehiculos, hoy, seguimiento) {
+  function resumirIndicadores(filas, recepciones, vehiculos, hoy, seguimiento, totRefTodas) {
     const lista = Array.isArray(filas) ? filas : [];
     const hoyYmd = hoy ? fechaLocal(hoy) : hoyEcuador();
     const dHoy = _aDateUTC(hoyYmd);
     const recs = recepciones || {};
-    const totRef = totalesReferenciaCotizacion(lista);
+    const totRef = totRefTodas || totalesReferenciaCotizacion(lista);  // totales del pedido completo aunque la lista esté filtrada
     const hectareas = hectareasPorFinca(lista);
     const varPrecios = variacionesPrecioHistorico(lista);
 
@@ -1313,7 +1315,7 @@
     let gastoSemana = 0, gastoMes = 0, gastoAnio = 0, ahorroDoc = 0;
     let sinCotizarCnt = 0, faltaCompCnt = 0, cotUnicaCnt = 0, pendienteCot = 0;
     const pedOcDias = [];
-    let entTotal = 0, entCon = 0, entTiempo = 0, entAtras = 0;
+    let entTotal = 0, entCon = 0, entTiempo = 0, entAtras = 0, entSinDato = 0;
     let montoAutTotal = 0, montoAutCotOk = 0, alertasPrecio = 0;
 
     lista.forEach((r, idx) => {
@@ -1405,7 +1407,7 @@
             if (realD <= ofrec) entTiempo++;
             else entAtras++;
           } else {
-            entTiempo++;
+            entSinDato++;   // sin días ofrecidos o sin fecha de OC no se puede decir que llegó a tiempo
           }
         } else if (fOc && dHoy && ofrec > 0) {
           if (Math.round((dHoy - _aDateUTC(fOc)) / 86400000) > ofrec) entAtras++;
@@ -1439,7 +1441,7 @@
       : Math.round(pedOrd[(pedOrd.length - 1) / 2] * 100) / 100);
     const evalOtd = entTiempo + entAtras;
     const pctEnt = entTotal ? Math.round((entCon / entTotal) * 10000) / 10000 : 0;
-    const pctOtd = evalOtd ? Math.round((entTiempo / evalOtd) * 10000) / 10000 : 0;
+    const pctOtd = evalOtd ? Math.round((entTiempo / evalOtd) * 10000) / 10000 : null;  // sin datos = «—», no 0 %
     const pctCotUsd = montoAutTotal > 0 ? Math.round((montoAutCotOk / montoAutTotal) * 10000) / 10000 : 0;
 
     const kraljicLista = Object.values(kraljicCats)
@@ -1502,6 +1504,8 @@
         pct_con_entrega: pctEnt,
         a_tiempo: entTiempo,
         atrasadas: entAtras,
+        sin_dato: entSinDato,
+        medidas: evalOtd,
         pct_a_tiempo: pctOtd,
         meta: Number(UMBRALES.meta_entregas_tiempo)
       },

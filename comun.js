@@ -32,7 +32,15 @@
   }
   async function entrar(correo, clave) {
     const { data, error } = await sb().auth.signInWithPassword({ email: correo.trim(), password: clave });
-    if (error) throw new Error(error.message === "Invalid login credentials" ? "Correo o contraseña incorrectos." : error.message);
+    if (error) {
+      const m = String(error.message || "");
+      const es = /Invalid login credentials/i.test(m) ? "Correo o contraseña incorrectos."
+        : /Email not confirmed/i.test(m) ? "Ese correo todavía no está confirmado en AgroControl."
+        : /rate limit|too many/i.test(m) ? "Demasiados intentos seguidos. Espere unos minutos y vuelva a probar."
+        : /fetch|network/i.test(m) ? "No hay conexión con AgroControl. Revise el internet y vuelva a probar."
+        : m;
+      throw new Error(es);
+    }
     return data.session;
   }
   async function salir() {

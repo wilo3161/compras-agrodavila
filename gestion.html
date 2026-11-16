@@ -329,10 +329,14 @@ main{max-width:1280px;margin:0 auto;padding:22px 18px 64px}
     (filasAgro || []).forEach(r => {
       const ah = R.ahorroDocumentadoLinea(r);
       if (ah === 0) return;
+      // Las filas de AgroControl llegan con los nombres de columna del exportador («Pedido», «Precio unit. promedio»…);
+      // antes se leían en minúsculas y la hoja salía sin pedido, producto ni precios.
+      const v = (corto, largo) => (r[corto] != null && r[corto] !== "") ? r[corto] : (r[largo] != null ? r[largo] : "");
+      const n = (corto, largo) => { const x = Number(String(v(corto, largo)).replace(",", ".")); return isFinite(x) ? x : 0; };
       rowsAh.push([
-        r.pedido || "", r.linea || "", R.normFinca(r.finca), r.producto || "", r.proveedor || "",
-        Number(r.cantidad || 0), Number(Number(r.precio_prom || 0).toFixed(4)),
-        Number(Number(r.precio_sel || 0).toFixed(4)), Number(ah.toFixed(2))
+        v("pedido", "Pedido"), v("linea", "Línea"), R.normFinca(v("finca", "Finca")), v("producto", "Producto"), v("proveedor", "Proveedor"),
+        n("cantidad", "Cantidad"), Number(n("precio_prom", "Precio unit. promedio").toFixed(4)),
+        Number(n("precio_sel", "Precio unit. elegido").toFixed(4)), Number(ah.toFixed(2))
       ]);
     });
     const wsAh = XLSX.utils.aoa_to_sheet(rowsAh);

@@ -32,7 +32,15 @@
     subir: '<path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 20h16"/>',
     cotizar: '<path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7Z"/>',
     fincas3d: '<path d="m12 3-9 4.5 9 4.5 9-4.5L12 3Z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/>',
-    mas: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>'
+    mas: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+    ojo: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+    agregar: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+    deshacer: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+    lapiz: '<path d="M17 3a2.8 2.8 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>',
+    campana: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
+    pulgar: '<path d="M7 10v12"/><path d="M15 5.9 14 10h5.8a2 2 0 0 1 2 2.5l-2.3 8a2 2 0 0 1-2 1.5H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.8a2 2 0 0 0 1.8-1.1L12 2a3.1 3.1 0 0 1 3 3.9Z"/>',
+    imagen: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+    papelera: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>'
   };
   const ico = (n, cls) => `<svg class="ico${cls ? " " + cls : ""}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ""}</svg>`;
 
@@ -51,7 +59,7 @@
     "whatsapp.html": {
       asis: ["Asistente", "Lo que el vigía de la PC encontró en los chats. Desde el teléfono, use «Hoy» y «Mensajes listos»."],
       hoy: ["Su día en compras", "Lo que hay por cotizar, por autorizar, para generar OC y en curso. Toque un grupo para ver el detalle."],
-      listos: ["Mensajes listos para enviar", "Revise cada mensaje y toque «Revisar y enviar»: se abre WhatsApp con el texto escrito y usted pulsa Enviar."],
+      listos: ["Mensajes listos para enviar", "Toque «Revisar y enviar»: se abre una tarjeta donde puede quitar o agregar productos, ver la vista previa y aprobar. Al aprobar, sale por el WhatsApp de compras."],
       pedidos: ["Pedidos y cotizaciones", "Todo lo que está en marcha, con filtros por finca, estado y proveedor."],
       tramites: ["Facturas, pagos y devoluciones", "Lo que no es compra nueva pero sigue pendiente con proveedores."],
       prov: ["Proveedores", "Ficha de cada proveedor: zona, condiciones y qué tan rápido responde."],
@@ -104,7 +112,7 @@
   /* Pasos del recorrido de cada pantalla: [selector, título, texto] */
   const TOUR = {
     "index.html": [
-      [".marco", "Su barra de secciones", "Desde aquí pasa entre Inicio, Control, WhatsApp y Proveedores. En el teléfono está abajo, al alcance del pulgar."],
+      [".marco", "Su barra de secciones", "Desde aquí pasa entre Inicio, Cotizar, Avance, Gerencia y Bandeja; lo demás está en «Más». En el teléfono está abajo, al alcance del pulgar."],
       ["#urgente", "Lo urgente hoy", "Un vistazo a lo que espera por usted en AgroControl, actualizado en vivo."],
       ["#accesos", "Accesos rápidos", "Las tareas de todos los días a un toque: ver pendientes, enviar mensajes y bajar el Excel."],
       [".ayuda", "Ayuda cuando la necesite", "Toque «¿Cómo uso esto?» en cualquier pantalla para volver a ver este recorrido."]
@@ -277,7 +285,7 @@
     const ir = k => {
       if (k >= pasos.length) return cerrar(); i = k;
       const [sel, t, x] = pasos[i], el = document.querySelector(sel);
-      el.scrollIntoView({ block: "center", behavior: "auto" });
+      el.scrollIntoView({ block: "center", behavior: "instant" });  // instantáneo: el foco se mide justo después
       const r = el.getBoundingClientRect(), m = 6;
       Object.assign(foco.style, { top: r.top - m + "px", left: r.left - m + "px", width: r.width + 2 * m + "px", height: r.height + 2 * m + "px" });
       globo.querySelector("h3").textContent = t; globo.querySelector("p").textContent = x;
@@ -350,4 +358,32 @@
     setTimeout(() => recorrido(false), 1600);   // primera visita: después de que la pantalla cargó datos
   });
   window.AgdGuia = { ico, recorrido, renderizarFrescura };
+})();
+
+/* ── Movimiento (16/11/2026): llegada escalonada de listas y contador que «late» ── */
+window.AgdMov = (function () {
+  const ultima = new WeakMap();
+  /** Anima la llegada de los hijos de `cont` solo cuando `clave` cambia (primera carga, otra pestaña, otro filtro).
+   *  Un repintado por una acción (aprobar, quitar) NO vuelve a animar toda la lista. */
+  function entrar(cont, clave) {
+    if (!cont) return;
+    const k = String(clave == null ? "" : clave);
+    if (ultima.get(cont) === k && cont.dataset.vez) return;
+    ultima.set(cont, k); cont.dataset.vez = "1";
+    [...cont.children].forEach((el, i) => el.style.setProperty("--i", i));
+    cont.setAttribute("data-entra", "");
+    setTimeout(() => cont.removeAttribute("data-entra"), 900);
+  }
+  /** Cambia el texto de un contador y lo hace latir si el valor cambió. */
+  function latir(el, texto) {
+    if (!el) return;
+    const t = String(texto);
+    if (el.textContent === t) return;
+    const primera = el.textContent === "" || el.textContent === "—";
+    el.textContent = t;
+    if (primera) return;
+    el.classList.remove("late"); void el.offsetWidth; el.classList.add("late");
+  }
+  const esqueleto = (n) => `<div class="esqueleto" role="status" aria-live="polite"><span class="lector">Cargando…</span>${"<i></i>".repeat(n || 3)}</div>`;
+  return { entrar, latir, esqueleto };
 })();

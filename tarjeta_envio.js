@@ -11,6 +11,7 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const plano = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").trim();
   const $ = (s, r) => (r || document).querySelector(s);
+  const I = (n) => (window.AgdGuia && AgdGuia.ico ? AgdGuia.ico(n) : "");
   const cargarScript = (src) => new Promise((ok, mal) => {
     if (document.querySelector(`script[src="${src}"]`)) return ok();
     const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = mal; document.head.appendChild(s);
@@ -32,6 +33,7 @@
   .te-capa.ver{display:flex}
   .te-caja{background:var(--card,#fff);color:var(--tx,#23262B);border:1px solid var(--bd,#E2E4E7);border-radius:14px;width:100%;max-width:760px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
   .te-caja h2{margin:0 0 4px;font-size:19px}
+  .te-caja h2:focus{outline:none !important}
   .te-sub{color:var(--t2,#5E6570);font-size:13px}
   .te-chip{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;background:var(--pri2,#E8EFF7);color:var(--pri,#2E5E8E);margin:2px 4px 2px 0}
   .te-chip.alerta{background:var(--ladrillo2,#F8E8E4);color:var(--ladrillo,#B5452F)}
@@ -78,17 +80,22 @@
     d.innerHTML = `<div class="te-capa" id="te-capa" role="dialog" aria-modal="true" aria-labelledby="te-titulo"><div class="te-caja" id="te-caja"></div></div>
       <div id="te-fuente" aria-hidden="true" style="position:fixed;left:-10000px;top:0;width:794px"></div>`;
     document.body.appendChild(d);
-    $("#te-capa").addEventListener("click", (e) => { if (e.target.id === "te-capa") cerrar(); });
+    // Tocar fuera NO cierra: se perdería lo editado. Se cierra con ✕, «Cancelar» o Escape.
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#te-capa").classList.contains("ver")) cerrar(); });
   }
-  function cerrar() { const c = $("#te-capa"); if (c) c.classList.remove("ver"); E = null; }
+  let ENVIANDO = false, FOCO_PREVIO = null;
+  function cerrar(forzar) {
+    if (ENVIANDO && !forzar) return;   // mientras sale el envío no se cierra: evita el doble envío
+    const c = $("#te-capa"); if (c) c.classList.remove("ver"); E = null;
+    if (FOCO_PREVIO && FOCO_PREVIO.focus) { try { FOCO_PREVIO.focus(); } catch (e) {} } FOCO_PREVIO = null;
+  }
 
   /* ── Estado de la tarjeta abierta ── */
   let E = null;  // { tipo, prov:{nombre,chat,telefono}, items:[{producto,cantidad,unidad,finca,linea}], texto, editado, op }
 
   const esCot = () => E.tipo === "cotizacion";
   function textoAuto() {
-    try { if (E.op.generar) return E.op.generar({ tipo: E.tipo, prov: E.prov, items: E.items.filter((i) => i.producto.trim()), finca: E.finca }) || E.texto; }
+    try { if (E.op.generar) return E.op.generar({ tipo: E.tipo, prov: E.prov, items: E.items.filter((i) => i.producto.trim()), finca: E.finca, fincaId: E.fincaId }) || E.texto; }
     catch (e) { /* si la plantilla falla, se queda el texto actual */ }
     return E.texto;
   }
@@ -99,6 +106,7 @@
     if (esCot() && !E.items.some((i) => i.producto.trim())) f.push("al menos un producto");
     if (E.items.some((i) => i.producto.trim() && !String(i.cantidad).trim())) f.push("la cantidad de cada producto");
     if (!String(E.texto || "").trim()) f.push("el mensaje");
+    if (String(E.texto || "").length > 3500) f.push(`acortar el mensaje (tiene ${String(E.texto).length} letras y el máximo es 3.500)`);
     return f;
   }
 
@@ -110,13 +118,13 @@
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
         <div><h2 id="te-titulo">${esCot() ? "Solicitud de cotización" : "Mensaje de seguimiento"}</h2>
           <div class="te-sub">${esc(E.op.contexto || "")}</div></div>
-        <button class="te-btn sm" type="button" data-te="cerrar" aria-label="Cerrar">✕</button>
+        <button class="te-btn sm" type="button" data-te="cerrar" aria-label="Cerrar">${I("cerrar")}</button>
       </div>
       <div style="margin-top:10px"><b>Para:</b> ${esc(E.prov.nombre || "— elige proveedor —")}
         ${rubros.map((r) => `<span class="te-chip">${esc(r)}</span>`).join("")}
         <div class="te-sub">${E.prov.chat ? `Chat de WhatsApp: «${esc(E.prov.chat)}»` : E.prov.telefono ? `WhatsApp ${esc(E.prov.telefono)}` : `<span style="color:var(--ladrillo,#B5452F)">Sin chat de WhatsApp: escribe el número abajo.</span>`}</div>
         ${!E.prov.chat ? `<input id="te-tel" inputmode="tel" placeholder="Número del proveedor, ej. 0991234567" value="${esc(E.prov.telefono || "")}" style="margin-top:6px;width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--bd,#E2E4E7);border-radius:8px;background:transparent;color:inherit;font:inherit">` : ""}
-        <button class="te-btn sm" type="button" data-te="cambiar" style="margin-top:6px">🔁 Cambiar proveedor</button>
+        <button class="te-btn sm" type="button" data-te="cambiar" style="margin-top:6px">${I("refrescar")} Cambiar proveedor</button>
         <div id="te-elegir"></div>
       </div>
       <div class="te-tabla"><div class="te-fila cab"><span></span><span>Producto${esCot() ? "" : " (opcional)"}</span><span>Cantidad</span><span>Unidad</span><span></span></div>
@@ -125,19 +133,20 @@
           <input class="p" data-i="${n}" data-k="producto" value="${esc(i.producto)}" placeholder="Producto" aria-label="Producto ${n + 1}">
           <input class="c" data-i="${n}" data-k="cantidad" inputmode="decimal" value="${esc(i.cantidad)}" placeholder="Cant." aria-label="Cantidad ${n + 1}">
           <input class="u" data-i="${n}" data-k="unidad" value="${esc(i.unidad)}" placeholder="Unidad" aria-label="Unidad ${n + 1}">
-          <button class="te-btn sm x" type="button" data-te="quitar" data-i="${n}" aria-label="Quitar ${esc(i.producto)}">✕</button></div>`).join("")}</div>
-      <button class="te-btn sm" type="button" data-te="agregar">➕ Agregar producto</button>
+          <button class="te-btn sm x" type="button" data-te="quitar" data-i="${n}" aria-label="Quitar ${esc(i.producto)}">${I("cerrar")}</button></div>`).join("")}</div>
+      <button class="te-btn sm" type="button" data-te="agregar">${I("agregar")} Agregar producto</button>
       <div style="margin-top:12px"><label for="te-txt"><b>Mensaje</b> <span class="te-sub">${E.editado ? "· editado por ti" : "· se rehace solo con la tabla"}</span></label>
         <textarea class="te-txt" id="te-txt">${esc(E.texto)}</textarea>
-        ${E.editado ? `<button class="te-btn sm" type="button" data-te="rehacer">↺ Rehacer el mensaje con la tabla</button>` : ""}</div>
+        ${E.editado ? `<button class="te-btn sm" type="button" data-te="rehacer">${I("deshacer")} Rehacer el mensaje con la tabla</button>` : ""}</div>
       <div id="te-vista"></div>
-      ${E.op.avisos && E.op.avisos.length ? E.op.avisos.map((a) => `<div class="te-aviso">⚠️ ${esc(a)}</div>`).join("") : ""}
+      ${E.avisoProv ? `<div class="te-aviso">${I("alerta")} ${esc(E.avisoProv)}</div>` : ""}
+      ${E.op.avisos && E.op.avisos.length ? E.op.avisos.map((a) => `<div class="te-aviso">${I("alerta")} ${esc(a)}</div>`).join("") : ""}
       <div class="te-acc">
-        <button class="te-btn" type="button" data-te="vista">👁 Vista previa${esCot() ? " (imagen y PDF)" : ""}</button>
-        ${esCot() ? `<button class="te-btn" type="button" data-te="png">⬇ PNG</button><button class="te-btn" type="button" data-te="pdf">⬇ PDF</button>` : ""}
+        <button class="te-btn" type="button" data-te="vista">${I("ojo")} Vista previa${esCot() ? " (imagen y PDF)" : ""}</button>
+        ${esCot() ? `<button class="te-btn" type="button" data-te="png">${I("bajar")} PNG</button><button class="te-btn" type="button" data-te="pdf">${I("bajar")} PDF</button>` : ""}
       </div>
       <div class="te-acc">
-        <button class="te-btn p" type="button" data-te="enviar" ${f.length ? "disabled" : ""}>✅ Aprobar y enviar por WhatsApp</button>
+        <button class="te-btn p" type="button" data-te="enviar" ${f.length ? "disabled" : ""}>${I("check")} Aprobar y enviar por WhatsApp</button>
         <button class="te-btn" type="button" data-te="yaenvie">Ya lo envié yo</button>
         <button class="te-btn" type="button" data-te="cerrar">Cancelar</button>
       </div>
@@ -212,37 +221,45 @@
     const l = (CATALOGO || []).filter((p) => !qq || plano(p.nombre + " " + (p.chats || []).join(" ") + " " + (p.rubros || []).join(" ")).includes(qq))
       .sort((a, b) => (b.chats || []).length - (a.chats || []).length || a.nombre.localeCompare(b.nombre)).slice(0, 40);
     return l.map((p, n) => `<button type="button" data-te="elegir" data-n="${CATALOGO.indexOf(p)}"><b>${esc(p.nombre)}</b>
-      <span class="te-sub">${esc((p.rubros || []).join(" · "))}${(p.chats || []).length ? " · WhatsApp ✓" : " · sin chat"}${p.zona ? " · " + esc(p.zona) : ""}</span></button>`).join("")
+      <span class="te-sub">${esc((p.rubros || []).join(" · "))}${(p.chats || []).length ? " · con WhatsApp" : " · sin chat"}${p.zona ? " · " + esc(p.zona) : ""}</span></button>`).join("")
       || `<div class="te-sub" style="padding:10px">Ningún proveedor con ese nombre.</div>`;
   }
 
   async function enviar() {
+    if (ENVIANDO) return;
+    const est = E;                      // el estado de ESTA tarjeta: no cambia aunque algo intente cerrarla
     const b = $("[data-te=enviar]"); b.disabled = true; b.textContent = "Enviando…";
+    ENVIANDO = true;
+    document.querySelectorAll("#te-caja [data-te]").forEach((x) => { if (x !== b) x.disabled = true; });
     try {
-      let items = E.items.filter((i) => i.producto.trim()).map((i) => ({ producto: i.producto.trim(), cantidad: String(i.cantidad).trim(),
-        unidad: String(i.unidad || "").trim(), finca: i.finca || E.finca || "", linea: i.linea || "", pedido: i.pedido || "" }));
+      let items = est.items.filter((i) => i.producto.trim()).map((i) => ({ producto: i.producto.trim(), cantidad: String(i.cantidad).trim(),
+        unidad: String(i.unidad || "").trim(), finca: i.finca || est.finca || "", linea: i.linea || "", pedido: i.pedido || "" }));
       // Un seguimiento puede no llevar productos (pedir datos, una factura…): se guarda el asunto como referencia.
-      if (!items.length) items = [{ producto: String(E.op.contexto || "Mensaje de seguimiento").slice(0, 200), cantidad: "", unidad: "", finca: E.finca || "", linea: "", pedido: "" }];
-      const sol = { tipo: esCot() ? "cotizacion" : "mensaje", proveedor: E.prov.nombre, chat: E.prov.chat || "",
-        telefono: String(E.prov.telefono || "").replace(/\D/g, ""), items, texto: String(E.texto).trim(),
-        png: esCot() ? await pngData() : "", origen: E.op.origen || "whatsapp" };
+      if (!items.length) items = [{ producto: String(est.op.contexto || "Mensaje de seguimiento").slice(0, 200), cantidad: "", unidad: "", finca: est.finca || "", linea: "", pedido: "" }];
+      const cot = est.tipo === "cotizacion";
+      const png = cot ? await pngData() : "";
+      const sol = { tipo: cot ? "cotizacion" : "mensaje", proveedor: est.prov.nombre, chat: est.prov.chat || "",
+        telefono: String(est.prov.telefono || "").replace(/\D/g, ""), items, texto: String(est.texto).trim(),
+        png, origen: est.op.origen || "whatsapp" };
       if (!window.AgdNube) throw new Error("La nube no está disponible: revisa la conexión.");
       const sid = await AgdNube.crearSolicitudCotizacion(sol);
-      const op = E.op; cerrar();
+      const op = est.op; ENVIANDO = false; cerrar(true);
       if (op.alEnviar) op.alEnviar({ solicitud_id: sid, texto: sol.texto, items, proveedor: sol.proveedor, chat: sol.chat });
     } catch (e) {
-      b.disabled = false; b.textContent = "✅ Aprobar y enviar por WhatsApp";
-      const t = $("#te-falta"); if (t) t.textContent = "⚠️ NO se envió: " + (e.message || e) + " · Mándame una captura.";
+      ENVIANDO = false;
+      document.querySelectorAll("#te-caja [data-te]").forEach((x) => { x.disabled = false; });
+      b.disabled = false; b.innerHTML = I("check") + " Aprobar y enviar por WhatsApp";
+      const t = $("#te-falta"); if (t) t.textContent = "NO se envió: " + (e.message || e) + " · Mándame una captura.";
     }
   }
 
   function enEvento(e) {
-    const el = e.target.closest("[data-te]"); if (!el || !E) return;
+    const el = e.target.closest("[data-te]"); if (!el || !E || ENVIANDO) return;
     const a = el.dataset.te;
     if (a === "cerrar") return cerrar();
     if (a === "quitar") { E.items.splice(Number(el.dataset.i), 1); if (!E.items.length) E.items.push({ producto: "", cantidad: "", unidad: "" }); E.texto = E.editado ? E.texto : textoAuto(); return pintar(); }
     if (a === "agregar") { E.items.push({ producto: "", cantidad: "1", unidad: "u", finca: E.finca || "" }); pintar(); const ins = document.querySelectorAll(".te-tabla [data-k=producto]"); ins[ins.length - 1].focus(); return; }
-    if (a === "rehacer") { E.editado = false; E.texto = textoAuto(); return pintar(); }
+    if (a === "rehacer") { E.editado = false; E.avisoProv = ""; E.texto = textoAuto(); return pintar(); }
     if (a === "vista") return vista();
     if (a === "png") return bajarPng();
     if (a === "pdf") return bajarPdf();
@@ -260,6 +277,7 @@
       const p = CATALOGO[Number(el.dataset.n)];
       E.prov = { nombre: p.nombre, chat: (p.chats || [])[0] || p.chat || "", telefono: p.telefono || "" };
       E.texto = E.editado ? E.texto : textoAuto();
+      E.avisoProv = E.editado ? `Cambiaste el proveedor a ${p.nombre}: revisa el saludo del mensaje o toca «Rehacer el mensaje».` : "";
       return pintar();
     }
   }
@@ -275,6 +293,7 @@
   /** Abre la tarjeta. envio = { tipo:"cotizacion"|"mensaje", proveedor:{nombre,chat,telefono}, items:[{producto,cantidad,unidad,finca,linea,pedido}],
    *  texto, finca }; op = { contexto, generar(envio)→texto, alEnviar(res), alYaEnviado(res), avisos:[], origen } */
   async function abrir(envio, op) {
+    if (ENVIANDO) return;   // hay un envío saliendo: no se abre otra tarjeta encima
     montar();
     await catalogo();
     E = {
@@ -282,7 +301,7 @@
       prov: Object.assign({ nombre: "", chat: "", telefono: "" }, envio.proveedor || {}),
       items: (envio.items || []).map((i) => ({ producto: String(i.producto || ""), cantidad: i.cantidad == null ? "" : String(i.cantidad),
         unidad: String(i.unidad || ""), finca: i.finca || envio.finca || "", linea: i.linea || "", pedido: i.pedido || "" })),
-      finca: envio.finca || "", texto: envio.texto || "", editado: false, op: op || {},
+      finca: envio.finca || "", fincaId: envio.fincaId || "", texto: envio.texto || "", editado: false, avisoProv: "", op: op || {},
     };
     if (!E.items.length) E.items.push({ producto: "", cantidad: "", unidad: "" });
     // Si el chat no vino, se busca en el catálogo (chats verificados por Claude)
@@ -290,9 +309,12 @@
     if (fi && !E.prov.chat) E.prov.chat = (fi.chats || [])[0] || fi.chat || "";
     if (fi && !E.prov.telefono) E.prov.telefono = fi.telefono || "";
     if (!E.texto) E.texto = textoAuto();
+    else { let auto = ""; try { auto = String(textoAuto() || ""); } catch (e) {} E.editado = E.texto.trim() !== auto.trim(); }
+    FOCO_PREVIO = document.activeElement;
     pintar();
     $("#te-capa").classList.add("ver");
-    $("#te-caja").scrollIntoView({ block: "start" });
+    $("#te-capa").scrollTop = 0;
+    const tit = $("#te-titulo"); if (tit) { tit.tabIndex = -1; tit.focus({ preventScroll: true }); }
   }
 
   document.addEventListener("click", enEvento);
