@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Compras WhatsApp · AgroDávila</title>
-<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet"><script src="tarjeta_envio.js"></script>
 <style>
 :root{--bg:#F4F6F3;--card:#FFFFFF;--tx:#1D2A22;--t2:#5E6B63;--bd:#DDE3DE;--ok:#2E7D4F;--okbg:#E5F3EA;--md:#B7791F;--mdbg:#FDF3DC;--al:#C2591B;--albg:#FCE9DC;--cr:#B42318;--crbg:#FBE4E2;--pri:#1F5E3B;--pri2:#E3EFE7;--az:#0F4C81;--azbg:#E4EEF8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121815;--card:#1B231F;--tx:#E6ECE8;--t2:#9AA9A0;--bd:#2C3832;--ok:#6CC08E;--okbg:#1E3A2A;--md:#E2B25A;--mdbg:#3A2F17;--al:#EE9A63;--albg:#3D2618;--cr:#F0857A;--crbg:#43201D;--pri:#5FB386;--pri2:#21342A;--az:#7FB2E5;--azbg:#1A2A3A}}
@@ -186,6 +186,37 @@ function msgSeguimiento(p){const prov=D.byId[p.proveedor_id];const it=itemsTxt(p
   if(p.estado==="facturado"||/factura/i.test(p.proxima_accion||""))return `${saludo(prov)} Por favor, ¿nos ayuda con la factura de ${it}${p.odc?" (ODC "+p.odc+")":""}? Contabilidad la necesita para procesar el pago. Gracias.`;
   return `${saludo(prov)} Le escribo para dar seguimiento a nuestro pedido${p.odc?" con ODC "+p.odc:""} del ${fecha(p.fecha)}: ${it}.${p.fecha_compromiso?"\nLa fecha comprometida era el "+fecha(p.fecha_compromiso)+".":""}\n¿Nos confirma la fecha de despacho y llegada a la finca${p.finca?" "+p.finca:""}, por favor? Gracias.`;}
 
+/* ====== Tarjetas de envío (tarjeta_envio.js) ====== */
+function provDeChat(chat,pid){ return (pid&&D.byId[pid])||(D.proveedores||[]).find(x=>x.chat===chat)||{}; }
+function lineaItem(i){ return `${i.cantidad} ${i.unidad||""} — ${i.producto}`.replace(/\s+—/," —"); }
+function generarTexto(envio,pid,ped){
+  const prov=provDeChat(envio.prov.chat,pid);
+  if(envio.tipo==="cotizacion") return msgCotizacion(prov,envio.items.map(lineaItem),null,envio.finca||"");
+  if(ped) return msgSeguimiento(Object.assign({},ped,{items:envio.items.map(i=>({descripcion:i.producto,cantidad:i.cantidad,unidad:i.unidad}))}));
+  return null;
+}
+function tarjetaBorrador(id,textoActual){
+  const b=D.borradores.find(x=>x.id===id); if(!b) return;
+  const p=D.byId[b.proveedor_id]||{};
+  AgdTarjeta.abrir({ tipo:b.tipo==="cotizacion"?"cotizacion":"mensaje", proveedor:{nombre:p.nombre||b.proveedor_id||"",chat:b.chat||"",telefono:p.telefono||""},
+    items:(b.items||[]).map(i=>({producto:i.descripcion||"",cantidad:i.cantidad,unidad:i.unidad||"",finca:nomFinca(b.finca)==="—"?"":nomFinca(b.finca)})),
+    texto:textoActual||b.texto, finca:nomFinca(b.finca)==="—"?"":nomFinca(b.finca) },
+    { contexto:(b.motivo||"")+((b.lineas_agrocontrol||[]).length?" · "+b.lineas_agrocontrol.join(", "):""), origen:"whatsapp:"+id,
+      generar:e=>generarTexto(e,b.proveedor_id,null),
+      alEnviar:r=>{ guardarBor(id,{texto:r.texto,estado:"enviado",enviado_en:new Date().toISOString(),solicitud_id:r.solicitud_id,error:null}); toast("Aprobado: sale por WhatsApp en ~1 minuto"); },
+      alYaEnviado:r=>{ guardarBor(id,{texto:r.texto,estado:"enviado",enviado_en:new Date().toISOString(),error:null}); toast("Marcado como enviado"); } });
+}
+function tarjetaPedido(p){
+  const prov=D.byId[p.proveedor_id]||{}; const cot=p.estado==="por_cotizar";
+  AgdTarjeta.abrir({ tipo:cot?"cotizacion":"mensaje", proveedor:{nombre:prov.nombre||"",chat:prov.chat||"",telefono:prov.telefono||""},
+    items:(p.items||[]).map(i=>({producto:i.descripcion||"",cantidad:i.cantidad,unidad:i.unidad||"",finca:p.finca?nomFinca(p.finca):""})),
+    texto:cot?"":msgSeguimiento(p), finca:p.finca?nomFinca(p.finca):"" },
+    { contexto:[p.id,p.odc?"ODC "+p.odc:"",p.proxima_accion?"Próxima acción: "+p.proxima_accion:""].filter(Boolean).join(" · "), origen:"whatsapp:ped-"+p.id,
+      generar:e=>generarTexto(e,p.proveedor_id,p),
+      alEnviar:()=>{ guardarPed(p.id,{ultimo_envio:new Date().toISOString()}); toast("Aprobado: sale por WhatsApp en ~1 minuto"); },
+      alYaEnviado:()=>{ guardarPed(p.id,{ultimo_envio:new Date().toISOString()}); toast("Marcado como enviado"); } });
+}
+
 /* ====== Persistencia de cambios ====== */
 function guardarPed(id,cambio){CAPA.ped[id]=Object.assign({},CAPA.ped[id]||{},cambio);lsSet(LS,CAPA);fusion();pintar();}
 function guardarBor(id,cambio){const ahora=new Date().toISOString();CAPA.bor[id]=Object.assign({},CAPA.bor[id]||{},cambio,{actualizado_en:ahora});lsSet(LS,CAPA);if(window.AgdNube)AgdNube.guardarBorrador(id,CAPA.bor[id]);fusion();pintar();}
@@ -254,12 +285,12 @@ function vHoy(){
     <div><div class="q"><button class="lnk" data-prov="${esc(t.p.proveedor_id)}">${esc(nomProv(t.p.proveedor_id))}</button> · ${esc(itemsTxt(t.p))}</div>
     <div class="small muted">${esc(t.motivo)} · ${chipEstado(t.p.estado)}${t.p.odc?" · ODC "+esc(t.p.odc):""}${t.p.finca?" · "+esc(nomFinca(t.p.finca)):""}</div>
     ${t.p.proxima_accion?`<div class="small"><b>Próxima acción:</b> ${esc(t.p.proxima_accion)}</div>`:""}</div>
-    <div>${t.p.proveedor_id&&D.byId[t.p.proveedor_id]&&D.byId[t.p.proveedor_id].chat?`<button class="btn sm" data-copiar="${esc(t.p.id)}">Revisar y enviar</button>`:""}</div></div>`).join(""):`<p class="muted">No hay pendientes. 🎉</p>`}
+    <div><button class="btn sm" data-copiar="${esc(t.p.id)}">Revisar y enviar</button></div></div>`).join(""):`<p class="muted">No hay pendientes. 🎉</p>`}
   </div>`;
 }
 document.addEventListener("click",e=>{const g=e.target.closest("[data-irgrupo]");if(g){FP.grupo=g.dataset.irgrupo;FP.solo=false;FP.chat=false;TAB="pedidos";pintar();window.scrollTo(0,0);return;}
   const c=e.target.closest("[data-irchat]");if(c){FP.grupo="";FP.chat=true;FP.solo=true;TAB="pedidos";pintar();window.scrollTo(0,0);}});
-document.addEventListener("click",e=>{const b=e.target.closest("[data-copiar]");if(b){const p=D.pedidos.find(x=>x.id===b.dataset.copiar);if(p)enviarAProveedor(p.proveedor_id,msgSeguimiento(p),"ped-"+p.id,p.finca);}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-copiar]");if(b){const p=D.pedidos.find(x=>x.id===b.dataset.copiar);if(p){ if(window.AgdTarjeta) tarjetaPedido(p); else enviarAProveedor(p.proveedor_id,msgSeguimiento(p),"ped-"+p.id,p.finca); }}
   const v=e.target.closest("[data-prov]");if(v)fichaProv(v.dataset.prov);
   const pd=e.target.closest("[data-ped]");if(pd)fichaPed(pd.dataset.ped);});
 
@@ -569,7 +600,7 @@ function vListos(){probarAgente();
   activarPanelTelefono();
   document.querySelectorAll("[data-bdes]").forEach(b=>b.onclick=()=>{guardarBor(b.dataset.bdes,{estado:"descartado"});toast("Descartado");});
   document.querySelectorAll("[data-breab]").forEach(b=>b.onclick=()=>guardarBor(b.dataset.breab,{estado:"propuesto",enviado_en:null,error:null}));
-  document.querySelectorAll("[data-benv]").forEach(b=>b.onclick=()=>revisarYEnviar(b.dataset.benv,txt(b.dataset.benv)));
+  document.querySelectorAll("[data-benv]").forEach(b=>b.onclick=()=>(window.AgdTarjeta?tarjetaBorrador(b.dataset.benv,txt(b.dataset.benv)):revisarYEnviar(b.dataset.benv,txt(b.dataset.benv))));
 }
 function revisarYEnviar(id,texto){const bor=D.borradores.find(x=>x.id===id);if(bor)abrirEnvio(bor,texto,true);}
 /* Envío genérico: obj = {id, chat, proveedor_id, finca, canal, asunto}. esBorrador=true actualiza el estado del borrador. */
