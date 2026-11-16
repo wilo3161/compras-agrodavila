@@ -170,7 +170,8 @@ h2{margin:0 0 8px;font-size:17px}
   function leerRenglon(l) {
     let t = String(l).replace(/[•·●*►▪]/g, " ").replace(/^\s*(\d{1,2}[.)]|[-–—])\s+/, "").replace(/\s+/g, " ").trim();
     if (t.length < 3 || RUIDO.test(t) || !/[a-záéíóúñ]{2,}/i.test(t)) return null;
-    if (/[?¿]$/.test(t) || t.split(" ").length > 14) return null;                    // una frase, no un producto
+    if (/[?¿]$/.test(t) || t.split(" ").length > 14) return null;
+    if (/:$/.test(t) && !/\d/.test(t)) return null;                               // un encabezado («Para Otoburo:»), no un producto                    // una frase, no un producto
     let m = new RegExp("^(\\d+[.,]?\\d*)\\s*(" + RE_U + ")?\\.?\\s*(?:de\\s+|del\\s+|[-–—:x]\\s*)?(.{2,})$", "i").exec(t);
     if (m && /[a-záéíóúñ]{2,}/i.test(m[3])) return { producto: m[3].replace(/^[-–—:]\s*/, "").trim().toUpperCase(), cantidad: aNum(m[1]), unidad: uni(m[2] || "") };
     m = new RegExp("^(.{2,}?)\\s*(?:[-–—:x,]|\\bcantidad\\b:?)?\\s*(\\d+[.,]?\\d*)\\s*(" + RE_U + ")?\\.?$", "i").exec(t);

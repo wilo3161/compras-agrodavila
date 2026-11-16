@@ -1164,8 +1164,14 @@
       return JSON.parse((s.data() || {}).json || "null");
     } catch (e) { return null; }
   }
-  const leerCatalogoProveedores = () => _leerDocJson("agrocontrol/catalogo_proveedores");
-  const leerCatalogoProductos = () => _leerDocJson("agrocontrol/catalogo_productos");   // [nombre, categoría, unidad, ingrediente]
+  /* La base se lee de Firestore (la más fresca). Si no hay cuenta de Google conectada o falla, se usa la que viaja
+     cifrada con la app: así el buscador de proveedores y de productos funciona siempre que se haya puesto la clave de datos. */
+  async function _deLaApp(campo) {
+    try { const c = window.ComprasApp && ComprasApp.datosCatalogo ? await ComprasApp.datosCatalogo() : null; return c && c[campo] && c[campo].length ? c[campo] : null; }
+    catch (e) { return null; }
+  }
+  async function leerCatalogoProveedores() { const l = await _leerDocJson("agrocontrol/catalogo_proveedores"); return l && l.length ? l : _deLaApp("proveedores"); }
+  async function leerCatalogoProductos() { const l = await _leerDocJson("agrocontrol/catalogo_productos"); return l && l.length ? l : _deLaApp("productos"); }   // [nombre, categoría, unidad, ingrediente]
   const leerMapaSicop = () => _leerDocJson("agrocontrol/sicop_mapa");   // proveedor de AgroControl → nombre y RUC en SICOP
   const leerCotizacionesPorLinea = () => _leerDocJson("agrocontrol/cotizaciones");
 

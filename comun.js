@@ -211,6 +211,19 @@
     const k = await crypto.subtle.importKey("raw", b64(raw), "AES-GCM", false, ["decrypt"]);
     return descifrar(await leerPaquete(), k);
   }
+  /* Base de proveedores y productos que viaja cifrada con la app (no necesita la cuenta de Google). */
+  let _cat = null;
+  async function datosCatalogo() {
+    if (_cat) return _cat;
+    let raw = null; try { raw = localStorage.getItem(LS_CLAVE) || sessionStorage.getItem(LS_CLAVE); } catch (e) {}
+    if (!raw) return null;
+    try {
+      const r = await fetch("datos_cat.enc.json", { cache: "no-cache" }); if (!r.ok) return null;
+      const k = await crypto.subtle.importKey("raw", b64(raw), "AES-GCM", false, ["decrypt"]);
+      _cat = await descifrar(await r.json(), k);
+      return _cat;
+    } catch (e) { return null; }
+  }
   const tieneClave = () => { try { return !!(localStorage.getItem(LS_CLAVE) || sessionStorage.getItem(LS_CLAVE)); } catch (e) { return false; } };
 
   /* El marco visual (barra, guías, recorrido) está en guia.js */
@@ -319,5 +332,5 @@
     };
   }
 
-  window.ComprasApp = { sb, sesion, entrar, salir, exigirSesion, snapAgro, filasAgro, frescuraFuentes, abrirDatos, datosWA, tieneClave, excelMatriz, corteWA };
+  window.ComprasApp = { sb, sesion, entrar, salir, exigirSesion, snapAgro, filasAgro, frescuraFuentes, abrirDatos, datosWA, datosCatalogo, tieneClave, excelMatriz, corteWA };
 })();
