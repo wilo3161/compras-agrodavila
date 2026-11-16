@@ -1177,7 +1177,7 @@
 
   async function guardarCotizar(lineas, datos) {
     await inicializar();
-    if (!db || !usuarioActual) throw new Error("Inicia sesión para guardar.");
+    if (!db || !usuarioActual) throw new Error("Falta conectar tu cuenta de Google en este equipo (es una sola vez). Toca el botón otra vez y elige tu cuenta.");
     const correo = String(usuarioActual.email || "");
     const ahora = new Date().toISOString();
     const lista = Array.from(new Set((Array.isArray(lineas) ? lineas : [lineas]).map((x) => String(x || "").trim()).filter(Boolean)));
@@ -1191,7 +1191,7 @@
 
   async function crearSolicitudCotizacion(datos) {
     await inicializar();
-    if (!db || !usuarioActual) throw new Error("Inicia sesión para enviar.");
+    if (!db || !usuarioActual) throw new Error("Falta conectar tu cuenta de Google en este equipo (es una sola vez). Toca el botón otra vez y elige tu cuenta.");
     const correo = String(usuarioActual.email || "").toLowerCase();
     const id = `sol_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const carga = Object.assign({}, datos, { estado: "aprobada", aprobada_por: correo, aprobada_en: new Date().toISOString() });
@@ -1240,6 +1240,17 @@
       cola.shift(); _decGuardar(cola);
     }
   }
+  /** Para enviar, aprobar o guardar en la nube hace falta la cuenta de Google (el usuario de AgroControl solo lee).
+   *  Si no está conectada, abre la ventana de Google EN EL MISMO CLIC y sigue. Debe llamarse al inicio de la acción,
+   *  antes de cualquier espera, para que el navegador no bloquee la ventana. Devuelve true si quedó conectada. */
+  async function asegurarConexion() {
+    await inicializar();
+    if (db && usuarioActual && accesoNube !== false) return true;
+    await conectar();            // lanza un error en español si se cierra la ventana o el correo no está autorizado
+    return !!(db && usuarioActual);
+  }
+  const estaConectada = () => !!(db && usuarioActual);
+
   function registrarDecision(tipo, datos) {
     try {
       const limpio = JSON.parse(JSON.stringify(datos || {}, (k, v) => (typeof v === "string" && v.length > 600 ? v.slice(0, 600) + "…" : v)));
@@ -1268,7 +1279,7 @@
   }
   async function actualizarCarga(id, cambios) {
     await inicializar();
-    if (!db || !usuarioActual) throw new Error("Inicia sesión.");
+    if (!db || !usuarioActual) throw new Error("Falta conectar tu cuenta de Google en este equipo (es una sola vez). Toca el botón otra vez y elige tu cuenta.");
     await modFs.updateDoc(modFs.doc(db, `${RAIZ}/cargas_agrocontrol/${id}`),
       Object.assign({}, cambios, { revisado_por: String(usuarioActual.email || ""), revisado_en: new Date().toISOString() }));
   }
@@ -1329,6 +1340,8 @@
     cancelarSolicitudCotizacion,
     registrarDecision,
     leerEstadoAgente,
+    asegurarConexion,
+    estaConectada,
     escucharSeguimiento,
     guardarSeguimiento,
     guardarSeguimientoLote,

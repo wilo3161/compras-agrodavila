@@ -315,6 +315,8 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     const c = carga(b); const art = b.closest(".carga");
     try {
       b.disabled = true;
+      // Aprobar, descartar o marcar una alerta guarda en la nube: si falta la cuenta de Google, se conecta con este clic.
+      if (!SOLO_LECTURA && b.dataset.acc !== "descartar" && window.AgdNube && AgdNube.asegurarConexion) await AgdNube.asegurarConexion();
       if (b.dataset.acc === "aprobar") {
         const cambios = Object.assign({}, S.editado[c.id] || {}, { estado: "aprobada", precio_final: precioFinal(c) });
         if (valor(c, "con_iva") === true) { const pc = valor(c, "iva_pct"); cambios.iva_pct = (pc == null || pc === "") ? 15 : Number(pc) || 0; }

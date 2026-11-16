@@ -359,8 +359,41 @@
     if (window.AgdNube && AgdNube.alCambiarEstado) {
       AgdNube.alCambiarEstado(() => { renderizarFrescura(); actualizarEnlaceGestion(); });
     }
+    avisoSinGoogle();
     setTimeout(() => recorrido(false), 1600);   // primera visita: después de que la pantalla cargó datos
   });
+  /* Sin la cuenta de Google la app solo LEE AgroControl: no puede enviar por WhatsApp, aprobar cargas, guardar
+     decisiones ni ver lo que prepara el agente. Antes eso fallaba con un «Inicia sesión» que no explicaba nada.
+     Ahora se avisa arriba, en cada página de trabajo, con el botón para conectarla en un toque. */
+  function avisoSinGoogle() {
+    if (!window.AgdNube || !AgdNube.alCambiarEstado) return;
+    if (pag() === "index.html" || pag() === "fincas3d.html") return;   // Inicio ya tiene su propio bloque de sincronización
+    const pintarAviso = (est) => {
+      let caja = document.getElementById("agd-sin-google");
+      const falta = !!(est && est.configurado && (!est.conectado || est.autorizado === false));
+      if (!falta) { if (caja) caja.remove(); return; }
+      if (caja) return;
+      caja = document.createElement("div");
+      caja.id = "agd-sin-google"; caja.setAttribute("role", "status");
+      caja.style.cssText = "display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:10px 12px 0;padding:12px 14px;" +
+        "border-radius:14px;background:var(--maiz2,#FBF3E0);border:1px solid color-mix(in srgb,var(--maiz,#C7901A) 45%,transparent);color:var(--tx,#23262B);font-size:14px;line-height:1.4";
+      const t = document.createElement("span"); t.style.flex = "1 1 260px";
+      t.innerHTML = est.autorizado === false
+        ? `<b>El correo ${String(est.correo || "").replace(/[<>&]/g, "")} no tiene permiso.</b> Conéctate con el correo autorizado para enviar y aprobar.`
+        : "<b>Falta conectar tu cuenta de Google en este equipo.</b> Sin eso solo puedes ver AgroControl: no se envía por WhatsApp ni se aprueban cargas. Es una sola vez.";
+      const btn = document.createElement("button"); btn.type = "button"; btn.className = "btn p"; btn.innerHTML = ico("nube") + "<span>Conectar con Google</span>";
+      btn.onclick = async () => {
+        btn.disabled = true; const sp = btn.querySelector("span"); sp.textContent = "Conectando…";
+        try { if (est.conectado && AgdNube.desconectar) await AgdNube.desconectar(); await AgdNube.conectar(); location.reload(); }
+        catch (e) { btn.disabled = false; sp.textContent = "Conectar con Google"; t.innerHTML = "<b>No se conectó:</b> " + String(e.message || e).replace(/[<>&]/g, ""); }
+      };
+      caja.appendChild(t); caja.appendChild(btn);
+      const fres = document.querySelector(".frescura"), marco = document.querySelector(".marco");
+      const ancla = fres || marco;
+      if (ancla && ancla.parentNode) ancla.parentNode.insertBefore(caja, ancla.nextSibling); else document.body.insertBefore(caja, document.body.firstChild);
+    };
+    AgdNube.alCambiarEstado(pintarAviso);
+  }
   window.AgdGuia = { ico, recorrido, renderizarFrescura };
 })();
 

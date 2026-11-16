@@ -431,6 +431,8 @@ ul.items li .det{font-size:12px;color:var(--t2)}
   }
 
   async function enviar(t) {
+    // Sin la cuenta de Google no se puede enviar: se conecta con este mismo clic y se sigue.
+    if (!SOLO_LECTURA && window.AgdNube && AgdNube.asegurarConexion) await AgdNube.asegurarConexion();
     let tel = t.prov.telefono || "";
     if (!t.prov.telefono && !t.prov.chat) {
       tel = (prompt(`¿Número de WhatsApp de ${t.prov.nombre}? (ej. 0991234567)`) || "").replace(/\D/g, "");

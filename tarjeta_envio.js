@@ -115,6 +115,7 @@
   let E = null;  // { tipo, prov:{nombre,chat,telefono}, items:[{producto,cantidad,unidad,finca,linea}], texto, editado, op }
 
   const esCot = () => E.tipo === "cotizacion";
+  const sinGoogle = () => !!(window.AgdNube && AgdNube.estaConectada && !AgdNube.estaConectada());
   function textoAuto() {
     try { if (E.op.generar) return E.op.generar({ tipo: E.tipo, prov: E.prov, items: E.items.filter((i) => i.producto.trim()), finca: E.finca, fincaId: E.fincaId }) || E.texto; }
     catch (e) { /* si la plantilla falla, se queda el texto actual */ }
@@ -168,7 +169,7 @@
         <button class="te-btn" type="button" data-te="copiartxt">${I("checklist")} Copiar mensaje</button>
       </div>
       <div class="te-acc">
-        <button class="te-btn p" type="button" data-te="enviar" ${f.length ? "disabled" : ""}>${I("check")} Aprobar y enviar por WhatsApp</button>
+        <button class="te-btn p" type="button" data-te="enviar" ${f.length ? "disabled" : ""}>${I("check")} ${sinGoogle() ? "Conectar Google y enviar" : "Aprobar y enviar por WhatsApp"}</button>
         <button class="te-btn" type="button" data-te="yaenvie">Ya lo envié yo</button>
         <button class="te-btn" type="button" data-te="cerrar">Cancelar</button>
       </div>
@@ -176,6 +177,7 @@
         <button class="te-btn sm" type="button" data-te="abrirwa">${I("whatsapp")} Abrir el chat en WhatsApp (envío manual)</button>
         <button class="te-btn sm" type="button" data-te="restablecer">${I("deshacer")} Restablecer la tarjeta</button>
       </div>
+      ${sinGoogle() ? `<div class="te-ok" style="margin-top:8px">En este equipo falta conectar tu cuenta de Google (una sola vez). Al tocar el botón se abre la ventana de Google; eliges tu cuenta y el mensaje se envía.</div>` : ""}
       <div class="te-sub" id="te-falta" style="margin-top:6px;color:var(--ladrillo,#B5452F)">${f.length ? "Para enviar falta: " + esc(f.join(" · ")) : ""}</div>
       <div class="te-sub" style="margin-top:6px">Sale desde el WhatsApp de compras (${FIRMA.whatsapp}) en cerca de 1 minuto${esCot() ? ": primero el mensaje, luego la imagen y el PDF" : ""}. Si la PC de la casa está apagada, sale cuando se encienda.</div>`;
   }
@@ -289,7 +291,16 @@
   async function enviar() {
     if (ENVIANDO) return;
     const est = E;                      // el estado de ESTA tarjeta: no cambia aunque algo intente cerrarla
-    const b = $("[data-te=enviar]"); b.disabled = true; b.textContent = "Enviando…";
+    const b = $("[data-te=enviar]");
+    // Sin la cuenta de Google no se puede enviar: se conecta aquí mismo, con este clic, y se sigue.
+    if (window.AgdNube && AgdNube.asegurarConexion && !(AgdNube.estaConectada && AgdNube.estaConectada())) {
+      const nota = $("#te-falta"); b.disabled = true; b.textContent = "Conectando tu cuenta de Google…";
+      try { await AgdNube.asegurarConexion(); }
+      catch (e) { b.disabled = false; b.innerHTML = I("check") + " Conectar Google y enviar"; if (nota) nota.textContent = "No se conectó: " + (e.message || e); return; }
+      if (E !== est) return;            // la tarjeta se cerró mientras se conectaba
+      if (nota) nota.textContent = "";
+    }
+    b.disabled = true; b.textContent = "Enviando…";
     ENVIANDO = true;
     document.querySelectorAll("#te-caja [data-te]").forEach((x) => { if (x !== b) x.disabled = true; });
     try {
