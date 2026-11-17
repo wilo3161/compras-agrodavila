@@ -347,6 +347,36 @@
     _nota("Se abrió WhatsApp con el mensaje. Confirma que sea el WhatsApp de COMPRAS y, cuando lo envíes, toca «Ya lo envié yo».");
   }
 
+  /* A prueba de errores: antes de que salga algo por WhatsApp se muestra QUÉ va a salir y A QUIÉN, y se pide confirmar.
+     Si hay algo raro (proveedor escrito a mano, de otra zona, ya se le pidió, cantidades extrañas) hay que marcar una casilla. */
+  function confirmarEnvio() {
+    if (ENVIANDO || faltan().length) return refrescarFalta();
+    const viejo = $("#te-conf"); if (viejo) viejo.remove();
+    const items = E.items.filter((i) => i.producto.trim());
+    const fi = fichaDe(E.prov.nombre, E.prov.chat), ojo = [];
+    if (!fi) ojo.push(`«${E.prov.nombre}» no está en la base de proveedores: revisa que el nombre y el número sean correctos.`);
+    if (fi && otraZona(fi)) ojo.push(`${E.prov.nombre} es de otra zona: puede haber flete.`);
+    if (fi && !mismoRubro(fi)) ojo.push(`${E.prov.nombre} normalmente no vende este tipo de producto.`);
+    if ((E.op.excluir || []).map(plano).includes(plano(E.prov.nombre))) ojo.push(`Ya le pediste esta misma lista a ${E.prov.nombre}. Si envías, le llegará repetida.`);
+    const raras = items.filter((i) => { const n = Number(String(i.cantidad).replace(",", ".")); return !isFinite(n) || n <= 0 || n >= 10000; });
+    if (raras.length) ojo.push(`Revisa la cantidad de: ${raras.map((i) => i.producto).slice(0, 4).join(", ")}.`);
+    if (items.some((i) => !String(i.unidad).trim())) ojo.push("Hay productos sin unidad (kg, litros, unidades…).");
+    const destino = E.prov.chat ? `chat «${E.prov.chat}»` : `número ${E.prov.telefono}`;
+    const d = document.createElement("div"); d.id = "te-conf"; d.className = "te-ok"; d.setAttribute("role", "alertdialog"); d.setAttribute("aria-label", "Confirmar el envío");
+    d.style.cssText = "border:2px solid var(--pri,#2E5E8E);margin-top:10px;padding:12px";
+    d.innerHTML = `<b style="font-size:15px">Revisa antes de enviar</b>
+      <div style="margin-top:6px">Se enviará a <b>${esc(E.prov.nombre)}</b> (${esc(destino)}) desde el WhatsApp de compras:</div>
+      <ul style="margin:6px 0 6px 18px;padding:0">${items.slice(0, 8).map((i) => `<li>${esc([i.cantidad, i.unidad].filter(Boolean).join(" "))} — ${esc(i.producto)}</li>`).join("")}${items.length > 8 ? `<li>… y ${items.length - 8} más</li>` : ""}</ul>
+      <div class="te-sub">${esCot() ? "Sale el mensaje, la imagen de la solicitud y el PDF." : "Sale solo el mensaje."}${E.finca ? " Entrega en " + esc(E.finca) + "." : ""} Una vez enviado no se puede borrar del WhatsApp del proveedor.</div>
+      ${ojo.map((t) => `<div class="te-aviso">${I("alerta")} ${esc(t)}</div>`).join("")}
+      ${ojo.length ? `<label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-weight:600"><input type="checkbox" id="te-visto" style="width:20px;height:20px"> Ya revisé estos avisos y quiero enviar igual</label>` : ""}
+      <div class="te-acc"><button class="te-btn p" type="button" data-te="sienviar" ${ojo.length ? "disabled" : ""}>${I("check")} Sí, enviar ahora</button>
+        <button class="te-btn" type="button" data-te="noenviar">No, volver a revisar</button></div>`;
+    $("[data-te=enviar]").closest(".te-acc").after(d);
+    d.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const v = $("#te-visto"); if (v) v.onchange = () => { $("[data-te=sienviar]").disabled = !v.checked; };
+    const b = ojo.length ? v : $("[data-te=sienviar]"); if (b) b.focus();
+  }
   async function enviar() {
     if (ENVIANDO) return;
     const est = E;                      // el estado de ESTA tarjeta: no cambia aunque algo intente cerrarla
@@ -423,7 +453,9 @@
     if (a === "restablecer") { const o = JSON.parse(E.original); E.prov = o.prov; E.items = o.items; E.texto = o.texto; E.editado = o.editado; E.avisoProv = ""; return pintar(); }
     if (a === "png") return bajarPng();
     if (a === "pdf") return bajarPdf();
-    if (a === "enviar") return enviar();
+    if (a === "enviar") return confirmarEnvio();
+    if (a === "sienviar") { const c = $("#te-conf"); if (c) c.remove(); return enviar(); }
+    if (a === "noenviar") { const c = $("#te-conf"); if (c) c.remove(); const b = $("[data-te=enviar]"); if (b) b.focus(); return; }
     if (a === "yaenvie") { const op = E.op; const t = E.texto; dec("tarjeta_enviada_a_mano", resumenDecision(E)); cerrar(); if (op.alYaEnviado) op.alYaEnviado({ texto: t }); return; }
     if (a === "cambiar") {
       const c = $("#te-elegir");
@@ -447,6 +479,7 @@
   }
   function enInput(e) {
     if (!E) return;
+    if (e.target.id !== "te-visto") { const c = $("#te-conf"); if (c) c.remove(); }
     const el = e.target;
     if (el.id === "te-buscar") { $("#te-lista").innerHTML = listaProv(el.value); return; }
     if (el.id === "te-txt") { E.texto = el.value; E.textoTocado = true; if (!E.editado) { E.editado = true; } return refrescarFalta(); }

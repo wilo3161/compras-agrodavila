@@ -140,7 +140,8 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
       v.innerHTML = a.mime === "application/pdf"
         ? `<iframe title="Proforma ${esc(c.archivo_nombre)}" src="${a.url}"></iframe>
            <button type="button" class="btn sm" data-abrirpdf="${esc(c.archivo_id)}" style="margin:8px">${I("ojo")} Abrir la proforma en otra pestaña</button>`
-        : `<img alt="Proforma ${esc(c.archivo_nombre)}" src="${a.url}" data-zoom="1">`;
+        : `<img alt="Proforma ${esc(c.archivo_nombre)}" src="${a.url}" data-zoom="1">` +
+          (c.pdf_id ? `<button type="button" class="btn sm" data-abrirpdf="${esc(c.pdf_id)}" style="margin:8px">${I("ojo")} Abrir el PDF original (para adjuntarlo)</button>` : "");
     });
   }
 
