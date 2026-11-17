@@ -214,7 +214,7 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
         ${(c.avisos || []).map((a) => `<div class="aviso">${I("alerta")} ${esc(a)}</div>`).join("")}
         ${ed ? `<div class="chequeo"><b>Compara con la imagen y marca lo que está bien:</b>${CHEQUEOS.map(([k, n]) => `<label><input type="checkbox" data-chk="${k}" ${ch[k] ? "checked" : ""}> ${n}</label>`).join("")}</div>` : ""}
         <div class="acciones">
-          ${ed ? `<button type="button" class="btn p" data-acc="aprobar" ${listo ? "" : "disabled"}>${I("check")} Aprobar para subir</button>
+          ${ed ? `<button type="button" class="btn p" data-acc="aprobar" ${listo ? "" : 'aria-disabled="true" style="opacity:.55"'}>${I("check")} Aprobar para subir</button>
                   <div class="falta sub" style="width:100%;color:var(--ladrillo,#B5452F)">${esc(faltan(c))}</div>
                   <button type="button" class="btn" data-acc="descartar">${I("cerrar")} Descartar</button>` : ""}
           ${["aprobada", "descartada", "error"].includes(c.estado) ? `<button type="button" class="btn" data-acc="revisar">${I("deshacer")} Volver a revisar</button>` : ""}
@@ -273,7 +273,7 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
   function pintarBoton(c) {
     const art = document.querySelector(`[data-c="${CSS.escape(c.id)}"]`); if (!art) return;
     const txt = faltan(c);
-    const b = art.querySelector("[data-acc=aprobar]"); if (b) b.disabled = !!txt;
+    const b = art.querySelector("[data-acc=aprobar]"); if (b) { b.disabled = false; b.setAttribute("aria-disabled", txt ? "true" : "false"); b.style.opacity = txt ? ".55" : ""; }
     const f = art.querySelector(".falta"); if (f) f.textContent = txt;
   }
 
@@ -314,6 +314,15 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     if (tab) { S.tab = tab.dataset.tab; document.querySelectorAll("[data-tab]").forEach((x) => x.classList.toggle("activa", x === tab)); return pintar(); }
     const b = e.target.closest("[data-acc]"); if (!b) return;
     const c = carga(b); const art = b.closest(".carga");
+    if (b.dataset.acc === "aprobar" && faltan(c)) {
+      // Prueba de errores: no aprueba, pero explica qué falta y lleva al campo
+      avisar(faltan(c));
+      const orden = [["forma_pago", "[data-k=forma_pago]"], ["con_iva", "[data-k=con_iva]"], ["precio_base", "[data-k=precio_base]"], ["proveedor_agrocontrol", "[data-k=proveedor_agrocontrol]"]];
+      const sig = orden.find(([k]) => (k === "con_iva" ? valor(c, k) == null : !valor(c, k)));
+      const campo = sig ? art.querySelector(sig[1]) : art.querySelector("[data-chk]:not(:checked)");
+      if (campo) { campo.scrollIntoView({ block: "center", behavior: "smooth" }); try { campo.focus(); } catch (er) {} campo.style.outline = "3px solid var(--ladrillo,#B5452F)"; setTimeout(() => { campo.style.outline = ""; }, 2500); }
+      return;
+    }
     try {
       b.disabled = true;
       // Aprobar, descartar o marcar una alerta guarda en la nube: si falta la cuenta de Google, se conecta con este clic.
