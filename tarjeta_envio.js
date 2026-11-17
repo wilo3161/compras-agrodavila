@@ -41,6 +41,19 @@
     PRODS = [...m.values()];
     return PRODS;
   }
+  /* Varios números del mismo proveedor (16/11/2026): se usa el chat que responde; si el nombre del chat dice la ciudad
+     (Banariego Manta / Banariego Ibarra), primero el de la zona de la finca. La base ya viene ordenada por respuesta. */
+  const ZONA_CHAT = { Costa: /manta|jipijapa|portoviejo|guayaquil|cayo|\bpc\b|carmen|manabi/i, Imbabura: /ibarra|quito|otavalo|imbabura|urcuqui|atuntaqui/i };
+  function mejorChat(p) {
+    const chats = (p && p.chats) || [];
+    if (chats.length < 2) return chats[0] || (p && p.chat) || "";
+    const z = typeof zonaFinca === "function" && E ? zonaFinca() : "";
+    if (!z) return chats[0];
+    const otra = z === "Costa" ? "Imbabura" : "Costa";
+    const pts = (ch) => (ZONA_CHAT[otra].test(ch) && !ZONA_CHAT[z].test(ch) ? 1 : 0);   // solo se evita el de la otra zona; entre los demás manda quién responde
+    return chats.slice().sort((a, b) => pts(a) - pts(b))[0];   // sort estable: dentro de la misma zona manda la respuesta
+  }
+  const textoResp = (p, ch) => { const r = ((p && p.respuesta_chats) || {})[ch]; return r && r.pedidos ? `respondió ${r.respondidos} de ${r.pedidos}${r.minutos_mediana != null ? ` · suele tardar ${r.minutos_mediana < 60 ? r.minutos_mediana + " min" : Math.round(r.minutos_mediana / 60) + " h"}` : ""}` : "sin historial"; };
   function fichaDe(nombre, chat) {
     const n = plano(nombre), c = plano(chat);
     return (CATALOGO || []).find((p) => (c && (p.chats || []).some((x) => plano(x) === c)) || (n && plano(p.nombre) === n)) || null;
@@ -169,7 +182,9 @@
       </div>
       <div style="margin-top:10px"><b>Para:</b> ${esc(E.prov.nombre || "— elige proveedor —")}
         ${rubros.map((r) => `<span class="te-chip">${esc(r)}</span>`).join("")}${fi && fi.prospecto ? `<span class="te-chip alerta">nuevo · sin verificar</span>` : ""}${fi && otraZona(fi) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}
-        ${E.prov.nombre ? `<div class="te-sub">${E.prov.chat ? `Chat de WhatsApp: «${esc(E.prov.chat)}»` : E.prov.telefono ? `WhatsApp ${esc(E.prov.telefono)}` : `<span style="color:var(--ladrillo,#B5452F)">Sin chat de WhatsApp: escribe el número abajo.</span>`}</div>
+        ${E.prov.nombre ? `<div class="te-sub">${E.prov.chat ? `Chat de WhatsApp: «${esc(E.prov.chat)}»${fi && (fi.chats || []).length > 1 ? ` · ${esc(textoResp(fi, E.prov.chat))}
+          <select data-te="otrochat" aria-label="Otro número del mismo proveedor" style="margin-left:6px;padding:4px;border-radius:8px;border:1px solid var(--bd,#E2E4E7);background:transparent;color:inherit;font:inherit;font-size:13px">
+          ${fi.chats.map((ch) => `<option value="${esc(ch)}" ${ch === E.prov.chat ? "selected" : ""}>${esc(ch)} — ${esc(textoResp(fi, ch))}</option>`).join("")}</select>` : ""}` : E.prov.telefono ? `WhatsApp ${esc(E.prov.telefono)}` : `<span style="color:var(--ladrillo,#B5452F)">Sin chat de WhatsApp: escribe el número abajo.</span>`}</div>
         ${!E.prov.chat ? `<input id="te-tel" inputmode="tel" placeholder="Número del proveedor, ej. 0991234567" value="${esc(E.prov.telefono || "")}" style="margin-top:6px;width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--bd,#E2E4E7);border-radius:8px;background:transparent;color:inherit;font:inherit">` : ""}
         <button class="te-btn sm" type="button" data-te="cambiar" style="margin-top:6px">${I("refrescar")} Cambiar proveedor</button>` : ""}
         <div id="te-elegir">${!E.prov.nombre || E.buscando ? htmlBuscador() : ""}</div>
@@ -477,7 +492,7 @@
     }
     if (a === "elegir") {
       const p = CATALOGO[Number(el.dataset.n)];
-      E.prov = { nombre: p.nombre, chat: (p.chats || [])[0] || p.chat || "", telefono: p.telefono || "" }; E.buscando = false;
+      E.prov = { nombre: p.nombre, chat: mejorChat(p), telefono: p.telefono || "" }; E.buscando = false;
       if (!(E.rubrosOrig || []).length) E.rubrosOrig = (p.rubros || []).filter((r) => r !== "Por clasificar");   // sin proveedor original: el rubro lo fija el primero que se elige
       E.texto = E.editado ? E.texto : textoAuto();
       const av = [];
@@ -495,6 +510,7 @@
     if (el.id === "te-buscar") { $("#te-lista").innerHTML = listaProv(el.value); return; }
     if (el.id === "te-txt") { E.texto = el.value; E.textoTocado = true; if (!E.editado) { E.editado = true; } return refrescarFalta(); }
     if (el.id === "te-tel") { E.prov.telefono = el.value; return refrescarFalta(); }
+    if (el.dataset && el.dataset.te === "otrochat") { E.prov.chat = el.value; return pintar(); }
     if (el.dataset.k) { E.items[Number(el.dataset.i)][el.dataset.k] = el.value; rehacerTexto(); if (el.dataset.k === "producto") productos().then(() => { if (E && document.activeElement === el) sugerir(el); }); }
   }
   function enFoco(e) {
@@ -512,7 +528,7 @@
     const p = l.find((x) => vendio(x) > 0 && x.veredicto !== "no_usar" && !fuera.includes(plano(x.nombre)) && ((x.chats || []).length || x.telefono));
     if (!p) return;
     const n = vendio(p), tot = E.items.filter((i) => plano(i.producto).length > 2).length;
-    E.prov = { nombre: p.nombre, chat: (p.chats || [])[0] || p.chat || "", telefono: p.telefono || "" };
+    E.prov = { nombre: p.nombre, chat: mejorChat(p), telefono: p.telefono || "" };
     E.rubrosOrig = (p.rubros || []).filter((r) => r !== "Por clasificar");
     E.elegidoPorAgente = p.nombre;
     E.avisoProv = `El agente eligió a ${p.nombre} porque ya vendió ${n} de ${tot} producto(s) de esta lista${p.zona ? " y es de " + p.zona : ""}.` +
@@ -536,7 +552,7 @@
     productos();   // se va cargando la base de productos para el buscador
     // Si el chat no vino, se busca en el catálogo (chats verificados por Claude)
     const fi = fichaDe(E.prov.nombre, E.prov.chat);
-    if (fi && !E.prov.chat) E.prov.chat = (fi.chats || [])[0] || fi.chat || "";
+    if (fi && !E.prov.chat) E.prov.chat = mejorChat(fi);
     if (fi && !E.prov.telefono) E.prov.telefono = fi.telefono || "";
     if (!E.texto) E.texto = textoAuto();
     else { let auto = ""; try { auto = String(textoAuto() || ""); } catch (e) {} E.editado = E.texto.trim() !== auto.trim(); }
