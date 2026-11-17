@@ -283,16 +283,20 @@
     const afin = (p) => { const r = p.rubros || []; return !rO.length ? 0 : r.includes(rO[0]) ? 0 : r.some((x) => rO.includes(x)) ? 3 : (r.includes("Por clasificar") || !r.length ? 6 : 9); };
     const pedidos = E.items.map((i) => plano(i.producto)).filter((x) => x.length > 2);
     const vendio = (p) => { if (p._v === undefined || p._vk !== pedidos.join("|")) { const s = (p.productos || []).map(plano); p._vk = pedidos.join("|"); p._v = pedidos.filter((x) => s.some((y) => y === x || y.includes(x) || x.includes(y))).length; } return p._v; };
-    const orden = (p) => (p.veredicto === "no_usar" ? 40 : p.veredicto === "recomendado" ? -1 : 0) + afin(p) + (otraZona(p) ? 1.5 : 0) + ((p.chats || []).length ? 0 : p.telefono ? 0.4 : 0.8) - (vendio(p) ? 4 + vendio(p) : 0);
+    // Lo que el proveedor publica en su página web (investigado, no comprobado en el local): cuenta menos que haberlo vendido.
+    const raiz = (w) => w.replace(/(es|s)$/, "");
+    const publica = (p) => { if (p._w === undefined || p._wk !== pedidos.join("|")) { const s = (p.productos_web || []).map((x) => plano(x).split(" ").map(raiz)); p._wk = pedidos.join("|");
+        p._w = !s.length ? 0 : pedidos.filter((x) => { const t = x.split(" ").filter((w) => w.length > 3).slice(0, 3).map(raiz); return t.length && s.some((y) => t.filter((w) => y.includes(w)).length >= Math.min(2, t.length)); }).length; } return p._w; };
+    const orden = (p) => (p.veredicto === "no_usar" ? 40 : p.veredicto === "recomendado" ? -1 : 0) + (!vendio(p) && publica(p) ? -2 - Math.min(2, publica(p)) : 0) + afin(p) + (otraZona(p) ? 1.5 : 0) + ((p.chats || []).length ? 0 : p.telefono ? 0.4 : 0.8) - (vendio(p) ? 4 + vendio(p) : 0);
     const pals = qq.split(" ").filter(Boolean);
-    const l = (CATALOGO || []).filter((p) => { if (!pals.length) return true; if (p._k === undefined) p._k = plano(p.nombre + " " + (p.chats || []).join(" ") + " " + (p.rubros || []).join(" ") + " " + (p.ciudad || "") + " " + (p.zona || "") + " " + (p.productos || []).join(" ")); return pals.every((w) => p._k.includes(w)); })
+    const l = (CATALOGO || []).filter((p) => { if (!pals.length) return true; if (p._k === undefined) p._k = plano(p.nombre + " " + (p.chats || []).join(" ") + " " + (p.rubros || []).join(" ") + " " + (p.ciudad || "") + " " + (p.zona || "") + " " + (p.productos || []).join(" ") + " " + (p.productos_web || []).join(" ") + " " + (p.marcas || []).join(" ")); return pals.every((w) => p._k.includes(w)); })
       .sort((a, b) => orden(a) - orden(b) || a.nombre.localeCompare(b.nombre)).slice(0, 50);
-    return { l, vendio };
+    return { l, vendio, publica };
   }
   function listaProv(q) {
-    const { l, vendio } = provOrdenados(q);
+    const { l, vendio, publica } = provOrdenados(q);
     return l.map((p) => `<button type="button" data-te="elegir" data-n="${CATALOGO.indexOf(p)}"><b>${esc(p.nombre)}</b>
-      ${p.veredicto === "no_usar" ? `<span class="te-chip alerta">marcado «No usar»</span>` : p.veredicto === "recomendado" ? `<span class="te-chip">recomendado por ti</span>` : ""}${p.prospecto ? `<span class="te-chip alerta">nuevo · sin verificar</span>` : ""}${vendio(p) ? `<span class="te-chip">ya vendió ${vendio(p) === 1 ? "1 de estos productos" : vendio(p) + " de estos productos"}</span>` : ""}${otraZona(p) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}${mismoRubro(p) ? "" : `<span class="te-chip alerta">no vende lo mismo</span>`}
+      ${p.veredicto === "no_usar" ? `<span class="te-chip alerta">marcado «No usar»</span>` : p.veredicto === "recomendado" ? `<span class="te-chip">recomendado por ti</span>` : ""}${p.prospecto ? `<span class="te-chip alerta">nuevo · sin verificar</span>` : ""}${!vendio(p) && publica(p) ? `<span class="te-chip">lo publica en su web (${publica(p)})</span>` : ""}${vendio(p) ? `<span class="te-chip">ya vendió ${vendio(p) === 1 ? "1 de estos productos" : vendio(p) + " de estos productos"}</span>` : ""}${otraZona(p) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}${mismoRubro(p) ? "" : `<span class="te-chip alerta">no vende lo mismo</span>`}
       <span class="te-sub" style="display:block">${esc((p.rubros || []).join(" · "))}${(p.chats || []).length ? " · con WhatsApp" : p.telefono ? " · con teléfono" : " · sin WhatsApp"}${p.ciudad ? " · " + esc(p.ciudad) : p.zona ? " · " + esc(p.zona) : ""}</span></button>`).join("")
       || `<div class="te-sub" style="padding:10px">Ningún proveedor con ese nombre.</div>`;
   }
