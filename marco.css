@@ -69,6 +69,7 @@ select,input[type=search],input[type=text],input[type=tel],input[type=email],inp
 .marco a.sec{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--t2);font-weight:600;font-size:14px;padding:8px 14px;border-radius:999px;min-height:42px}
 .marco a.sec[aria-current="page"]{background:var(--pri2);color:var(--pri)}
 .marco a.sec:hover{color:var(--tx)}
+.marco a.sec .corto{display:none}
 .marco .mas-wrap{display:none;position:relative}
 .marco .mas-btn{background:none;border:0;color:var(--t2);font:600 14px var(--letra);cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;min-height:42px}
 .marco .mas-btn[aria-current="page"]{background:var(--pri2);color:var(--pri)}
@@ -120,6 +121,8 @@ header:has(.top) nav button{color:#F2F3F5 !important}
   .marco .mas-wrap{display:flex;flex:1 1 0;justify-content:center}
   .marco > a.sec,.marco .mas-btn{flex:1 1 0;min-width:0;white-space:nowrap;flex-direction:column;gap:3px;font-size:11px;padding:6px 4px;border-radius:12px;min-height:54px;justify-content:center;border:0;background:none}
   .marco a.sec .ico,.marco .mas-btn .ico{width:22px;height:22px}
+  .marco a.sec .largo{display:none}
+  .marco a.sec .corto{display:inline}
   .frescura{padding:6px 12px;font-size:11px;gap:6px}
   input,select,textarea{font-size:16px !important}
   header{padding:12px 14px 0 !important}

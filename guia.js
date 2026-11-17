@@ -185,13 +185,13 @@
     const primarios = [
       ["index.html", "inicio", "Inicio"],
       ["cotizar.html", "cotizar", "Cotizar"],
-      ["avance.html", "avance", "Avance"],
-      ["gerencia.html", "gerencia", "Gerencia"],
-      ["bandeja.html", "bandeja", "Bandeja"]
+      ["nueva.html", "agregar", "Nueva cotización", "Nueva"],
+      ["subir.html", "subir", "Subir a AgroControl", "Subir"],
+      ["avance.html", "avance", "Avance"]
     ];
     const secundarios = [
-      ["nueva.html", "agregar", "Nueva cotización"],
-      ["subir.html", "subir", "Subir a AgroControl"],
+      ["bandeja.html", "bandeja", "Bandeja"],
+      ["gerencia.html", "gerencia", "Gerencia"],
       ["evaluacion.html", "foco", "Evaluación de proveedores"],
       ["sicop.html", "checklist", "OC para SICOP"],
       ["agente.html", "foco", "Agente"],
@@ -204,7 +204,7 @@
     const esSecundario = secundarios.some(([h]) => h === p) || p === "gestion.html";
     const n = document.createElement("nav"); n.className = "marco"; n.setAttribute("aria-label", "Secciones de la app");
     n.innerHTML = `<a class="marca" href="index.html"><span class="sello">${ico("hoja")}</span>Compras AgroDávila</a>` +
-      primarios.map(([h, i, t]) => `<a class="sec" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}<span>${t}</span></a>`).join("") +
+      primarios.map(([h, i, t, c]) => `<a class="sec" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}${c ? `<span class="largo">${t}</span><span class="corto">${c}</span>` : `<span>${t}</span>`}</a>`).join("") +
       secundarios.map(([h, i, t]) => `<a class="sec sec-extra" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}<span>${t}</span></a>`).join("") +
       `<div class="mas-wrap"><button class="sec mas-btn" type="button" aria-expanded="false" aria-haspopup="menu"${esSecundario ? ' aria-current="page"' : ""}>${ico("mas")}<span>Más</span></button><div class="marco-mas hide" role="menu">${secundarios.map(([h, i, t]) => `<a class="mas-item" role="menuitem" href="${h}"${p === h ? ' aria-current="page"' : ""}>${ico(i)}<span>${t}</span></a>`).join("")}<button class="mas-item mas-ayuda" type="button" role="menuitem">${ico("ayuda")}<span>¿Cómo uso esto?</span></button></div></div>` +
       `<button class="ayuda" type="button" aria-label="Cómo uso esta pantalla">${ico("ayuda")}<span>¿Cómo uso esto?</span></button>`;
