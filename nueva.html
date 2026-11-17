@@ -344,8 +344,12 @@ h2{margin:0 0 8px;font-size:17px}
     const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
     const finca = e.finca || "", motivo = $("#motivo").value.trim();
     const donde = !finca ? "" : ` para la finca ${finca}`;
-    return `${saludo}, estimado/a. Le saluda el Ing. Wilson Pérez, encargado de compras de AgroDávila.\n\n` +
-      `Por favor, ¿nos ayuda con una cotización formal${donde}${motivo ? ` (${motivo})` : ""} de:\n` +
+    // A un proveedor nuevo (hallado en internet o escrito a mano) primero se le pregunta si ofrece los productos.
+    const detalle = `${donde}${motivo ? ` (${motivo})` : ""}`;
+    const abre = e.provNuevo && e.prov && e.prov.nombre
+      ? `Encontramos su contacto y quisiéramos saber si ustedes ofrecen estos productos. De ser así, por favor ayúdenos con una cotización formal${detalle} de:\n`
+      : `Por favor, ¿nos ayuda con una cotización formal${detalle} de:\n`;
+    return `${saludo}, estimado/a. Le saluda el Ing. Wilson Pérez, analista de Compras y Logística de la empresa AgroDávila.\n\n` + abre +
       e.items.map((i) => `• ${[i.cantidad, i.unidad].filter(Boolean).join(" ")} — ${i.producto}`).join("\n") +
       `\n\nPor favor incluya: precio unitario (IVA aparte), disponibilidad o tiempo de entrega, forma de pago y validez de la oferta.\n\nMuchas gracias.`;
   }

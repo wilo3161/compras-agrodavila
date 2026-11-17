@@ -137,7 +137,7 @@
   const esCot = () => E.tipo === "cotizacion";
   const sinGoogle = () => !!(window.AgdNube && AgdNube.estaConectada && !AgdNube.estaConectada());
   function textoAuto() {
-    try { if (E.op.generar) return E.op.generar({ tipo: E.tipo, prov: E.prov, items: E.items.filter((i) => i.producto.trim()), finca: E.finca, fincaId: E.fincaId }) || E.texto; }
+    try { if (E.op.generar) return E.op.generar({ tipo: E.tipo, prov: E.prov, items: E.items.filter((i) => i.producto.trim()), finca: E.finca, fincaId: E.fincaId, provNuevo: !!((fichaDe(E.prov.nombre, E.prov.chat) || {}).prospecto) || !fichaDe(E.prov.nombre, E.prov.chat) }) || E.texto; }
     catch (e) { /* si la plantilla falla, se queda el texto actual */ }
     return E.texto;
   }
@@ -163,7 +163,7 @@
         <button class="te-btn sm" type="button" data-te="cerrar" aria-label="Cerrar">${I("cerrar")}</button>
       </div>
       <div style="margin-top:10px"><b>Para:</b> ${esc(E.prov.nombre || "— elige proveedor —")}
-        ${rubros.map((r) => `<span class="te-chip">${esc(r)}</span>`).join("")}${fi && otraZona(fi) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}
+        ${rubros.map((r) => `<span class="te-chip">${esc(r)}</span>`).join("")}${fi && fi.prospecto ? `<span class="te-chip alerta">nuevo · sin verificar</span>` : ""}${fi && otraZona(fi) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}
         ${E.prov.nombre ? `<div class="te-sub">${E.prov.chat ? `Chat de WhatsApp: «${esc(E.prov.chat)}»` : E.prov.telefono ? `WhatsApp ${esc(E.prov.telefono)}` : `<span style="color:var(--ladrillo,#B5452F)">Sin chat de WhatsApp: escribe el número abajo.</span>`}</div>
         ${!E.prov.chat ? `<input id="te-tel" inputmode="tel" placeholder="Número del proveedor, ej. 0991234567" value="${esc(E.prov.telefono || "")}" style="margin-top:6px;width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--bd,#E2E4E7);border-radius:8px;background:transparent;color:inherit;font:inherit">` : ""}
         <button class="te-btn sm" type="button" data-te="cambiar" style="margin-top:6px">${I("refrescar")} Cambiar proveedor</button>` : ""}
@@ -287,7 +287,7 @@
   function listaProv(q) {
     const { l, vendio } = provOrdenados(q);
     return l.map((p) => `<button type="button" data-te="elegir" data-n="${CATALOGO.indexOf(p)}"><b>${esc(p.nombre)}</b>
-      ${vendio(p) ? `<span class="te-chip">ya vendió ${vendio(p) === 1 ? "1 de estos productos" : vendio(p) + " de estos productos"}</span>` : ""}${otraZona(p) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}${mismoRubro(p) ? "" : `<span class="te-chip alerta">no vende lo mismo</span>`}
+      ${p.prospecto ? `<span class="te-chip alerta">nuevo · sin verificar</span>` : ""}${vendio(p) ? `<span class="te-chip">ya vendió ${vendio(p) === 1 ? "1 de estos productos" : vendio(p) + " de estos productos"}</span>` : ""}${otraZona(p) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}${mismoRubro(p) ? "" : `<span class="te-chip alerta">no vende lo mismo</span>`}
       <span class="te-sub" style="display:block">${esc((p.rubros || []).join(" · "))}${(p.chats || []).length ? " · con WhatsApp" : p.telefono ? " · con teléfono" : " · sin WhatsApp"}${p.ciudad ? " · " + esc(p.ciudad) : p.zona ? " · " + esc(p.zona) : ""}</span></button>`).join("")
       || `<div class="te-sub" style="padding:10px">Ningún proveedor con ese nombre.</div>`;
   }
@@ -355,6 +355,7 @@
     const items = E.items.filter((i) => i.producto.trim());
     const fi = fichaDe(E.prov.nombre, E.prov.chat), ojo = [];
     if (!fi) ojo.push(`«${E.prov.nombre}» no está en la base de proveedores: revisa que el nombre y el número sean correctos.`);
+    if (fi && fi.prospecto) ojo.push(`${E.prov.nombre} es un proveedor NUEVO hallado en internet${fi.encontrado ? " el " + fi.encontrado.split("-").reverse().join("/") : ""}: nunca nos ha cotizado y su número no está comprobado.${fi.nota ? " " + fi.nota : ""}`);
     if (fi && otraZona(fi)) ojo.push(`${E.prov.nombre} es de otra zona: puede haber flete.`);
     if (fi && !mismoRubro(fi)) ojo.push(`${E.prov.nombre} normalmente no vende este tipo de producto.`);
     if ((E.op.excluir || []).map(plano).includes(plano(E.prov.nombre))) ojo.push(`Ya le pediste esta misma lista a ${E.prov.nombre}. Si envías, le llegará repetida.`);
