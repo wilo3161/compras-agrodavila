@@ -21,6 +21,11 @@
   async function catalogo() {
     if (CATALOGO) return CATALOGO;
     try { CATALOGO = (window.AgdNube && await AgdNube.leerCatalogoProveedores()) || []; } catch (e) { CATALOGO = []; }
+    try {
+      const ev = (window.AgdNube && AgdNube.leerEvaluacionesProveedores && await AgdNube.leerEvaluacionesProveedores()) || {};
+      const cl = (n) => plano(n).replace(/ /g, "_").slice(0, 80);
+      CATALOGO.forEach((p) => { const e = ev[cl(p.nombre)]; if (e) { p.veredicto = e.veredicto || ""; p.veredicto_nota = e.nota || ""; } });
+    } catch (e) { /* sin veredictos se sigue igual */ }
     return CATALOGO;
   }
   /* Base de productos de AgroControl (nombre, categoría, unidad usual, ingrediente) para buscar al agregar. */
@@ -278,7 +283,7 @@
     const afin = (p) => { const r = p.rubros || []; return !rO.length ? 0 : r.includes(rO[0]) ? 0 : r.some((x) => rO.includes(x)) ? 3 : (r.includes("Por clasificar") || !r.length ? 6 : 9); };
     const pedidos = E.items.map((i) => plano(i.producto)).filter((x) => x.length > 2);
     const vendio = (p) => { if (p._v === undefined || p._vk !== pedidos.join("|")) { const s = (p.productos || []).map(plano); p._vk = pedidos.join("|"); p._v = pedidos.filter((x) => s.some((y) => y === x || y.includes(x) || x.includes(y))).length; } return p._v; };
-    const orden = (p) => afin(p) + (otraZona(p) ? 1.5 : 0) + ((p.chats || []).length ? 0 : p.telefono ? 0.4 : 0.8) - (vendio(p) ? 4 + vendio(p) : 0);
+    const orden = (p) => (p.veredicto === "no_usar" ? 40 : p.veredicto === "recomendado" ? -1 : 0) + afin(p) + (otraZona(p) ? 1.5 : 0) + ((p.chats || []).length ? 0 : p.telefono ? 0.4 : 0.8) - (vendio(p) ? 4 + vendio(p) : 0);
     const pals = qq.split(" ").filter(Boolean);
     const l = (CATALOGO || []).filter((p) => { if (!pals.length) return true; if (p._k === undefined) p._k = plano(p.nombre + " " + (p.chats || []).join(" ") + " " + (p.rubros || []).join(" ") + " " + (p.ciudad || "") + " " + (p.zona || "") + " " + (p.productos || []).join(" ")); return pals.every((w) => p._k.includes(w)); })
       .sort((a, b) => orden(a) - orden(b) || a.nombre.localeCompare(b.nombre)).slice(0, 50);
@@ -287,7 +292,7 @@
   function listaProv(q) {
     const { l, vendio } = provOrdenados(q);
     return l.map((p) => `<button type="button" data-te="elegir" data-n="${CATALOGO.indexOf(p)}"><b>${esc(p.nombre)}</b>
-      ${p.prospecto ? `<span class="te-chip alerta">nuevo · sin verificar</span>` : ""}${vendio(p) ? `<span class="te-chip">ya vendió ${vendio(p) === 1 ? "1 de estos productos" : vendio(p) + " de estos productos"}</span>` : ""}${otraZona(p) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}${mismoRubro(p) ? "" : `<span class="te-chip alerta">no vende lo mismo</span>`}
+      ${p.veredicto === "no_usar" ? `<span class="te-chip alerta">marcado «No usar»</span>` : p.veredicto === "recomendado" ? `<span class="te-chip">recomendado por ti</span>` : ""}${p.prospecto ? `<span class="te-chip alerta">nuevo · sin verificar</span>` : ""}${vendio(p) ? `<span class="te-chip">ya vendió ${vendio(p) === 1 ? "1 de estos productos" : vendio(p) + " de estos productos"}</span>` : ""}${otraZona(p) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}${mismoRubro(p) ? "" : `<span class="te-chip alerta">no vende lo mismo</span>`}
       <span class="te-sub" style="display:block">${esc((p.rubros || []).join(" · "))}${(p.chats || []).length ? " · con WhatsApp" : p.telefono ? " · con teléfono" : " · sin WhatsApp"}${p.ciudad ? " · " + esc(p.ciudad) : p.zona ? " · " + esc(p.zona) : ""}</span></button>`).join("")
       || `<div class="te-sub" style="padding:10px">Ningún proveedor con ese nombre.</div>`;
   }
@@ -355,6 +360,7 @@
     const items = E.items.filter((i) => i.producto.trim());
     const fi = fichaDe(E.prov.nombre, E.prov.chat), ojo = [];
     if (!fi) ojo.push(`«${E.prov.nombre}» no está en la base de proveedores: revisa que el nombre y el número sean correctos.`);
+    if (fi && fi.veredicto === "no_usar") ojo.push(`Marcaste a ${E.prov.nombre} como «No usar»${fi.veredicto_nota ? " (" + fi.veredicto_nota + ")" : ""}. ¿Seguro que quieres pedirle?`);
     if (fi && fi.prospecto) ojo.push(`${E.prov.nombre} es un proveedor NUEVO hallado en internet${fi.encontrado ? " el " + fi.encontrado.split("-").reverse().join("/") : ""}: nunca nos ha cotizado y su número no está comprobado.${fi.nota ? " " + fi.nota : ""}`);
     if (fi && otraZona(fi)) ojo.push(`${E.prov.nombre} es de otra zona: puede haber flete.`);
     if (fi && !mismoRubro(fi)) ojo.push(`${E.prov.nombre} normalmente no vende este tipo de producto.`);
@@ -499,7 +505,7 @@
     if (!E || E.prov.nombre || !E.op.preelegir || !(CATALOGO || []).length) return;
     const fuera = (E.op.excluir || []).map(plano);
     const { l, vendio } = provOrdenados("");
-    const p = l.find((x) => vendio(x) > 0 && !fuera.includes(plano(x.nombre)) && ((x.chats || []).length || x.telefono));
+    const p = l.find((x) => vendio(x) > 0 && x.veredicto !== "no_usar" && !fuera.includes(plano(x.nombre)) && ((x.chats || []).length || x.telefono));
     if (!p) return;
     const n = vendio(p), tot = E.items.filter((i) => plano(i.producto).length > 2).length;
     E.prov = { nombre: p.nombre, chat: (p.chats || [])[0] || p.chat || "", telefono: p.telefono || "" };

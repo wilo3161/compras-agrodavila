@@ -179,6 +179,7 @@ ul.items li .det{font-size:12px;color:var(--t2)}
     if (!S.filas.length) { $("#vista-cotizar").innerHTML = `<div class="vacio">No se pudieron leer los datos de AgroControl. Intenta de nuevo en un momento.</div>`; return; }
     S.cots = (await AgdNube.leerCotizacionesPorLinea()) || {};
     S.catalogo = (await AgdNube.leerCatalogoProveedores()) || [];
+    try { S.eval = (await AgdNube.leerEvaluacionesProveedores()) || {}; } catch (e) { S.eval = {}; }
     S.seg = AgdNube.leerSeguimientoLocal() || {};
     AgdNube.escucharSeguimiento((m) => { S.seg = m || {}; pintar(); });
     AgdNube.escucharCotizar((m) => { S.estado = m || {}; pintar(); });
@@ -239,6 +240,8 @@ ul.items li .det{font-size:12px;color:var(--t2)}
   function puntaje(p, it) {
     if (!it.categoria || !(p.categorias || []).includes(it.categoria)) return -1;  // nunca a quien no vende esa categoría
     if (it.ya.some((n) => mismoProv(n, p.nombre))) return -1;                     // ya cotizó o ya se le pidió
+    const _v = (S.eval || {})[norm(p.nombre).replace(/ /g, "_").slice(0, 80)];
+    if (_v && _v.veredicto === "no_usar") return -1;                              // Wilo lo marcó «No usar» en la evaluación
     let s = 10 - (p.categorias.indexOf(it.categoria) * 1.5);
     const tok = new Set(norm(it.producto).split(" ").filter((t) => t.length > 3));
     const prods = (p.productos || []).map(norm).join(" ");

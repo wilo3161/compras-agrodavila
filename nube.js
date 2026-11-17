@@ -1172,6 +1172,24 @@
   }
   async function leerCatalogoProveedores() { const l = await _leerDocJson("agrocontrol/catalogo_proveedores"); return l && l.length ? l : _deLaApp("proveedores"); }
   async function leerCatalogoProductos() { const l = await _leerDocJson("agrocontrol/catalogo_productos"); return l && l.length ? l : _deLaApp("productos"); }   // [nombre, categoría, unidad, ingrediente]
+  /* Evaluación de proveedores (16/11/2026): el veredicto y la nota de Wilo por proveedor. */
+  async function leerEvaluacionesProveedores() {
+    await inicializar();
+    if (!db || !usuarioActual) return {};
+    const snap = await modFs.getDocs(modFs.collection(db, `${RAIZ}/evaluacion_proveedores`));
+    const mapa = {};
+    snap.forEach((d) => { mapa[d.id] = d.data(); });
+    return mapa;
+  }
+  async function guardarEvaluacionProveedor(id, datos) {
+    await asegurarConexion();
+    if (!db || !usuarioActual) throw new Error("Conecta tu cuenta de Google para guardar.");
+    const limpio = { nombre: String(datos.nombre || "").slice(0, 160), veredicto: ["recomendado", "normal", "en_observacion", "no_usar"].includes(datos.veredicto) ? datos.veredicto : "",
+      nota: String(datos.nota || "").slice(0, 300), actualizado_en: new Date().toISOString(), actualizado_por: String(usuarioActual.email || "").toLowerCase() };
+    await modFs.setDoc(modFs.doc(db, `${RAIZ}/evaluacion_proveedores/${id}`), limpio);
+    try { registrarDecision("proveedor_veredicto", { proveedor: limpio.nombre, veredicto: limpio.veredicto, nota: limpio.nota }); } catch (e) {}
+    return limpio;
+  }
   const leerMapaSicop = () => _leerDocJson("agrocontrol/sicop_mapa");   // proveedor de AgroControl → nombre y RUC en SICOP
   const leerCotizacionesPorLinea = () => _leerDocJson("agrocontrol/cotizaciones");
 
@@ -1349,6 +1367,8 @@
     registrarDecision,
     leerEstadoAgente,
     leerMapaSicop,
+    leerEvaluacionesProveedores,
+    guardarEvaluacionProveedor,
     leerCatalogoProductos,
     asegurarConexion,
     estaConectada,

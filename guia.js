@@ -101,6 +101,9 @@
     "nueva.html": {
       vista: ["Nueva cotización", "Pega o suelta lo que tengas del pedido: texto, capturas de pantalla, PDF, Word o Excel. La app arma la lista de productos; tú la revisas, eliges el proveedor de la base y apruebas. La lectura de capturas puede equivocarse: revisa siempre productos y cantidades."]
     },
+    "evaluacion.html": {
+      vista: ["Evaluación de proveedores", "Cada proveedor tiene una nota de 0 a 100 sacada de AgroControl: precio frente a los demás, entregas a tiempo, forma de pago y si responde. Usa los botones de arriba para ver los mejores, los que se atrasan o los que no responden, y da tu veredicto abajo de cada uno."]
+    },
     "sicop.html": {
       vista: ["Órdenes de compra para SICOP", "Cada orden de AgroControl sale con los datos en el orden de la pantalla de SICOP y un botón para copiar cada uno. Compara el total de aquí con el de SICOP antes de procesar la orden."]
     },
@@ -189,6 +192,7 @@
     const secundarios = [
       ["nueva.html", "agregar", "Nueva cotización"],
       ["subir.html", "subir", "Subir a AgroControl"],
+      ["evaluacion.html", "foco", "Evaluación de proveedores"],
       ["sicop.html", "checklist", "OC para SICOP"],
       ["agente.html", "foco", "Agente"],
       ["checklist.html", "checklist", "Checklist"],
