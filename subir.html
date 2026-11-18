@@ -44,6 +44,18 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
 .zoom{position:fixed;inset:0;background:rgba(15,18,22,.92);display:none;z-index:70;overflow:auto;cursor:zoom-out}
 .zoom.ver{display:block}
 .zoom img{display:block;max-width:none;width:min(1600px,200vw);margin:20px auto}
+.barra-borrar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:10px 14px;margin-bottom:14px}
+.barra-borrar label,.marcar{display:inline-flex;gap:8px;align-items:center;cursor:pointer;font-size:14px}
+.barra-borrar input,.marcar input{width:22px;height:22px}
+.marcar{margin-bottom:8px;padding:6px 10px;border:1px dashed var(--bd);border-radius:10px}
+.carga.marcada{outline:3px solid var(--ladrillo,#B5452F);outline-offset:-3px}
+.btn.peligro{background:var(--ladrillo,#B5452F);border-color:var(--ladrillo,#B5452F);color:#fff}
+.btn.peligro[disabled]{opacity:.5;cursor:not-allowed}
+.velo{position:fixed;inset:0;background:rgba(15,18,22,.6);display:flex;align-items:center;justify-content:center;z-index:80;padding:16px}
+.dialogo{background:var(--card);color:var(--tx);border-radius:16px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:18px;box-shadow:var(--sombra)}
+.dialogo h2{margin:0 0 8px;font-size:19px}
+.dialogo ul{margin:8px 0;padding-left:18px;font-size:14px}
+.dialogo li{margin:3px 0}
 @media (max-width:860px){.carga{grid-template-columns:1fr}.fila{grid-template-columns:120px 1fr}.visor iframe{height:420px}}
 </style>
 </head>
@@ -77,7 +89,7 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
   const dec = (tipo, d) => { try { if (!SOLO_LECTURA && window.AgdNube && AgdNube.registrarDecision) AgdNube.registrarDecision(tipo, d); } catch (e) {} };
   const refCarga = (c) => ({ origen: "subir", carga: c.id, linea: c.linea, pedido: c.pedido, producto: c.producto_agrocontrol, archivo: c.archivo_nombre || "" });
   const CHEQUEOS = [["proveedor", "Proveedor"], ["producto", "Producto"], ["precio", "Precio"], ["iva", "IVA"], ["pago", "Forma de pago"]];
-  const S = { cargas: [], archivos: {}, tab: "por_revisar", chequeos: {}, editado: {} };
+  const S = { cargas: [], archivos: {}, tab: "por_revisar", chequeos: {}, editado: {}, marcadas: new Set() };
   const dinero = (v, d = 2) => (v == null || v === "" || isNaN(v)) ? "—" : "$" + Number(v).toLocaleString("es-EC", { minimumFractionDigits: d, maximumFractionDigits: 4 });
 
   async function cargar() {
@@ -129,8 +141,11 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     const lista = S.cargas.filter((c) => enTab(c, S.tab))
       .sort((a, b) => (a.estado === "alerta" ? 0 : 1) - (b.estado === "alerta" ? 0 : 1) || String(a.pedido).localeCompare(String(b.pedido)) || String(a.linea).localeCompare(String(b.linea)));
     const cont = $("#lista");
+    // Solo quedan marcadas las que siguen descartadas (si una cambió de estado, se desmarca sola)
+    const idsDescartadas = new Set(S.cargas.filter((c) => c.estado === "descartada").map((c) => c.id));
+    for (const id of [...S.marcadas]) if (!idsDescartadas.has(id)) S.marcadas.delete(id);
     if (!lista.length) { cont.innerHTML = `<div class="vacio">${S.tab === "por_revisar" ? "No hay cargas por revisar." : S.tab === "alerta" ? "Todo lo subido coincide con sus proformas." : "Nada aquí por ahora."}</div>`; return; }
-    cont.innerHTML = lista.map(htmlCarga).join("");
+    cont.innerHTML = (S.tab === "descartada" ? htmlBarraBorrar(lista) : "") + lista.map(htmlCarga).join("");
     AgdMov.entrar(cont, S.tab);
     lista.forEach(async (c) => {
       const a = await archivo(c.archivo_id);
@@ -190,6 +205,69 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
       </div></article>`;
   }
 
+  /* Eliminar descartadas (18/11/2026): Wilo marca cuáles y confirma; se borran de la nube para liberar espacio. */
+  function htmlBarraBorrar(lista) {
+    const n = S.marcadas.size, todas = lista.length && lista.every((c) => S.marcadas.has(c.id));
+    return `<div class="barra-borrar" id="barra-borrar">
+      <label><input type="checkbox" id="marcar-todas" ${todas ? "checked" : ""}> Marcar todas (${lista.length})</label>
+      <button type="button" class="btn peligro" id="btn-eliminar" ${n ? "" : "disabled"}>${I("cerrar")} Eliminar las marcadas (${n})</button>
+      <span class="sub" style="width:100%">Libera espacio en la nube. Solo se borran las que marques y antes te pido confirmar. Las proformas siguen guardadas en la PC.</span>
+    </div>`;
+  }
+  function refrescarBarra() {
+    const lista = S.cargas.filter((c) => c.estado === "descartada");
+    const b = $("#btn-eliminar"); if (b) { b.disabled = !S.marcadas.size; b.innerHTML = `${I("cerrar")} Eliminar las marcadas (${S.marcadas.size})`; }
+    const t = $("#marcar-todas"); if (t) t.checked = !!lista.length && lista.every((c) => S.marcadas.has(c.id));
+    document.querySelectorAll("[data-marcar]").forEach((cb) => { cb.checked = S.marcadas.has(cb.dataset.marcar); cb.closest(".carga")?.classList.toggle("marcada", cb.checked); });
+  }
+  function confirmarEliminar(elegidas) {
+    return new Promise((listo) => {
+      const velo = document.createElement("div");
+      velo.className = "velo";
+      velo.innerHTML = `<div class="dialogo" role="alertdialog" aria-modal="true" aria-labelledby="dlg-t">
+        <h2 id="dlg-t">¿Eliminar ${elegidas.length} ${elegidas.length === 1 ? "carga descartada" : "cargas descartadas"}?</h2>
+        <div class="sub">Se borran para siempre de la nube y no se pueden recuperar. El agente no las vuelve a proponer. Las proformas siguen en la PC.</div>
+        <ul>${elegidas.map((c) => `<li><b>${esc(c.producto_agrocontrol)}</b> · ${esc(c.proveedor_agrocontrol || c.proveedor_proforma || "sin proveedor")} · ${esc(c.pedido)} ${esc(c.linea)}</li>`).join("")}</ul>
+        <div class="acciones">
+          <button type="button" class="btn peligro" data-si>Sí, eliminar ${elegidas.length}</button>
+          <button type="button" class="btn" data-no>Cancelar</button>
+        </div></div>`;
+      const cerrar = (v) => { velo.remove(); document.removeEventListener("keydown", tecla); listo(v); };
+      const tecla = (e) => { if (e.key === "Escape") cerrar(false); };
+      velo.addEventListener("click", (e) => { if (e.target.closest("[data-si]")) cerrar(true); else if (e.target.closest("[data-no]") || e.target === velo) cerrar(false); });
+      document.addEventListener("keydown", tecla);
+      document.body.appendChild(velo);
+      velo.querySelector("[data-no]").focus();
+    });
+  }
+  async function eliminarMarcadas(boton) {
+    const elegidas = S.cargas.filter((c) => c.estado === "descartada" && S.marcadas.has(c.id));
+    if (!elegidas.length) { avisar("Marca primero las descartadas que quieres eliminar."); return; }
+    if (!(await confirmarEliminar(elegidas))) return;
+    boton.disabled = true;
+    try {
+      let r;
+      if (SOLO_LECTURA) {
+        const ids = new Set(elegidas.map((c) => c.id));
+        S.cargas = S.cargas.filter((c) => !ids.has(c.id));
+        r = { eliminadas: [...ids], omitidas: [], proformas: 0 };
+      } else {
+        if (window.AgdNube && AgdNube.asegurarConexion) await AgdNube.asegurarConexion();
+        r = await AgdNube.eliminarCargasDescartadas(elegidas.map((c) => c.id));
+        const ids = new Set(r.eliminadas);
+        S.cargas = S.cargas.filter((c) => !ids.has(c.id));
+        dec("cargas_eliminadas", { origen: "subir", cantidad: r.eliminadas.length, ids: r.eliminadas.slice(0, 50), proformas: r.proformas });
+      }
+      r.eliminadas.forEach((id) => S.marcadas.delete(id));
+      pintar();
+      avisar(`Eliminadas: ${r.eliminadas.length}` + (r.proformas ? ` · ${r.proformas} proforma(s) borradas de la nube` : "") +
+        (r.omitidas.length ? ` · ${r.omitidas.length} no se tocaron porque ya no estaban descartadas` : "") + (SOLO_LECTURA ? " (prueba: no se borró nada en la nube)" : ""));
+    } catch (err) {
+      pintar();
+      avisar("NO se eliminó: " + (err && err.message ? err.message : err) + " · Mándame una captura de este mensaje.");
+    } finally { boton.disabled = false; refrescarBarra(); }
+  }
+
   function htmlCarga(c) {
     if (c.tipo === "auditoria") return htmlAlerta(c);
     const ed = c.estado === "por_revisar";
@@ -199,9 +277,11 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     const fila = (et, html) => `<div class="fila"><span class="et">${et}</span><span>${html}</span></div>`;
     const pago = valor(c, "forma_pago") || "";
     const con = valor(c, "con_iva");
-    return `<article class="carga" data-c="${esc(c.id)}">
+    const marcada = c.estado === "descartada" && S.marcadas.has(c.id);
+    return `<article class="carga${marcada ? " marcada" : ""}" data-c="${esc(c.id)}">
       <div class="visor" data-visor="${esc(c.id)}"><div class="cargando">Cargando proforma…</div></div>
       <div class="datos">
+        ${c.estado === "descartada" ? `<label class="marcar"><input type="checkbox" data-marcar="${esc(c.id)}" ${marcada ? "checked" : ""}> Marcar para eliminar</label>` : ""}
         <h2>${esc(c.producto_agrocontrol)} <span class="est ${esc(c.estado)}">${esc({ por_revisar: "Por revisar", aprobada: "Aprobada", descartada: "Descartada", subida: "Subida", subiendo: "Subiendo…", en_formulario: "En AgroControl, sin guardar", error: "Error" }[c.estado] || c.estado)}</span></h2>
         <div class="sub">${esc(c.pedido)} · ${esc(c.linea)} · ${esc(c.finca)} · pide ${esc(c.cantidad_pedido ?? "")}</div>
         ${fila("En la proforma", `${esc(c.item_proforma)}${c.cantidad_proforma ? ` · ${esc(c.cantidad_proforma)} ${esc(c.unidad)}` : ""}`)}
@@ -245,8 +325,16 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
   }
   const carga = (el) => S.cargas.find((x) => x.id === el.closest("[data-c]").dataset.c);
 
+  document.addEventListener("change", (e) => {
+    const el = e.target;
+    if (el.id === "marcar-todas") {
+      S.cargas.filter((c) => c.estado === "descartada").forEach((c) => (el.checked ? S.marcadas.add(c.id) : S.marcadas.delete(c.id)));
+      return refrescarBarra();
+    }
+    if (el.dataset && el.dataset.marcar) { el.checked ? S.marcadas.add(el.dataset.marcar) : S.marcadas.delete(el.dataset.marcar); refrescarBarra(); }
+  });
   document.addEventListener("input", (e) => {
-    const el = e.target; if (!el.closest("[data-c]")) return;
+    const el = e.target; if (!el.closest("[data-c]") || el.dataset.marcar) return;
     const c = carga(el);
     if (el.dataset.chk) { (S.chequeos[c.id] = S.chequeos[c.id] || {})[el.dataset.chk] = el.checked; return pintarBoton(c); }
     if (!el.dataset.k) return;
@@ -310,6 +398,7 @@ h1{margin:0;font-size:clamp(21px,2.6vw,27px);line-height:1.2}
     }
     const z = e.target.closest("[data-zoom]"); if (z) { $("#zoom-img").src = z.src; $("#zoom").classList.add("ver"); return; }
     if (e.target.closest("#zoom")) { $("#zoom").classList.remove("ver"); return; }
+    const be = e.target.closest("#btn-eliminar"); if (be) { if (!be.disabled) await eliminarMarcadas(be); return; }
     const tab = e.target.closest("[data-tab]");
     if (tab) { S.tab = tab.dataset.tab; document.querySelectorAll("[data-tab]").forEach((x) => x.classList.toggle("activa", x === tab)); return pintar(); }
     const b = e.target.closest("[data-acc]"); if (!b) return;

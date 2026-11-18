@@ -1309,6 +1309,44 @@
     await modFs.updateDoc(modFs.doc(db, `${RAIZ}/cargas_agrocontrol/${id}`),
       Object.assign({}, cambios, { revisado_por: String(usuarioActual.email || ""), revisado_en: new Date().toISOString() }));
   }
+  /* Elimina de la nube SOLO las cargas descartadas que Wilo marcó (18/11/2026). Cada una deja su constancia en
+     cargas_eliminadas (el agente de la PC la consulta y no la vuelve a crear). La proforma se borra solo si ya
+     ninguna otra tarjeta la usa. Devuelve { eliminadas, omitidas, proformas }. */
+  async function eliminarCargasDescartadas(ids) {
+    await inicializar();
+    if (!db || !usuarioActual) throw new Error("Falta conectar tu cuenta de Google en este equipo (es una sola vez). Toca el botón otra vez y elige tu cuenta.");
+    const correo = String(usuarioActual.email || "").toLowerCase().trim();
+    const ahora = new Date().toISOString();
+    const eliminadas = [], omitidas = [], archivos = new Set();
+    for (const id of [...new Set(ids || [])]) {
+      const ref = modFs.doc(db, `${RAIZ}/cargas_agrocontrol/${id}`);
+      const s = await modFs.getDoc(ref);
+      if (!s.exists()) continue;
+      const d = s.data() || {};
+      if (d.estado !== "descartada") { omitidas.push(id); continue; }   // cambió de estado mientras tanto: no se toca
+      const lote = modFs.writeBatch(db);
+      lote.set(modFs.doc(db, `${RAIZ}/cargas_eliminadas/${id}`), {
+        linea: String(d.linea || ""), pedido: String(d.pedido || ""), producto: String(d.producto_agrocontrol || "").slice(0, 300),
+        proveedor: String(d.proveedor_agrocontrol || d.proveedor_proforma || "").slice(0, 200),
+        motivo_descarte: String(d.motivo_descarte || d.nota_agente || "").slice(0, 300),
+        archivo_id: String(d.archivo_id || ""), eliminado_por: correo, eliminado_en: ahora
+      });
+      lote.delete(ref);
+      await lote.commit();
+      eliminadas.push(id);
+      if (d.archivo_id) archivos.add(String(d.archivo_id));
+    }
+    let proformas = 0;
+    for (const aid of archivos) {
+      const q = modFs.query(modFs.collection(db, `${RAIZ}/cargas_agrocontrol`), modFs.where("archivo_id", "==", aid), modFs.limit(1));
+      if (!(await modFs.getDocs(q)).empty) continue;   // otra tarjeta todavía usa esta proforma
+      await modFs.deleteDoc(modFs.doc(db, `${RAIZ}/cargas_archivos/${aid}`));
+      await modFs.deleteDoc(modFs.doc(db, `${RAIZ}/cargas_archivos/${aid}_pdf`));
+      delete _cacheArchivos[aid]; delete _cacheArchivos[aid + "_pdf"];
+      proformas += 1;
+    }
+    return { eliminadas, omitidas, proformas };
+  }
 
   /* ── Mi gestión (solo correo principal de Wilo o lista config/acceso.gestion) ── */
   async function puedeVerGestion() {
@@ -1356,6 +1394,7 @@
     escucharCargas,
     leerArchivoCarga,
     actualizarCarga,
+    eliminarCargasDescartadas,
     leerCatalogoProveedores,
     leerCotizacionesPorLinea,
     escucharCotizar,
