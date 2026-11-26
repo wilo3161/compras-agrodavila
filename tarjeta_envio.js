@@ -311,7 +311,7 @@
   function listaProv(q) {
     const { l, vendio, publica } = provOrdenados(q);
     return l.map((p) => `<button type="button" data-te="elegir" data-n="${CATALOGO.indexOf(p)}"><b>${esc(p.nombre)}</b>
-      ${p.veredicto === "no_usar" ? `<span class="te-chip alerta">marcado «No usar»</span>` : p.veredicto === "recomendado" ? `<span class="te-chip">recomendado por ti</span>` : ""}${p.prospecto ? `<span class="te-chip alerta">nuevo · sin verificar</span>` : ""}${!vendio(p) && publica(p) ? `<span class="te-chip">lo publica en su web (${publica(p)})</span>` : ""}${vendio(p) ? `<span class="te-chip">ya vendió ${vendio(p) === 1 ? "1 de estos productos" : vendio(p) + " de estos productos"}</span>` : ""}${otraZona(p) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}${mismoRubro(p) ? "" : `<span class="te-chip alerta">no vende lo mismo</span>`}
+      ${p.descartado ? `<span class="te-chip alerta">sin chat útil · ${esc(p.descartado)}</span>` : ""}${p.veredicto === "no_usar" ? `<span class="te-chip alerta">marcado «No usar»</span>` : p.veredicto === "recomendado" ? `<span class="te-chip">recomendado por ti</span>` : ""}${p.prospecto ? `<span class="te-chip alerta">nuevo · sin verificar</span>` : ""}${!vendio(p) && publica(p) ? `<span class="te-chip">lo publica en su web (${publica(p)})</span>` : ""}${vendio(p) ? `<span class="te-chip">ya vendió ${vendio(p) === 1 ? "1 de estos productos" : vendio(p) + " de estos productos"}</span>` : ""}${otraZona(p) ? `<span class="te-chip alerta">otra zona · revisar flete</span>` : ""}${mismoRubro(p) ? "" : `<span class="te-chip alerta">no vende lo mismo</span>`}
       <span class="te-sub" style="display:block">${esc((p.rubros || []).join(" · "))}${(p.chats || []).length ? " · con WhatsApp" : p.telefono ? " · con teléfono" : " · sin WhatsApp"}${p.ciudad ? " · " + esc(p.ciudad) : p.zona ? " · " + esc(p.zona) : ""}</span></button>`).join("")
       || `<div class="te-sub" style="padding:10px">Ningún proveedor con ese nombre.</div>`;
   }
@@ -525,7 +525,7 @@
     if (!E || E.prov.nombre || !E.op.preelegir || !(CATALOGO || []).length) return;
     const fuera = (E.op.excluir || []).map(plano);
     const { l, vendio } = provOrdenados("");
-    const p = l.find((x) => vendio(x) > 0 && x.veredicto !== "no_usar" && !fuera.includes(plano(x.nombre)) && ((x.chats || []).length || x.telefono));
+    const p = l.find((x) => vendio(x) > 0 && x.veredicto !== "no_usar" && !x.descartado && !fuera.includes(plano(x.nombre)) && ((x.chats || []).length || x.telefono));
     if (!p) return;
     const n = vendio(p), tot = E.items.filter((i) => plano(i.producto).length > 2).length;
     E.prov = { nombre: p.nombre, chat: mejorChat(p), telefono: p.telefono || "" };
