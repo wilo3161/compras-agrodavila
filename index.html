@@ -136,8 +136,9 @@ input[type=email],input[type=password]{width:100%;padding:12px 14px;font:inherit
     <section class="bloque" id="accesos" aria-labelledby="tAcc">
       <h2 id="tAcc">Accesos rápidos</h2>
       <div class="acciones">
-        <a class="accion" href="control.html" data-paso="criticos"><span data-i="control"></span><span>Ver lo pendiente<small>Prioridades, cuellos de botella y KPIs</small></span></a>
-        <a class="accion" href="whatsapp.html#listos" data-paso="mensajes"><span data-i="enviar"></span><span>Enviar mensajes listos<small>Cotizaciones y seguimientos a proveedores</small></span></a>
+        <a class="accion" href="cotizar.html" data-paso="cotizar"><span data-i="cotizar"></span><span>Cotizar pedidos pendientes<small>Listas por familia de compra listas para WhatsApp</small></span></a>
+        <a class="accion" href="subir.html" data-paso="subir"><span data-i="subir"></span><span>Subir proformas recibidas<small>Revisa con la foto del documento y aprueba</small></span></a>
+        <a class="accion" href="nueva.html" data-paso="nueva"><span data-i="agregar"></span><span>Nueva cotización rápida<small>Pega el texto de WhatsApp o agrega productos</small></span></a>
         <button class="accion" type="button" id="bExcel" data-paso="excel"><span data-i="excel"></span><span>Bajar Excel para la matriz<small>Para pegar en Datos_AgroControl</small></span></button>
         <button class="accion hide" type="button" id="bInst" data-paso="instalar"><span data-i="instalar"></span><span>Instalar la app en este equipo<small>Queda como un ícono más</small></span></button>
       </div>
@@ -145,15 +146,30 @@ input[type=email],input[type=password]{width:100%;padding:12px 14px;font:inherit
   </div>
 
   <div class="modulos">
-    <a class="modulo" href="control.html">
-      <div class="cab"><span class="icono verde" data-i="control"></span><h3>Control de compras</h3></div>
-      <p>AgroControl en vivo: pendientes por prioridad, dónde se queda la compra, KPIs, Kraljic, proveedores y pagos.</p>
-      <span class="ir">Abrir<span data-i="flecha"></span></span>
+    <a class="modulo" href="cotizar.html">
+      <div class="cab"><span class="icono verde" data-i="cotizar"></span><h3>1. Cotizar por WhatsApp</h3></div>
+      <p>Tarjetas automáticas agrupadas por familia de compra. A quién pedir, mensajes listos y vista previa con un toque. <span id="corteWA"></span></p>
+      <span class="ir">Cotizar ahora<span data-i="flecha"></span></span>
     </a>
-    <a class="modulo" href="whatsapp.html">
-      <div class="cab"><span class="icono tierra" data-i="whatsapp"></span><h3>Compras por WhatsApp</h3></div>
-      <p>Mensajes listos para proveedores, a quién pedir, precios, facturas y pagos. <span id="corteWA"></span></p>
-      <span class="ir">Abrir<span data-i="flecha"></span></span>
+    <a class="modulo" href="subir.html">
+      <div class="cab"><span class="icono tierra" data-i="subir"></span><h3>2. Subir a AgroControl</h3></div>
+      <p>Proformas y cotizaciones recibidas con su foto al lado. Compara precios e IVA antes de aprobar.</p>
+      <span class="ir">Revisar proformas<span data-i="flecha"></span></span>
+    </a>
+    <a class="modulo" href="nueva.html">
+      <div class="cab"><span class="icono maiz" data-i="agregar"></span><h3>3. Nueva cotización</h3></div>
+      <p>Pega un mensaje de WhatsApp o escribe los productos que necesita la finca para cotizarlos de inmediato.</p>
+      <span class="ir">Crear solicitud<span data-i="flecha"></span></span>
+    </a>
+    <a class="modulo" href="avance.html">
+      <div class="cab"><span class="icono verde" data-i="avance"></span><h3>4. Avance de pedidos</h3></div>
+      <p>Seguimiento en tiempo real: qué ha llegado a las fincas, qué órdenes faltan y visto bueno de pagos.</p>
+      <span class="ir">Ver avance<span data-i="flecha"></span></span>
+    </a>
+    <a class="modulo" href="comparativo.html">
+      <div class="cab"><span class="icono tierra" data-i="comparar"></span><h3>5. Comparativo de precios</h3></div>
+      <p>Cuadros comparativos con 2 o 3 ofertas por línea para elegir la mejor opción y sustentar el ahorro a Gerencia.</p>
+      <span class="ir">Comparar precios<span data-i="flecha"></span></span>
     </a>
   </div>
 
@@ -191,7 +207,12 @@ function err(el,t){ el.textContent=t; el.classList.toggle("hide",!t); }
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 /* Primeros pasos: se marcan solos al usarlos */
-const PASOS=[["instalar","Instale la app en su teléfono"],["criticos","Revise lo pendiente de prioridad Crítica"],["mensajes","Envíe los mensajes listos a proveedores"],["excel","Baje el Excel para la matriz del viernes"]];
+const PASOS=[
+  ["instalar","Instale la app en su teléfono"],
+  ["cotizar","Envíe las cotizaciones listas por WhatsApp"],
+  ["subir","Revise y apruebe las proformas recibidas"],
+  ["excel","Baje el Excel para la matriz del viernes"]
+];
 const hechos=()=>{ try{ return JSON.parse(localStorage.getItem("agd_pasos")||"{}"); }catch(e){ return {}; } };
 function marcar(k){ const h=hechos(); h[k]=1; try{ localStorage.setItem("agd_pasos",JSON.stringify(h)); }catch(e){} if(window.AgdNube) AgdNube.guardarAjustes({pasos:h}); pintarPasos(); }
 function pintarPasos(){ const h=hechos(); if(window.matchMedia("(display-mode: standalone)").matches) h.instalar=1;
@@ -225,11 +246,11 @@ async function urgente(){
     const porAut = F.filter(r=>R.clasificarEtapa(r).id==="por_autorizar").length;
     const revCampo = F.filter(r=>R.clasificarEtapa(r).id==="revision_campo").length;
     FILAS_AC=[
-      ["rojo","alerta","Pagos vencidos o sin registrar","Órdenes con fecha de pago pasada",vencidos,"control.html"],
-      ["rojo","control","Sin ninguna cotización","Aprobados en campo sin proforma",sinCot,"avance.html#faltacot"],
-      ["maiz","control","Falta completar cotizaciones","Tienen 1 o 2 de las exigidas (2 o 3)",faltaCot,"avance.html#faltacot"],
+      ["rojo","alerta","Pagos vencidos o sin registrar","Órdenes con fecha de pago pasada",vencidos,"avance.html"],
+      ["rojo","cotizar","Sin ninguna cotización","Aprobados en campo sin proforma",sinCot,"cotizar.html"],
+      ["maiz","cotizar","Falta completar cotizaciones","Tienen 1 o 2 de las exigidas (2 o 3)",faltaCot,"cotizar.html"],
       ["tierra","llave","Por autorizar","Esperan autorización",porAut,"control.html"],
-      ["verde","hoja","Revisión de campo","Pedidos nuevos de las fincas",revCampo,"control.html"]];
+      ["verde","hoja","Revisión de campo","Pedidos nuevos de las fincas",revCampo,"avance.html"]];
     AGRO_LISTO=true;
     renderUrgente();
   }catch(e){
@@ -248,7 +269,7 @@ $("#bExcel").onclick=async()=>{ const b=$("#bExcel"); b.classList.add("cargando"
   try{ if(!SNAP) SNAP=await ComprasApp.filasAgro({forzar:false}); ComprasApp.excelMatriz(SNAP.filas); marcar("excel"); }catch(e){ alert(e.message); }
   b.classList.remove("cargando"); };
 
-async function mostrarCorte(){ const c=await ComprasApp.corteWA(); if(c) $("#corteWA").textContent="Datos al "+new Date(c).toLocaleString("es-EC",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"America/Guayaquil"})+"."; }
+async function mostrarCorte(){ const c=await ComprasApp.corteWA(), el=$("#corteWA"); if(c&&el) el.textContent="Datos al "+new Date(c).toLocaleString("es-EC",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"America/Guayaquil"})+"."; }
 function saludo(s){
   const h=Number(new Intl.DateTimeFormat("en-US",{timeZone:"America/Guayaquil",hour:"numeric",hour12:false}).format(new Date()))||12;
   const parte=h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches";

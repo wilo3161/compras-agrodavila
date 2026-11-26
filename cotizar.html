@@ -323,9 +323,9 @@ ul.items li .det{font-size:12px;color:var(--t2)}
     return `<article class="tarjeta" data-t="${esc(t.id)}">${cabeza}
       <ul class="items">${items}</ul>
       <div class="acciones">
-        ${p ? `<button type="button" class="btn p ancho" data-acc="vista" data-t="${esc(t.id)}">${I("ojo")} Vista previa y enviar</button>` : ""}
+        ${p ? `<button type="button" class="btn p ancho" data-acc="vista" data-t="${esc(t.id)}" style="min-height:46px;font-size:15px;font-weight:700">${I("enviar")} Revisar y enviar por WhatsApp</button>` : ""}
         <button type="button" class="btn sm" data-acc="cambiar" data-t="${esc(t.id)}">${I("refrescar")} Cambiar proveedor</button>
-        ${p ? `<button type="button" class="btn sm" data-acc="yaenvie" data-t="${esc(t.id)}">${I("check")} Ya lo envié yo</button>` : ""}
+        ${p ? `<button type="button" class="btn sm" data-acc="yaenvie" data-t="${esc(t.id)}">${I("check")} Ya lo pedí a mano</button>` : ""}
       </div></article>`;
   }
 

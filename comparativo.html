@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Comparativo de cotizaciones · Compras AgroDávila</title>
+<meta name="theme-color" content="#23262B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="iconos/icono-192.png"><link rel="apple-touch-icon" href="iconos/icono-192.png"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script><script src="etapas.js"></script><script src="comun.js"></script><script src="guia.js"></script><script src="firebase_config.js"></script><script src="nube.js"></script><link rel="stylesheet" href="marco.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+main{max-width:1160px;margin:0 auto;padding:20px 16px 96px}
+h1{margin:0 0 4px;font-size:26px}
+.sub{color:var(--t2);font-size:14px;line-height:1.45;margin:0}
+.cab-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+.acc-top{display:flex;gap:8px;flex-wrap:wrap}
+.resumen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.resumen .kpi{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px 14px;box-shadow:var(--sombra)}
+.resumen .kpi b{display:block;font-family:var(--titulo);font-size:24px;font-variant-numeric:tabular-nums;margin-bottom:2px}
+.resumen .kpi.ahorro b{color:var(--ok)}
+.resumen .kpi.alerta b{color:var(--ladrillo)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 10px}
+.tabs button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:999px;padding:8px 14px;font:600 14px var(--letra);cursor:pointer;min-height:42px}
+.tabs button.activa{background:var(--pri);border-color:var(--pri);color:#fff}
+.filtros-bar{display:grid;grid-template-columns:minmax(160px,220px) minmax(150px,200px) 1fr;gap:8px;margin-bottom:14px}
+.filtros-bar select,.filtros-bar input{width:100%;padding:9px 12px;font-size:14px}
+.pedido-card{background:var(--card);border:1px solid var(--bd);border-radius:18px;box-shadow:var(--sombra);padding:16px;margin-bottom:16px}
+.pedido-cab{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--bd);margin-bottom:12px}
+.pedido-cab h2{margin:0;font-size:19px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pedido-acc{display:flex;gap:8px;flex-wrap:wrap}
+.paquete-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px;padding:12px;border-radius:14px;background:var(--pri2);border:1px solid color-mix(in srgb,var(--pri) 22%,transparent)}
+.paquete-res .pbox b{display:block;font-size:12.5px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.paquete-res .pbox .val{font-family:var(--titulo);font-size:20px;font-variant-numeric:tabular-nums;margin-top:2px}
+.paquete-res .pbox .det{font-size:12.5px;color:var(--t2);margin-top:2px;line-height:1.35}
+.linea-box{border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px;background:var(--bg)}
+.linea-box:last-child{margin-bottom:0}
+.linea-cab{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.linea-tit{font-family:var(--titulo);font-size:16px;font-weight:700;margin:0}
+.linea-meta{font-size:13px;color:var(--t2);margin-top:2px}
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;background:var(--pri2);color:var(--pri)}
+.chip.ok{background:var(--okbg);color:var(--ok)}
+.chip.aviso{background:var(--maiz2);color:var(--md)}
+.chip.malo{background:var(--ladrillo2);color:var(--ladrillo)}
+.chip.neutro{background:var(--card);color:var(--t2);border:1px solid var(--bd)}
+.tabla-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--bd);border-radius:12px;margin-bottom:10px}
+table.comp{width:100%;border-collapse:collapse;font-size:13.5px}
+table.comp th{text-align:left;padding:9px 10px;font-size:12px;color:var(--t2);border-bottom:1px solid var(--bd);white-space:nowrap}
+table.comp td{padding:9px 10px;border-bottom:1px solid var(--bd);vertical-align:middle}
+table.comp tr:last-child td{border-bottom:0}
+table.comp tr.mejor{background:color-mix(in srgb,var(--okbg) 65%,var(--card))}
+table.comp tr.bloqueado{background:color-mix(in srgb,var(--ladrillo2) 45%,var(--card));opacity:.85}
+table.comp .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.porque{background:var(--card);border-left:4px solid var(--ok);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13.5px;line-height:1.45}
+.porque.alerta-rara{border-left-color:var(--maiz);background:var(--maiz2)}
+.porque b{color:var(--tx)}
+.decision-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:10px;border-top:1px dashed var(--bd)}
+.decision-bar label{font-size:13px;font-weight:600;color:var(--t2)}
+.decision-bar select{padding:7px 10px;font-size:13.5px;max-width:290px}
+.motivo-wrap{display:none;width:100%;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;padding:10px;border-radius:12px;background:var(--maiz2);border:1px solid color-mix(in srgb,var(--maiz) 45%,transparent)}
+.motivo-wrap.ver{display:flex}
+.motivo-wrap input{flex:1 1 220px;padding:8px 10px;font-size:13.5px}
+.motivo-wrap .aviso-m{width:100%;font-size:12.5px;font-weight:600;color:var(--md)}
+.falta-lista{display:grid;gap:8px}
+.falta-it{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:12px}
+.vacio{padding:36px 16px;text-align:center;color:var(--t2);background:var(--card);border:1px dashed var(--bd);border-radius:16px}
+.toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#23262B;color:#fff;border-radius:12px;padding:10px 14px;display:none;z-index:60;font-size:14px;max-width:92vw}
+.toast.ver{display:flex}
+@media (max-width:760px){
+  .resumen{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .filtros-bar{grid-template-columns:1fr}
+  table.comp{font-size:12.5px}
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="cab-top">
+    <div>
+      <h1>Comparativo de cotizaciones</h1>
+      <p class="sub" id="subtitulo">Compara lado a lado los precios de todos los pedidos con 2 o más proveedores, explica cuál conviene y por qué, y enseña al agente con cada decisión.</p>
+    </div>
+    <div class="acc-top">
+      <button type="button" class="btn sm" id="btnExcelComp">Descargar Excel</button>
+      <a class="btn sm" href="cotizar.html">Ir a Cotizar</a>
+    </div>
+  </div>
+
+  <div class="resumen" id="resumen"></div>
+  <div class="tabs" id="tabs" role="tablist"></div>
+
+  <div class="filtros-bar" id="filtrosComp">
+    <select id="fPedido" aria-label="Filtrar por pedido"><option value="">Todos los pedidos</option></select>
+    <select id="fFinca" aria-label="Filtrar por finca"><option value="">Todas las fincas</option></select>
+    <input type="search" id="fBuscar" placeholder="Buscar por producto o proveedor…" aria-label="Buscar por producto o proveedor">
+  </div>
+
+  <section id="lista">
+    <div class="esqueleto" role="status"><span class="lector">Armando el cuadro comparativo…</span><i></i><i></i></div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-txt"></span></div>
+<script>
+(function () {
+  "use strict";
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const norm = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const clave = (n) => norm(n).replace(/ /g, "_").slice(0, 80);
+  const num = (v) => { const x = Number(String(v == null ? "" : v).replace(",", ".")); return isFinite(x) ? x : 0; };
+  const dinero = (v, dec) => "$" + Number(v || 0).toLocaleString("es-EC", { minimumFractionDigits: dec == null ? 2 : dec, maximumFractionDigits: dec == null ? 2 : dec });
+  const campo = (f, ...ks) => { for (const k of ks) { if (f && f[k] !== undefined && f[k] !== null && f[k] !== "") return f[k]; } return ""; };
+  const R = window.AgdReglas;
+
+  const S = {
+    filas: [],
+    cots: {},
+    cargas: [],
+    catalogo: {},
+    eval: {},
+    tab: "por_decidir",
+    pedido: "",
+    finca: "",
+    q: "",
+    confirmadas: {},
+    grupos: []
+  };
+
+  let reloj = null;
+  function avisar(txt) {
+    $("#toast-txt").textContent = txt;
+    $("#toast").classList.add("ver");
+    clearTimeout(reloj);
+    reloj = setTimeout(() => $("#toast").classList.remove("ver"), 5000);
+  }
+
+  function esCerradaOAnulada(f) {
+    const est = norm(campo(f, "estado", "Estado (código)"));
+    return est === "anulado" || est === "rechazado" || est === "cancelado";
+  }
+
+  function estaEnCotizacion(f) {
+    const est = norm(campo(f, "estado", "Estado (código)"));
+    const oc = String(campo(f, "oc_codigo", "OC (código)", "numero_oc", "N° OC")).trim();
+    if (esCerradaOAnulada(f) || oc) return false;
+    if (est === "aprobado") return false;
+    return true;
+  }
+
+  function infoProveedor(nombre) {
+    const k = clave(nombre);
+    const cat = S.catalogo[k] || {};
+    const ev = S.eval[k] || {};
+    return {
+      zona: cat.zona || "",
+      ciudad: cat.ciudad || "",
+      pago: cat.pago || "",
+      dias_credito: cat.dias_credito || "",
+      veredicto: ev.veredicto || "",
+      nota_eval: ev.nota || ""
+    };
+  }
+
+  function construirOfertas(f) {
+    const linea = String(campo(f, "linea", "Línea")).trim();
+    const cant = num(campo(f, "cantidad", "Cantidad")) || 1;
+    const region = String(campo(f, "region", "Región") || "").trim();
+    const mapa = new Map();
+
+    // 1. Cotizaciones oficiales ya subidas en AgroControl
+    const lista = S.cots[linea] || [];
+    lista.forEach((c) => {
+      const prov = Array.isArray(c) ? String(c[0] || "").trim() : String((c && (c.proveedor || c.prov)) || "").trim();
+      const precio = Array.isArray(c) ? num(c[1]) : num(c && (c.precio || c.precio_unitario));
+      const fecha = Array.isArray(c) ? String(c[2] || "").slice(0, 10) : String((c && c.fecha) || "").slice(0, 10);
+      const conIva = Array.isArray(c) ? c[3] : (c && c.con_iva);
+      if (!prov || precio <= 0) return;
+      const k = clave(prov);
+      const prev = mapa.get(k);
+      if (!prev || precio < prev.precio) {
+        const info = infoProveedor(prov);
+        mapa.set(k, {
+          k,
+          proveedor: prov,
+          precio,
+          total: precio * cant,
+          fecha,
+          conIva: conIva === true ? "Con IVA" : conIva === false ? "Sin IVA" : "Según proforma",
+          origen: "AgroControl",
+          pendienteSubir: false,
+          zona: info.zona,
+          ciudad: info.ciudad,
+          pago: info.pago,
+          dias_credito: info.dias_credito,
+          veredicto: info.veredicto,
+          nota_eval: info.nota_eval,
+          mismaZona: Boolean(region && info.zona && ((norm(region).includes("costa") && norm(info.zona).includes("costa")) || (norm(region).includes("sierra") && (norm(info.zona).includes("imbabura") || norm(info.zona).includes("sierra")))))
+        });
+      }
+    });
+
+    // 2. Proformas ya recibidas por WhatsApp y pendientes de subir en la app
+    (S.cargas || []).forEach((c) => {
+      if (!c || String(c.linea || "").trim() !== linea) return;
+      if (c.estado === "descartada" || c.estado === "subida") return;
+      const prov = String(c.proveedor_agrocontrol || c.proveedor_proforma || "").trim();
+      const base = num(c.precio_base);
+      const ivaPct = num(c.iva_pct);
+      const precio = num(c.precio_final) || (base > 0 ? (c.con_iva ? base * (1 + ivaPct / 100) : base) : 0);
+      if (!prov || precio <= 0) return;
+      const k = clave(prov);
+      if (mapa.has(k)) return;
+      const info = infoProveedor(prov);
+      mapa.set(k, {
+        k,
+        proveedor: prov,
+        precio,
+        total: precio * cant,
+        fecha: String(c.fecha_proforma || "").slice(0, 10),
+        conIva: c.con_iva ? `IVA ${ivaPct}%` : "Sin IVA",
+        origen: "Pendiente en Subir",
+        pendienteSubir: true,
+        zona: info.zona,
+        ciudad: info.ciudad,
+        pago: c.forma_pago || info.pago,
+        dias_credito: c.dias_credito || info.dias_credito,
+        veredicto: info.veredicto,
+        nota_eval: info.nota_eval,
+        mismaZona: Boolean(region && info.zona && ((norm(region).includes("costa") && norm(info.zona).includes("costa")) || (norm(region).includes("sierra") && (norm(info.zona).includes("imbabura") || norm(info.zona).includes("sierra")))))
+      });
+    });
+
+    const ofertas = Array.from(mapa.values()).sort((a, b) => a.precio - b.precio);
+    return ofertas;
+  }
+
+  function analizarLinea(f) {
+    const linea = String(campo(f, "linea", "Línea")).trim();
+    const pedido = String(campo(f, "pedido", "Pedido")).trim() || "Sin pedido";
+    const finca = String(campo(f, "finca", "Finca")).trim() || "Sin finca";
+    const region = String(campo(f, "region", "Región")).trim();
+    const producto = String(campo(f, "producto", "Producto")).trim();
+    const categoria = String(campo(f, "categoria", "Categoría")).trim();
+    const cantidad = num(campo(f, "cantidad", "Cantidad")) || 1;
+    const unidad = String(campo(f, "unidad", "Unidad")).trim();
+    const estado = String(campo(f, "estado", "Estado (código)")).trim();
+    const provElegido = String(campo(f, "proveedor", "Proveedor")).trim();
+    const oc = String(campo(f, "oc_codigo", "OC (código)", "numero_oc", "N° OC")).trim();
+    const enCot = estaEnCotizacion(f);
+    const ofertas = construirOfertas(f);
+
+    let recomendado = null;
+    let masBarato = ofertas[0] || null;
+    let masCaro = ofertas.length ? ofertas[ofertas.length - 1] : null;
+    let ahorroMax = 0;
+    let ahorroPct = 0;
+    let diferenciaExtrema = false;
+    let razones = [];
+
+    if (ofertas.length >= 2) {
+      const habilitadas = ofertas.filter((o) => o.veredicto !== "no_usar");
+      recomendado = habilitadas[0] || ofertas[0];
+      const segundo = habilitadas[1] || ofertas[1];
+      masBarato = ofertas[0];
+      ahorroMax = Math.max(0, masCaro.total - recomendado.total);
+      ahorroPct = masCaro.total > 0 ? (ahorroMax / masCaro.total) * 100 : 0;
+
+      if (masBarato.precio > 0 && masCaro.precio / masBarato.precio >= 2.2) {
+        diferenciaExtrema = true;
+      }
+
+      if (recomendado.k === masBarato.k) {
+        if (segundo && segundo.precio > recomendado.precio) {
+          const dif2 = segundo.total - recomendado.total;
+          const pct2 = ((segundo.precio - recomendado.precio) / segundo.precio) * 100;
+          razones.push(`tiene el precio más bajo (${dinero(recomendado.precio, 4)} c/u) y ahorra ${dinero(dif2)} (${pct2.toFixed(1).replace(".", ",")} %) frente al segundo (${segundo.proveedor})`);
+        } else {
+          razones.push(`empata en el precio más bajo (${dinero(recomendado.precio, 4)} c/u)`);
+        }
+      } else {
+        razones.push(`el más barato (${masBarato.proveedor}) está marcado como «No usar», por eso pasa a ser la mejor opción habilitada`);
+      }
+
+      if (ofertas.length >= 3 && ahorroMax > 0) {
+        razones.push(`ahorro total de ${dinero(ahorroMax)} (${ahorroPct.toFixed(1).replace(".", ",")} %) frente al más caro`);
+      }
+      if (recomendado.pago) {
+        razones.push(`condición registrada: ${recomendado.pago}${recomendado.dias_credito ? " (" + recomendado.dias_credito + " días)" : ""}`);
+      }
+      if (recomendado.mismaZona) {
+        razones.push(`está en la misma zona (${region || recomendado.zona}), evitando flete extra`);
+      }
+      if (recomendado.veredicto === "recomendado") {
+        razones.push("está marcado por ti como proveedor recomendado");
+      }
+      if (recomendado.pendienteSubir) {
+        razones.push("su proforma ya llegó por WhatsApp y solo falta aprobarla en «Subir a AgroControl»");
+      }
+      if (diferenciaExtrema) {
+        razones.push("ATENCIÓN: hay más del doble de diferencia entre el menor y el mayor precio; verifica que ambos coticen la misma unidad o presentación (caja vs. unidad) antes de aprobar");
+      }
+    }
+
+    return {
+      linea, pedido, finca, region, producto, categoria, cantidad, unidad, estado,
+      provElegido, oc, enCot, ofertas, recomendado, masBarato, masCaro,
+      ahorroMax, ahorroPct, diferenciaExtrema,
+      porque: razones.length ? razones.join(" · ") + "." : ""
+    };
+  }
+
+  function calcular() {
+    const activas = S.filas.filter((f) => !esCerradaOAnulada(f)).map(analizarLinea);
+    const con2EnCot = activas.filter((x) => x.enCot && x.ofertas.length >= 2);
+    const con2Todas = activas.filter((x) => x.ofertas.length >= 2);
+    const faltan = activas.filter((x) => x.enCot && x.ofertas.length < 2);
+    const sinCot = faltan.filter((x) => x.ofertas.length === 0);
+    const unaCot = faltan.filter((x) => x.ofertas.length === 1);
+
+    S.datos = { activas, con2EnCot, con2Todas, faltan, sinCot, unaCot };
+    poblarFiltros(activas);
+  }
+
+  function poblarFiltros(activas) {
+    const peds = [...new Set(activas.map((x) => x.pedido))].sort().reverse();
+    const fincas = [...new Set(activas.map((x) => x.finca))].sort();
+    const selP = $("#fPedido"), selF = $("#fFinca");
+    const prevP = S.pedido, prevF = S.finca;
+    selP.innerHTML = `<option value="">Todos los pedidos (${peds.length})</option>` + peds.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
+    selF.innerHTML = `<option value="">Todas las fincas (${fincas.length})</option>` + fincas.map((f) => `<option value="${esc(f)}">${esc(f)}</option>`).join("");
+    selP.value = peds.includes(prevP) ? prevP : "";
+    selF.value = fincas.includes(prevF) ? prevF : "";
+  }
+
+  function resumenPaquetePedido(lineas) {
+    if (lineas.length < 2) return null;
+    const totalMixto = lineas.reduce((acc, l) => acc + (l.recomendado ? l.recomendado.total : 0), 0);
+    const totalCaro = lineas.reduce((acc, l) => acc + (l.masCaro ? l.masCaro.total : 0), 0);
+    const porProv = {};
+    lineas.forEach((l) => {
+      l.ofertas.forEach((o) => {
+        if (!porProv[o.proveedor]) porProv[o.proveedor] = { n: 0, total: 0 };
+        porProv[o.proveedor].n += 1;
+        porProv[o.proveedor].total += o.total;
+      });
+    });
+    const completos = Object.entries(porProv)
+      .filter(([, v]) => v.n === lineas.length)
+      .sort((a, b) => a[1].total - b[1].total);
+    return {
+      totalMixto,
+      ahorroMixto: Math.max(0, totalCaro - totalMixto),
+      mejorUnico: completos.length ? { proveedor: completos[0][0], total: completos[0][1].total } : null
+    };
+  }
+
+  function pintar() {
+    const D = S.datos || { con2EnCot: [], con2Todas: [], faltan: [], sinCot: [], unaCot: [] };
+    const ahorroPotencial = D.con2EnCot.reduce((a, x) => a + x.ahorroMax, 0);
+
+    $("#resumen").innerHTML = `
+      <div class="kpi"><b>${D.con2EnCot.length}</b><span class="sub">líneas por decidir con 2+ cotizaciones</span></div>
+      <div class="kpi ahorro"><b>${dinero(ahorroPotencial)}</b><span class="sub">ahorro disponible en líneas abiertas</span></div>
+      <div class="kpi alerta"><b>${D.sinCot.length} / ${D.unaCot.length}</b><span class="sub">sin cotización / con solo 1 cotización</span></div>
+      <div class="kpi"><b>${D.con2Todas.length}</b><span class="sub">líneas totales comparables (con historial)</span></div>`;
+
+    const tabs = [
+      ["por_decidir", `Por decidir (${D.con2EnCot.length})`],
+      ["faltan", `Faltan cotizaciones (${D.faltan.length})`],
+      ["todos", `Todos con 2+ cotizaciones (${D.con2Todas.length})`]
+    ];
+    $("#tabs").innerHTML = tabs.map(([id, txt]) =>
+      `<button type="button" role="tab" aria-selected="${S.tab === id}" data-tab="${id}" class="${S.tab === id ? "activa" : ""}">${esc(txt)}</button>`
+    ).join("");
+
+    const base = S.tab === "por_decidir" ? D.con2EnCot : S.tab === "faltan" ? D.faltan : D.con2Todas;
+    const q = norm(S.q);
+    const filtradas = base.filter((x) => {
+      if (S.pedido && x.pedido !== S.pedido) return false;
+      if (S.finca && x.finca !== S.finca) return false;
+      if (q) {
+        const hay = norm(x.producto + " " + x.pedido + " " + x.finca + " " + x.ofertas.map((o) => o.proveedor).join(" "));
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    const porPed = new Map();
+    filtradas.forEach((x) => {
+      const k = x.pedido;
+      if (!porPed.has(k)) porPed.set(k, { pedido: x.pedido, finca: x.finca, region: x.region, lineas: [] });
+      porPed.get(k).lineas.push(x);
+    });
+    const grupos = Array.from(porPed.values()).sort((a, b) => b.pedido.localeCompare(a.pedido));
+    S.grupos = grupos;
+
+    const cont = $("#lista");
+    if (!grupos.length) {
+      cont.innerHTML = `<div class="vacio">${S.tab === "por_decidir" ? "No hay líneas abiertas con 2 o más cotizaciones para este filtro. Revisa la pestaña «Faltan cotizaciones» o «Todos»." : "No se encontraron líneas con los filtros actuales."}</div>`;
+      return;
+    }
+
+    if (S.tab === "faltan") {
+      cont.innerHTML = grupos.map(htmlGrupoFaltan).join("");
+    } else {
+      cont.innerHTML = grupos.map(htmlGrupoComparativo).join("");
+    }
+  }
+
+  function htmlGrupoFaltan(g) {
+    const c0 = g.lineas.filter((x) => x.ofertas.length === 0).length;
+    const c1 = g.lineas.filter((x) => x.ofertas.length === 1).length;
+    return `<article class="pedido-card" data-ped="${esc(g.pedido)}">
+      <div class="pedido-cab">
+        <h2>${esc(g.pedido)} · ${esc(g.finca)} ${g.region ? `<span class="chip neutro">${esc(g.region)}</span>` : ""}
+          ${c0 ? `<span class="chip malo">${c0} sin cotización</span>` : ""}
+          ${c1 ? `<span class="chip aviso">${c1} con solo 1 cotización</span>` : ""}
+        </h2>
+        <div class="pedido-acc">
+          <a class="btn sm pri" href="cotizar.html">Pedir más cotizaciones</a>
+        </div>
+      </div>
+      <div class="falta-lista">
+        ${g.lineas.map((l) => {
+          const o = l.ofertas[0];
+          return `<div class="falta-it">
+            <div>
+              <b>${esc(l.producto)}</b> <span class="sub">(${esc(l.cantidad)} ${esc(l.unidad)} · ${esc(l.linea)})</span>
+              <div class="sub">${o ? `Única cotización: <b>${esc(o.proveedor)}</b> a ${dinero(o.precio, 4)} (${esc(o.origen)})` : "Todavía sin ninguna cotización registrada."}</div>
+            </div>
+            <span class="chip ${o ? "aviso" : "malo"}">${o ? "Falta 2.ª opción" : "0 cotizaciones"}</span>
+          </div>`;
+        }).join("")}
+      </div>
+    </article>`;
+  }
+
+  function htmlGrupoComparativo(g) {
+    const paq = resumenPaquetePedido(g.lineas);
+    return `<article class="pedido-card" data-ped="${esc(g.pedido)}">
+      <div class="pedido-cab">
+        <h2>${esc(g.pedido)} · ${esc(g.finca)} ${g.region ? `<span class="chip neutro">${esc(g.region)}</span>` : ""}
+          <span class="chip">${g.lineas.length} línea${g.lineas.length === 1 ? "" : "s"} comparada${g.lineas.length === 1 ? "" : "s"}</span>
+        </h2>
+        <div class="pedido-acc">
+          <button type="button" class="btn sm" data-copiar-ped="${esc(g.pedido)}">Copiar cuadro para Gerencia</button>
+        </div>
+      </div>
+      ${paq ? `<div class="paquete-res">
+        <div class="pbox"><b>Mejor precio por producto</b><div class="val">${dinero(paq.totalMixto)}</div><div class="det">Eligiendo la mejor opción en cada línea (ahorro máx. ${dinero(paq.ahorroMixto)})</div></div>
+        ${paq.mejorUnico ? `<div class="pbox"><b>Un solo proveedor para todo</b><div class="val">${dinero(paq.mejorUnico.total)}</div><div class="det">${esc(paq.mejorUnico.proveedor)} · ${paq.mejorUnico.total <= paq.totalMixto + 0.01 ? "mismo costo en un solo retiro" : "+" + dinero(paq.mejorUnico.total - paq.totalMixto) + " frente a dividir"}</div></div>` : `<div class="pbox"><b>Un solo proveedor</b><div class="val">No aplica</div><div class="det">Ningún proveedor cotizó todas las líneas de este pedido.</div></div>`}
+      </div>` : ""}
+      ${g.lineas.map(htmlLineaComparativa).join("")}
+    </article>`;
+  }
+
+  function htmlLineaComparativa(l) {
+    const rec = l.recomendado;
+    const minPrecio = l.masBarato ? l.masBarato.precio : 0;
+    const yaConfirmada = S.confirmadas[l.linea];
+    return `<div class="linea-box" data-linea="${esc(l.linea)}">
+      <div class="linea-cab">
+        <div>
+          <h3 class="linea-tit">${esc(l.producto)}</h3>
+          <div class="linea-meta">${esc(l.linea)} · ${esc(l.cantidad)} ${esc(l.unidad)} · ${esc(l.categoria || "Sin categoría")} · Estado: <b>${esc(l.estado)}</b>${l.provElegido ? ` · En AgroControl: <b>${esc(l.provElegido)}</b>` : ""}</div>
+        </div>
+        <div>
+          ${l.ahorroMax > 0 ? `<span class="chip ok">Ahorro hasta ${dinero(l.ahorroMax)} (${l.ahorroPct.toFixed(0)} %)</span>` : ""}
+          ${yaConfirmada ? `<span class="chip ok">Elección guardada: ${esc(yaConfirmada)}</span>` : ""}
+        </div>
+      </div>
+
+      <div class="tabla-wrap">
+        <table class="comp">
+          <thead>
+            <tr>
+              <th>Proveedor</th>
+              <th>Condición / Zona</th>
+              <th class="num">Precio unit.</th>
+              <th class="num">Total (${esc(l.cantidad)})</th>
+              <th class="num">Vs. más bajo</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${l.ofertas.map((o) => {
+              const esMejor = rec && o.k === rec.k;
+              const dif = o.precio - minPrecio;
+              const pct = minPrecio > 0 ? (dif / minPrecio) * 100 : 0;
+              const cls = o.veredicto === "no_usar" ? "bloqueado" : esMejor ? "mejor" : "";
+              return `<tr class="${cls}">
+                <td><b>${esc(o.proveedor)}</b>${o.pendienteSubir ? ` <span class="chip aviso">Pendiente subir</span>` : ""}${o.veredicto === "no_usar" ? ` <span class="chip malo">No usar</span>` : o.veredicto === "recomendado" ? ` <span class="chip ok">Recomendado</span>` : ""}</td>
+                <td>${esc([o.pago ? (o.pago + (o.dias_credito ? " " + o.dias_credito + "d" : "")) : "", o.zona || o.ciudad, o.conIva].filter(Boolean).join(" · ") || "—")}</td>
+                <td class="num"><b>${dinero(o.precio, 4)}</b></td>
+                <td class="num">${dinero(o.total)}</td>
+                <td class="num">${dif <= 0.0001 ? `<span class="chip ok">Más bajo</span>` : `+${dinero(dif * l.cantidad)} (+${pct.toFixed(1).replace(".", ",")} %)`}</td>
+                <td>${esMejor ? `<span class="chip ok">Mejor opción</span>` : esc(o.fecha ? o.fecha.split("-").reverse().join("/") : o.origen)}</td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="porque ${l.diferenciaExtrema ? "alerta-rara" : ""}">
+        <b>Mejor opción: ${esc(rec ? rec.proveedor : "—")}.</b> ¿Por qué? ${esc(l.porque)}
+      </div>
+
+      <div class="decision-bar" data-dec-linea="${esc(l.linea)}">
+        <label for="sel-${esc(l.linea)}">Proveedor elegido:</label>
+        <select id="sel-${esc(l.linea)}" data-sel-prov>
+          ${l.ofertas.map((o) => `<option value="${esc(o.proveedor)}" data-precio="${o.precio}" ${rec && o.k === rec.k ? "selected" : ""}>${esc(o.proveedor)} (${dinero(o.precio, 4)})</option>`).join("")}
+        </select>
+        <button type="button" class="btn sm pri" data-confirmar-linea="${esc(l.linea)}">Confirmar elección y enseñar al agente</button>
+        <div class="motivo-wrap" data-motivo-wrap>
+          <span class="aviso-m">No es el más barato: por regla de Gerencia (18/11) anota el motivo antes de confirmar.</span>
+          <select data-motivo-tipo aria-label="Motivo de elección">
+            <option value="">Elige un motivo…</option>
+            <option value="Lo pidió el ingeniero por calidad o marca">Lo pidió el ingeniero (calidad / marca)</option>
+            <option value="Entrega inmediata o stock disponible">Entrega inmediata / stock disponible</option>
+            <option value="Mejores condiciones de crédito">Mejores condiciones de crédito</option>
+            <option value="El más barato tiene diferente presentación o unidad">El más barato es otra presentación / unidad</option>
+            <option value="Otro motivo">Otro motivo</option>
+          </select>
+          <input type="text" data-motivo-nota maxlength="240" placeholder="Detalle corto (ej. Ing. Jonathan pidió marca Bellota)…">
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function textoResumenPedido(pedidoId) {
+    const g = S.grupos.find((x) => x.pedido === pedidoId);
+    if (!g) return "";
+    const lineasTxt = g.lineas.map((l, idx) => {
+      const filas = l.ofertas.map((o) => `   - ${o.proveedor}: ${dinero(o.precio, 4)} c/u (total ${dinero(o.total)})${l.recomendado && o.k === l.recomendado.k ? " ← MEJOR OPCIÓN" : ""}`).join("\n");
+      return `${idx + 1}. ${l.producto} (${l.cantidad} ${l.unidad})\n${filas}\n   ¿Por qué?: ${l.porque}`;
+    }).join("\n\n");
+    return `CUADRO COMPARATIVO · ${g.pedido} (${g.finca})\n${"─".repeat(42)}\n${lineasTxt}\n\nEnviado desde Compras AgroDávila.`;
+  }
+
+  function exportarExcel() {
+    if (!window.XLSX) { avisar("No se cargó la librería de Excel. Recarga la página con internet."); return; }
+    const rows = [];
+    S.grupos.forEach((g) => {
+      g.lineas.forEach((l) => {
+        if (!l.ofertas.length) {
+          rows.push({ Pedido: l.pedido, Finca: l.finca, Línea: l.linea, Producto: l.producto, Cantidad: l.cantidad, Unidad: l.unidad, Proveedor: "SIN COTIZACIÓN", "Precio unit.": "", Total: "", "Mejor opción": "", "¿Por qué?": "Falta cotizar" });
+          return;
+        }
+        l.ofertas.forEach((o) => {
+          rows.push({
+            Pedido: l.pedido,
+            Finca: l.finca,
+            Línea: l.linea,
+            Producto: l.producto,
+            Cantidad: l.cantidad,
+            Unidad: l.unidad,
+            Proveedor: o.proveedor,
+            Origen: o.origen,
+            "Condición / IVA": [o.pago, o.conIva].filter(Boolean).join(" · "),
+            "Precio unit.": Number(o.precio.toFixed(4)),
+            Total: Number(o.total.toFixed(2)),
+            "Mejor opción": l.recomendado && o.k === l.recomendado.k ? "SÍ" : "",
+            "Ahorro máx. ($)": Number(l.ahorroMax.toFixed(2)),
+            "¿Por qué?": l.recomendado && o.k === l.recomendado.k ? l.porque : ""
+          });
+        });
+      });
+    });
+    if (!rows.length) { avisar("No hay filas para exportar."); return; }
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, "Comparativo");
+    const fecha = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `Comparativo_Cotizaciones_AgroDavila_${fecha}.xlsx`);
+    avisar("Excel descargado.");
+  }
+
+  function actualizarVisibilidadMotivo(bar, lineaObj) {
+    const sel = bar.querySelector("[data-sel-prov]");
+    const wrap = bar.querySelector("[data-motivo-wrap]");
+    if (!sel || !wrap || !lineaObj || !lineaObj.masBarato) return;
+    const elegido = sel.value;
+    const esMasBarato = clave(elegido) === lineaObj.masBarato.k;
+    wrap.classList.toggle("ver", !esMasBarato);
+  }
+
+  document.addEventListener("change", (e) => {
+    const sel = e.target.closest("[data-sel-prov]");
+    if (sel) {
+      const bar = sel.closest("[data-dec-linea]");
+      const linId = bar.dataset.decLinea;
+      const l = (S.datos && S.datos.activas || []).find((x) => x.linea === linId);
+      actualizarVisibilidadMotivo(bar, l);
+    }
+  });
+
+  document.addEventListener("click", async (e) => {
+    const tab = e.target.closest("[data-tab]");
+    if (tab) { S.tab = tab.dataset.tab; pintar(); return; }
+
+    const btnCop = e.target.closest("[data-copiar-ped]");
+    if (btnCop) {
+      const txt = textoResumenPedido(btnCop.dataset.copiarPed);
+      try {
+        await navigator.clipboard.writeText(txt);
+        avisar("Cuadro copiado. Listo para pegar en WhatsApp a Gerencia o al ingeniero.");
+      } catch (err) {
+        avisar("No se pudo copiar automáticamente; revisa permisos del navegador.");
+      }
+      return;
+    }
+
+    const btnConf = e.target.closest("[data-confirmar-linea]");
+    if (btnConf) {
+      const linId = btnConf.dataset.confirmarLinea;
+      const bar = btnConf.closest("[data-dec-linea]");
+      const l = (S.datos && S.datos.activas || []).find((x) => x.linea === linId);
+      if (!l || !l.recomendado) return;
+      const sel = bar.querySelector("[data-sel-prov]");
+      const elegido = sel.value;
+      const ofertaElegida = l.ofertas.find((o) => o.proveedor === elegido) || l.recomendado;
+      const esMasBarato = l.masBarato && ofertaElegida.k === l.masBarato.k;
+      const motivoTipo = bar.querySelector("[data-motivo-tipo]").value.trim();
+      const motivoNota = bar.querySelector("[data-motivo-nota]").value.trim();
+      const motivo = [motivoTipo, motivoNota].filter(Boolean).join(" — ");
+
+      if (!esMasBarato && !motivo) {
+        actualizarVisibilidadMotivo(bar, l);
+        avisar("Falta el motivo: como no es el más barato, indica por qué se elige este proveedor.");
+        bar.querySelector("[data-motivo-tipo]").focus();
+        return;
+      }
+
+      const sinCambios = ofertaElegida.k === l.recomendado.k;
+      const resumenConf = `¿Confirmar tu elección para «${l.producto}» (${l.linea})?\n\n` +
+        `• Proveedor elegido: ${elegido} (${dinero(ofertaElegida.precio, 4)} c/u · total ${dinero(ofertaElegida.total)})\n` +
+        (sinCambios ? "• Coincide con la recomendación del agente.\n" : `• Cambia respecto al recomendado (${l.recomendado.proveedor}).\n• Motivo: ${motivo}\n`) +
+        `\nEsta decisión se guarda para que el agente aprenda. No modifica AgroControl.`;
+      if (!confirm(resumenConf)) return;
+
+      const payload = {
+        linea: l.linea,
+        pedido: l.pedido,
+        finca: l.finca,
+        producto: l.producto,
+        categorias: l.categoria ? [l.categoria] : [],
+        propuesto: { proveedor: l.recomendado.proveedor, precio: l.recomendado.precio },
+        decidido: { proveedor: elegido, precio: ofertaElegida.precio, motivo: motivo || "Mejor precio y condiciones" },
+        cambios: sinCambios ? [] : ["proveedor"],
+        sin_cambios: sinCambios,
+        ahorro: l.masCaro ? Math.max(0, Number((l.masCaro.total - ofertaElegida.total).toFixed(2))) : 0,
+        motivo: motivo || "Mejor precio"
+      };
+
+      try {
+        await AgdNube.registrarDecision("comparativo_elegido", payload);
+        S.confirmadas[l.linea] = elegido;
+        pintar();
+        avisar(`Elección guardada (${elegido}). El agente registró tu criterio.`);
+      } catch (err) {
+        avisar("No se pudo guardar en la nube: " + (err.message || err));
+      }
+    }
+  });
+
+  $("#fPedido").addEventListener("change", (e) => { S.pedido = e.target.value; pintar(); });
+  $("#fFinca").addEventListener("change", (e) => { S.finca = e.target.value; pintar(); });
+  $("#fBuscar").addEventListener("input", (e) => { S.q = e.target.value; pintar(); });
+  $("#btnExcelComp").addEventListener("click", exportarExcel);
+
+  (async function iniciar() {
+    try { await ComprasApp.exigirSesion({ permitirNube: true }); } catch (e) { return; }
+    try { S.filas = ((await ComprasApp.filasAgro({ silencioso: true })) || {}).filas || []; } catch (e) { S.filas = []; }
+    if (!S.filas.length) {
+      $("#lista").innerHTML = `<div class="vacio">No se pudieron leer los pedidos de AgroControl. Intenta de nuevo en un momento.</div>`;
+      return;
+    }
+    try { S.cots = (await AgdNube.leerCotizacionesPorLinea()) || {}; } catch (e) { S.cots = {}; }
+    try { S.eval = (await AgdNube.leerEvaluacionesProveedores()) || {}; } catch (e) { S.eval = {}; }
+    try {
+      const cat = await AgdNube.leerCatalogoProveedores();
+      (Array.isArray(cat) ? cat : (cat && cat.proveedores) || []).forEach((p) => {
+        if (p && p.nombre) S.catalogo[clave(p.nombre)] = p;
+      });
+    } catch (e) {}
+
+    calcular();
+    pintar();
+
+    try {
+      AgdNube.escucharCargas((lista) => {
+        S.cargas = Array.isArray(lista) ? lista : [];
+        calcular();
+        pintar();
+      });
+    } catch (e) {}
+  })();
+})();
+</script>
+</body>
+</html>

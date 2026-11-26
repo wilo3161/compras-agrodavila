@@ -40,7 +40,8 @@
     campana: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
     pulgar: '<path d="M7 10v12"/><path d="M15 5.9 14 10h5.8a2 2 0 0 1 2 2.5l-2.3 8a2 2 0 0 1-2 1.5H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.8a2 2 0 0 0 1.8-1.1L12 2a3.1 3.1 0 0 1 3 3.9Z"/>',
     imagen: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
-    papelera: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>'
+    papelera: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>',
+    comparar: '<path d="M3 5h18"/><path d="M3 12h18"/><path d="M3 19h18"/><path d="M9 5v14"/><path d="M15 5v14"/>'
   };
   const ico = (n, cls) => `<svg class="ico${cls ? " " + cls : ""}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ""}</svg>`;
 
@@ -103,6 +104,9 @@
     },
     "evaluacion.html": {
       vista: ["Evaluación de proveedores", "Cada proveedor tiene una nota de 0 a 100 sacada de AgroControl: precio frente a los demás, entregas a tiempo, forma de pago y si responde. Usa los botones de arriba para ver los mejores, los que se atrasan o los que no responden, y da tu veredicto abajo de cada uno."]
+    },
+    "comparativo.html": {
+      vista: ["Comparativo de cotizaciones", "Muestra lado a lado todos los pedidos que tienen 2 o más cotizaciones de distintos proveedores, señala el mejor precio y explica por qué conviene. Si eliges uno más caro, te pide anotar el motivo y enseña al agente."]
     },
     "sicop.html": {
       vista: ["Órdenes de compra para SICOP", "Cada orden de AgroControl sale con los datos en el orden de la pantalla de SICOP y un botón para copiar cada uno. Compara el total de aquí con el de SICOP antes de procesar la orden."]
@@ -176,6 +180,11 @@
     "fincas3d.html": [
       ["#contenedor-fincas-3d", "Maqueta 3D interactiva", "Superficie de las 6 fincas a escala de sus hectáreas. Arrastre para girar, pellizque o use la rueda para acercar."],
       [".visor-fincas-sidebar", "Ficha técnica y bodega", "Toque cualquier finca para ver sus cultivos, alertas operativas e inventario de insumos recibidos."]
+    ],
+    "comparativo.html": [
+      ["#resumen", "Resumen de ahorro", "Vea cuántas líneas ya tienen 2 o más cotizaciones listas para decidir, cuánto puede ahorrar y cuántas siguen con 0 o 1 cotización."],
+      ["#tabs", "Tres vistas", "Cambie entre Por decidir, Faltan cotizaciones y Todos con historial."],
+      ["#filtrosComp", "Filtros por pedido y finca", "Filtre un pedido completo (por ejemplo PED-0016) para copiar el cuadro a Gerencia o bajarlo a Excel."]
     ]
   };
 
@@ -185,11 +194,12 @@
     const primarios = [
       ["index.html", "inicio", "Inicio"],
       ["cotizar.html", "cotizar", "Cotizar"],
-      ["nueva.html", "agregar", "Nueva cotización", "Nueva"],
       ["subir.html", "subir", "Subir a AgroControl", "Subir"],
+      ["nueva.html", "agregar", "Nueva cotización", "Nueva"],
       ["avance.html", "avance", "Avance"]
     ];
     const secundarios = [
+      ["comparativo.html", "comparar", "Comparativo"],
       ["bandeja.html", "bandeja", "Bandeja"],
       ["gerencia.html", "gerencia", "Gerencia"],
       ["evaluacion.html", "foco", "Evaluación de proveedores"],
