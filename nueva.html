@@ -131,11 +131,11 @@ h2{margin:0 0 8px;font-size:17px}
   function leerTabla(filas) {
     filas = filas.map((f) => f.map((c) => String(c == null ? "" : c).replace(/\s+/g, " ").trim())).filter((f) => f.some(Boolean));
     if (!filas.length) return [];
-    let cab = -1, cp = -1, cc = -1, cu = -1, cf = -1, cl = -1, ce = -1;
+    let cab = -1, cp = -1, cc = -1, cu = -1, cf = -1, cl = -1, ce = -1, ccat = -1;
     for (let i = 0; i < Math.min(filas.length, 15) && cab < 0; i++) {
       const p = filas[i].findIndex((c) => CAB_P.test(c)), c = filas[i].findIndex((x) => CAB_C.test(x));
       if (p >= 0 && (c >= 0 || filas[i].length <= 2)) { cab = i; cp = p; cc = c; cu = filas[i].findIndex((x, k) => k !== p && k !== c && CAB_U.test(x));
-        cf = filas[i].findIndex((x) => /^(finca|hacienda|destino|entrega en)$/i.test(x)); cl = filas[i].findIndex((x) => /^(c[oó]digo producto|l[ií]nea)$/i.test(x)); ce = filas[i].findIndex((x) => /^estado$/i.test(x)); }
+        cf = filas[i].findIndex((x) => /^(finca|hacienda|destino|entrega en)$/i.test(x)); cl = filas[i].findIndex((x) => /^(c[oó]digo producto|l[ií]nea)$/i.test(x)); ce = filas[i].findIndex((x) => /^estado$/i.test(x)); ccat = filas[i].findIndex((x) => /^categor[ií]a$/i.test(x)); }
     }
     const cuerpo = filas.slice(cab + 1);
     if (cab < 0) {   // sin títulos: la columna con más texto es el producto; la de números, la cantidad
@@ -156,13 +156,13 @@ h2{margin:0 0 8px;font-size:17px}
         const est = sinTilde(f[ce]); META.total++;
         if (/revisado supervisor/.test(est)) META.porCotizar++;
         else { if (/pedido campo/.test(est)) META.sinAprobar++; else if (/proveedor seleccionado/.test(est)) META.yaCotizado++; else META.autorizado++; return; }
-        return out.push({ producto: p.toUpperCase(), cantidad: esNum(f[cc] || "") ? aNum(f[cc]) : "", unidad: (uni(f[cu]) || f[cu] || "").toUpperCase(), finca: fincaDe(f[cf]) || f[cf] || "", linea: f[cl] || "" });
+        return out.push({ producto: p.toUpperCase(), cantidad: esNum(f[cc] || "") ? aNum(f[cc]) : "", unidad: (uni(f[cu]) || f[cu] || "").toUpperCase(), finca: fincaDe(f[cf]) || f[cf] || "", linea: f[cl] || "", categoria: ccat >= 0 ? (f[ccat] || "") : "" });
       }
-      const fin = cf >= 0 ? (fincaDe(f[cf]) || "") : "";
+      const fin = cf >= 0 ? (fincaDe(f[cf]) || "") : "", cat = ccat >= 0 ? (f[ccat] || "") : "";
       let cant = cc >= 0 && esNum(f[cc] || "") ? aNum(f[cc]) : "", u = cu >= 0 ? (uni(f[cu]) || f[cu] || "") : "";
       if (cc >= 0 && !cant) { const m = /^(\d+[.,]?\d*)\s*([a-záéíóúñ.]+)$/i.exec(f[cc] || ""); if (m) { cant = aNum(m[1]); u = u || uni(m[2]) || m[2].toUpperCase(); } }
-      if (!cant || !u) { const r = leerRenglon(p); if (r && r.cantidad && !cant) return out.push(Object.assign(r, { finca: fin })); }
-      out.push({ producto: p.toUpperCase(), cantidad: cant, unidad: String(u).toUpperCase(), finca: fin });
+      if (!cant || !u) { const r = leerRenglon(p); if (r && r.cantidad && !cant) return out.push(Object.assign(r, { finca: fin, categoria: cat })); }
+      out.push({ producto: p.toUpperCase(), cantidad: cant, unidad: String(u).toUpperCase(), finca: fin, categoria: cat });
     });
     return out;
   }
@@ -270,8 +270,8 @@ h2{margin:0 0 8px;font-size:17px}
     nuevos.forEach((i) => {
       const k = plano(i.producto); if (!k) return;
       const ya = S.items.find((x) => plano(x.producto) === k && (x.linea || "") === (i.linea || "") && (!x.finca || !i.finca || x.finca === i.finca));
-      if (ya) { if (!ya.cantidad && i.cantidad) ya.cantidad = i.cantidad; if (!ya.unidad && i.unidad) ya.unidad = i.unidad; if (!ya.finca && i.finca) ya.finca = i.finca; return; }
-      S.items.push({ producto: i.producto, cantidad: i.cantidad || "", unidad: i.unidad || "", finca: i.finca || "", linea: i.linea || "" }); n++;
+      if (ya) { if (!ya.cantidad && i.cantidad) ya.cantidad = i.cantidad; if (!ya.unidad && i.unidad) ya.unidad = i.unidad; if (!ya.finca && i.finca) ya.finca = i.finca; if (!ya.categoria && i.categoria) ya.categoria = i.categoria; return; }
+      S.items.push({ producto: i.producto, cantidad: i.cantidad || "", unidad: i.unidad || "", finca: i.finca || "", linea: i.linea || "", categoria: i.categoria || "" }); n++;
     });
     return n;
   }
@@ -338,42 +338,83 @@ h2{margin:0 0 8px;font-size:17px}
   const nombreImg = () => "Captura pegada " + new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   function recibir(archivos) { [...archivos].forEach((a) => procesar(a.name || nombreImg(), (av) => leerArchivo(a, av))); }
 
+  /* ───────── Clasificador por Familia (Herramientas, Repuestos, Insumos, etc.) ───────── */
+  function familiaDe(producto, categoria) {
+    const c = sinTilde(categoria || ""), p = sinTilde(producto || "");
+    if (/herramienta|ferreter|electric|iluminac|construcc|plomer/.test(c)) return "Ferretería y Herramientas";
+    if (/repuesto|maquinaria|fumigac|equipo/.test(c)) return "Repuestos y Maquinaria";
+    if (/fertilizante/.test(c)) return "Fertilizantes";
+    if (/herbicida|fungicida|bactericida|insecticida|acaricida|molusquicida|coadyuvante|bioestimulante|control biologico|agroquim/.test(c)) return "Agroquímicos e Insumos Agrícolas";
+    if (/riego|hidraulic/.test(c)) return "Riego e Hidráulica";
+    if (/epp|seguridad/.test(c)) return "EPP y Seguridad";
+    if (/lubricante|combustible|aceite/.test(c)) return "Lubricantes y Fluidos";
+    if (/material agricola/.test(c)) return "Material Agrícola";
+    if (/desinfecc|limpieza/.test(c)) return "Desinfección y Limpieza";
+    // Inferencia por nombre si viene de imagen o texto suelto sin columna Categoría
+    if (/\b(pala|martillo|alicate|flexometro|cuchillo|lima|sierra|broca|disco|taipe|cinta aislante|cable|estilete|calibrador|caja de herramientas|arco de sierra|llave de paso|alambre)\b/.test(p)) return "Ferretería y Herramientas";
+    if (/\b(filtro|prefiltro|rodamiento|pasador|empaque|valvula|manguera|racor|acople|cuchilla|relay|tapa|boquilla|manometro|lanza|cilindro|piston)\b/.test(p)) return "Repuestos y Maquinaria";
+    if (/\b(sulfato|nitrato|cloruro|urea|acido borico|bionext dkp)\b/.test(p)) return "Fertilizantes";
+    if (/\b(antracol|decis|methomil|polyram|scoba|triplexac|entrust|serenade|microvita|aciox|pantera|diabolo|algaminodeck|bioestimodek|detergreen|kupper|zigatop|victeriaduo|efix|glooper|switch|desplome|malathion)\b/.test(p)) return "Agroquímicos e Insumos Agrícolas";
+    if (/\b(conector|tubo banariego|weld on)\b/.test(p)) return "Riego e Hidráulica";
+    if (/\b(guante)\b/.test(p)) return "EPP y Seguridad";
+    if (/\b(aceite|20w50|15w40)\b/.test(p)) return "Lubricantes y Fluidos";
+    return "Otros Insumos";
+  }
+
   /* ───────── Mensaje y tarjeta ───────── */
   function mensaje(e) {
     const hora = Number(new Date().toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/Guayaquil" }));
     const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
-    const finca = e.finca || "", motivo = $("#motivo").value.trim();
-    const donde = !finca ? "" : ` para la finca ${finca}`;
-    // A un proveedor nuevo (hallado en internet o escrito a mano) primero se le pregunta si ofrece los productos.
+    const fincas = [...new Set((e.items || []).map((i) => i.finca).filter(Boolean))];
+    const finca = e.finca && e.finca !== "varias" ? e.finca : (fincas.length === 1 ? fincas[0] : "");
+    const motivo = $("#motivo").value.trim();
+    const donde = fincas.length > 1 ? ` para nuestras fincas (${fincas.join(", ")})` : (!finca ? "" : ` para la finca ${finca}`);
     const detalle = `${donde}${motivo ? ` (${motivo})` : ""}`;
     const abre = e.provNuevo && e.prov && e.prov.nombre
       ? `Encontramos su contacto y quisiéramos saber si ustedes ofrecen estos productos. De ser así, por favor ayúdenos con una cotización formal${detalle} de:\n`
       : `Por favor, ¿nos ayuda con una cotización formal${detalle} de:\n`;
+    const notaFincas = fincas.length > 1
+      ? "\n\nNota importante: Por favor cotizar todo el listado en conjunto. Tomar en cuenta que la facturación final se emitirá de manera individual por cada finca."
+      : "";
     return `${saludo}, estimado/a. Le saluda el Ing. Wilson Pérez, analista de Compras y Logística de la empresa AgroDávila.\n\n` + abre +
-      e.items.map((i) => `• ${[i.cantidad, i.unidad].filter(Boolean).join(" ")} — ${i.producto}`).join("\n") +
+      e.items.map((i) => `• ${[i.cantidad, i.unidad].filter(Boolean).join(" ")} — ${i.producto}${i.finca && fincas.length > 1 ? ` [${i.finca}]` : ""}`).join("\n") +
+      notaFincas +
       `\n\nPor favor incluya: precio unitario (IVA aparte), disponibilidad o tiempo de entrega, forma de pago y validez de la oferta.\n\nMuchas gracias.`;
   }
   const fincaItem = (i) => i.finca || ($("#finca").value === "varias" ? "" : $("#finca").value);
+  /* Un pedido de cotización nunca mezcla la Costa (Puerto Cayo, El Carmen) con Imbabura: cada zona tiene sus
+     proveedores y su flete. La clave del grupo es la familia y, si hay fincas de las dos zonas, también la zona. */
+  const zonaDe = (f) => { const p = sinTilde(f || ""); return !p ? "" : (/cayo|carmen/.test(p) ? "Costa" : "Imbabura"); };
+  const zonasEnPedido = () => new Set(S.items.filter((i) => i.producto.trim()).map((i) => zonaDe(fincaItem(i))).filter(Boolean));
+  const claveGrupo = (i) => { const fam = familiaDe(i.producto, i.categoria); return zonasEnPedido().size > 1 ? `${fam} · ${zonaDe(fincaItem(i)) || "sin finca"}` : fam; };
   function grupos() {
     const g = new Map();
-    S.items.filter((i) => i.producto.trim()).forEach((i) => { const k = fincaItem(i); if (!g.has(k)) g.set(k, []); g.get(k).push(i); });
+    S.items.filter((i) => i.producto.trim()).forEach((i) => {
+      const fam = claveGrupo(i);
+      if (!g.has(fam)) g.set(fam, []);
+      g.get(fam).push(Object.assign({}, i, { finca: fincaItem(i) }));
+    });
     return [...g.entries()].sort((a, b) => b[1].length - a[1].length);
   }
   function pintarGrupos(f) {
     const gs = grupos(), bloqueado = !!f.length;
-    $("#grupos").innerHTML = (gs.length ? gs : [["", []]]).map(([finca, its]) => {
-      const env = S.enviados.filter((e) => e.finca === finca).length;
-      return `<button class="b p" type="button" data-armar="${esc(finca)}" ${bloqueado || !its.length ? "disabled" : ""} style="justify-content:space-between">
-        <span>${gs.length > 1 || finca ? esc(finca || "Sin finca") + " · " + its.length + " producto(s)" : "Elegir proveedor y revisar"}</span>
-        <span style="font-weight:400">${env ? `ya pedido a ${env} · pedir a otro proveedor` : gs.length > 1 || finca ? "elegir proveedor y revisar" : ""}</span></button>`;
+    $("#grupos").innerHTML = (gs.length ? gs : [["", []]]).map(([fam, its]) => {
+      const env = S.enviados.filter((e) => e.finca === fam).length;
+      const fincas = [...new Set(its.map((i) => i.finca).filter(Boolean))];
+      const subFincas = fincas.length > 1 ? ` · ${fincas.length} fincas (facturación individual)` : (fincas.length === 1 ? ` · ${fincas[0]}` : "");
+      return `<button class="b p" type="button" data-armar="${esc(fam)}" ${bloqueado || !its.length ? "disabled" : ""} style="justify-content:space-between">
+        <span>${fam ? esc(fam) + " · " + its.length + " producto(s)" + esc(subFincas) : "Elegir proveedor y revisar"}</span>
+        <span style="font-weight:400">${env ? `ya pedido a ${env} · pedir a otro proveedor` : "elegir proveedor y revisar"}</span></button>`;
     }).join("");
   }
-  function armar(finca) {
-    const items = S.items.filter((i) => i.producto.trim() && fincaItem(i) === finca).map((i) => ({ producto: i.producto.trim(), cantidad: i.cantidad, unidad: i.unidad, finca, linea: i.linea || "" }));
-    window.AgdTarjeta.abrir({ tipo: "cotizacion", proveedor: { nombre: "", chat: "", telefono: "" }, items, finca, texto: "" },
-      { contexto: [finca, $("#motivo").value.trim(), "Nueva cotización"].filter(Boolean).join(" · "), origen: "nueva", generar: mensaje, preelegir: true, excluir: S.enviados.filter((x) => x.finca === finca).map((x) => x.prov),
-        alEnviar: (r) => { S.enviados.push({ prov: r.proveedor, finca, n: r.items.length, modo: "sale por WhatsApp en ~1 minuto" }); pintarEnviados(); avisar("Aprobado: sale por WhatsApp en ~1 minuto"); },
-        alYaEnviado: () => { S.enviados.push({ prov: "(enviado a mano)", finca, n: items.length, modo: "marcado como enviado por ti" }); pintarEnviados(); } });
+  function armar(fam) {
+    const items = S.items.filter((i) => i.producto.trim() && claveGrupo(i) === fam).map((i) => ({ producto: i.producto.trim(), cantidad: i.cantidad, unidad: i.unidad, finca: fincaItem(i), linea: i.linea || "" }));
+    const fincas = [...new Set(items.map((i) => i.finca).filter(Boolean))];
+    const fincaLabel = fincas.length === 1 ? fincas[0] : (fincas.length > 1 ? "varias" : "");
+    window.AgdTarjeta.abrir({ tipo: "cotizacion", proveedor: { nombre: "", chat: "", telefono: "" }, items, finca: fincaLabel, texto: "" },
+      { contexto: [fam, fincas.join(", "), $("#motivo").value.trim()].filter(Boolean).join(" · "), origen: "nueva", generar: mensaje, preelegir: true, excluir: S.enviados.filter((x) => x.finca === fam).map((x) => x.prov),
+        alEnviar: (r) => { S.enviados.push({ prov: r.proveedor, finca: fam, n: r.items.length, modo: "sale por WhatsApp en ~1 minuto" }); pintarEnviados(); avisar("Aprobado: sale por WhatsApp en ~1 minuto"); },
+        alYaEnviado: () => { S.enviados.push({ prov: "(enviado a mano)", finca: fam, n: items.length, modo: "marcado como enviado por ti" }); pintarEnviados(); } });
   }
   function pintarEnviados() {
     $("#enviados").innerHTML = S.enviados.map((e) => `<div class="hecho">${I("check")} <b>${esc(e.prov)}</b>${e.finca ? " · " + esc(e.finca) : ""} · ${e.n} producto(s) · ${esc(e.modo)}</div>`).join("") +

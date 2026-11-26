@@ -287,7 +287,7 @@
   /* Zonificación logística: Puerto Cayo y El Carmen son Costa; las demás fincas, Imbabura (Sierra).
      Un proveedor de la otra zona encarece el flete: se muestra al final y con aviso. «Nacional» sirve a las dos. */
   const COSTA = ["puerto cayo", "el carmen"];
-  const zonaFinca = () => { const f = plano(E.finca || (E.items.find((i) => i.finca) || {}).finca || ""); return !f ? "" : (COSTA.some((c) => f.includes(c)) ? "Costa" : "Imbabura"); };
+  const zonaFinca = () => { const f = plano((E.finca && E.finca !== "varias" ? E.finca : "") || (E.items.find((i) => i.finca) || {}).finca || ""); return !f ? "" : (COSTA.some((c) => f.includes(c)) ? "Costa" : "Imbabura"); };
   const otraZona = (p) => { const z = zonaFinca(); return !!z && !!p.zona && p.zona !== "Nacional" && p.zona !== z; };
   const mismoRubro = (p) => { const r = E.rubrosOrig || []; return !r.length || !(p.rubros || []).length || (p.rubros || []).some((x) => r.includes(x)) || (p.rubros || []).includes("Por clasificar"); };
   function provOrdenados(q) {
