@@ -80,6 +80,7 @@ ul.items li .det{font-size:12px;color:var(--t2)}
       <h1>Cotizar</h1>
       <p class="sub" id="subtitulo">Revisa cada tarjeta, ajústala si hace falta y envíala con un clic.</p>
     </div>
+    <button type="button" class="btn p" id="btn-cotizar-todo" style="min-height:44px;font-weight:700">Cotizar todo lo pendiente</button>
   </div>
 
   <div class="resumen" id="resumen" hidden>
@@ -97,6 +98,7 @@ ul.items li .det{font-size:12px;color:var(--t2)}
 
   <section id="vista-cotizar"><div class="esqueleto" role="status"><span class="lector">Cargando lo que falta cotizar…</span><i></i><i></i><i></i></div></section>
   <section id="vista-enviadas" hidden></section>
+  <section id="vista-cotizar-todo" hidden></section>
 </main>
 
 <div class="capa" id="capa-prov" role="dialog" aria-modal="true" aria-labelledby="t-prov">
@@ -147,6 +149,9 @@ ul.items li .det{font-size:12px;color:var(--t2)}
   const FIRMA = { nombre: "Ing. Wilson Pérez", cargo: "Analista de Compras y Logística", whatsapp: "0981892023" };
 
   const S = { filas: [], cots: {}, catalogo: [], seg: {}, estado: {}, solicitudes: [], tarjetas: [], ajustes: {}, finca: "", urg: false };
+  window.CotizarEstado = S;
+  const btnTodo = $("#btn-cotizar-todo");
+  if (btnTodo) btnTodo.onclick = () => { if (window.CotizarTodo) window.CotizarTodo.abrir(); };
 
   const campo = (f, ...ks) => { for (const k of ks) { if (f[k] !== undefined && f[k] !== null && f[k] !== "") return f[k]; } return ""; };
   const linea = (f) => String(campo(f, "linea", "Línea"));
@@ -603,5 +608,6 @@ ul.items li .det{font-size:12px;color:var(--t2)}
   cargar();
 })();
 </script>
+<script src="cotizar_todo.js"></script>
 </body>
 </html>
